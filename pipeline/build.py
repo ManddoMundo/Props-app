@@ -5,6 +5,13 @@ D=json.load(open(O+"data.json"))
 D["desk"]=json.load(open(O+"history.json")) if os.path.exists(O+"history.json") else {"bets":[],"days":[],"unit":0.5,"bankroll":25}
 D["feed"]=json.load(open(O+"feed.json")) if os.path.exists(O+"feed.json") else {}
 D["calib"]=json.load(open(O+"calib.json")) if os.path.exists(O+"calib.json") else {}
+# with/without history for the stress test (display only). Not fatal: without it the page says there is nothing to check against.
+D["ww"]=json.load(open(O+"ww.json")) if os.path.exists(O+"ww.json") else {}
+# every book's quote on every prop in the latest pull, graded against the others (display only). Not fatal.
+try:
+    import books; D["books"]=books.build(D)
+except Exception as e:
+    print("market grades skipped:",e); D["books"]={}
 D["audit_n"]=len(json.load(open(O+"audit.json"))) if os.path.exists(O+"audit.json") else 0
 # jersey numbers for the page (display only). Not fatal: a player with no number shows his position instead.
 try:

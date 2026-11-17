@@ -118,3 +118,9 @@ See the scheduled task prompt. Rules that always hold:
 - Weekly review: unchanged, with one addition. If it changes a pipeline file it must end its report with the list of files to upload and send them as a zip.
 - 2026-11-16 fix: a team whose last game is over but whose stats are not posted yet has no active players; target and carry shares then divided zero by zero and broke check.js. Both engines now floor the sum.
 
+
+## Stress test history (ww.py, v3.3)
+run.sh runs `python3 ww.py` after the research step. It reads out/data.json and the box score files, and writes out/ww.json: for each regular on the slate, his teammates' per-game numbers with him in and out over the last two seasons for the same club, plus the engine's own shift for comparison and a score of the engine against history (printed in the run log). build.py embeds it as DATA.ww. It is display only: if it fails the run carries on and the stress test says there is nothing to check against.
+
+## Market grades (books.py, v3.4)
+build.py calls books.build(D) for the newest out/lines/{LG}_YYYY-MM-DD.txt under 36 hours old (not the _first or _close snapshots) and embeds the result as DATA.books. FL_LINES="NBA=path,NFL=path" overrides the file for a local test. Grades: A edge >= +2% against the other books' consensus, B >= 0, C >= -2.5%, D >= -5%, F below. If it fails, the build carries on and the Market grades sheet says no lines are on file.

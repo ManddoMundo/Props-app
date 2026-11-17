@@ -33,6 +33,8 @@ node check.js | head -2      # JS engine must match Python: worst rel diff shoul
 python3 daily.py grade
 # research room sheets. Not fatal: if this fails the page keeps the last research/nfl.json.
 { [ -f research_nfl.py ] && python3 research_nfl.py; } || echo "RESEARCH STEP FAILED: the Research tab keeps its last file"
+# stress test history: teammates with and without each regular. Not fatal: the page then shows no history.
+python3 ww.py || echo "WITH/WITHOUT STEP FAILED: the stress test shows no history"
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
 python3 - <<'PY'
 import json; D=json.load(open('/home/claude/props/out/data.json'))
