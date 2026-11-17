@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-17 v2.2 Duo fixes and the market rail (asked for by Armanddo; display only)
+- iPhone Duo: the credit memo's Close button sat under the phone's side status strip. On phone sheets Close is now on the left, the memo head keeps clear of the right inset, and the picker sheets do the same.
+- League switch scene: on his recording the second scene opened already at the score and shut at once. The scene started on the tap while Safari was still holding the old screen. It now starts when the page change is ready (with a 1.5 second fallback).
+- Markets in the credit memo are a rail of small tote tiles. Each shows its own projection (PTS 8.8, REB 4.1) and the chosen one lights up, lifts and flickers on like a tube. The rail glides the lit tile to the middle.
+
 ## 2026-11-17 v2.1 the daily run moves into GitHub; the standalone app updates itself (asked for by Armanddo)
 - New `site_job.sh` and workflow `lines.yml`: the GitHub job now unlocks the books, pulls lines, runs the models, picks, rebuilds the Fair Line app in `docs/` and locks the books again. The books are stored encrypted. Dry run here end to end: engine check 0.0014 and 0.0002, 433 KB of state, app built.
 - New `daily.py today` (only games that tip today are priced, so a Saturday pull cannot bet Sunday's games a day early), `mirror` (the Claude daily run copies GitHub's books instead of picking) and `summary`.
