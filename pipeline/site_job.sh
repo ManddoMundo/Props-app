@@ -25,8 +25,9 @@ case "$KIND" in
     [ "$KIND" = early ] && NOTE="Morning refresh. Lines and picks come with the late morning run."
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
     if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; T=$P/out/lines/${LG}_${D}_today.txt
-      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG
-      else NOTE="$NOTE $LG: no Hard Rock lines for games today."; fi; done; fi ;;
+      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG; python3 daily.py confident $D $LG "$T" || echo "CONFIDENT LANE FAILED for $LG"
+      else NOTE="$NOTE $LG: no Hard Rock lines for games today."; fi; done
+      python3 daily.py fill $D || echo "FILL STEP FAILED"; fi ;;
   close)
     for LG in NBA NFL; do for F in $P/out/lines/${LG}_${D}_close*.txt; do
       if [ -f "$F" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), relay" "$F" || true; fi; done; done ;;

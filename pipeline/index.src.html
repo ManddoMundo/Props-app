@@ -376,7 +376,7 @@ button.pn:hover{text-decoration-style:solid}
 .tabs button[aria-selected="true"]::before{opacity:0}
 .tabs.live button[aria-selected="true"] svg{animation:tabpop .42s var(--thunk)}
 @keyframes tabpop{from{transform:scale(.55) rotate(-16deg)}to{transform:none}}
-main{max-width:1500px;margin:0 auto;padding-block:0 90px;min-height:100vh;background:var(--desk);view-transition-name:sheet}
+main{max-width:1500px;margin:0 auto;padding-block:0 90px;min-height:100vh;background:var(--desk)}
 .hd h2{border-bottom:4px solid var(--tc,var(--ink));padding-bottom:1px}
 /* mastheads */
 .mast{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:flex-end;min-height:130px;margin:0 0 18px;padding:18px 20px 16px;border:2px solid var(--ink);border-top:0;border-radius:0 0 18px 18px;box-shadow:var(--lift)}
@@ -965,6 +965,117 @@ body.has-tray main{padding-bottom:120px}
 .onair::after{content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 3px #2a0d0a,0 0 34px rgba(224,49,42,.85);opacity:0;pointer-events:none;animation:halo 3.2s ease-in-out 1.4s infinite;will-change:opacity}
 @keyframes halo{50%{opacity:1}}
 .anc,.coach,.sfig{contain:layout paint}
+/* ---------- v3.8.1 the film on the Model page: plays by itself, scenes cut with a zoom ---------- */
+.story{position:relative;margin:0 0 22px}
+.st-stage{position:relative;height:clamp(520px,74vh,700px);overflow:hidden;border-radius:18px;border:2px solid var(--ink);background:radial-gradient(130% 90% at 50% 0%,#152231 0,#070b10 72%);color:#eef2f4;isolation:isolate;contain:layout paint;box-shadow:var(--lift)}
+.st-glow{position:absolute;left:5%;top:15%;width:90%;height:75%;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--t1) 55%,#5ab0ff),transparent 70%);opacity:.32;filter:blur(34px);will-change:transform;z-index:-1}
+.st-flash{position:absolute;inset:0;background:radial-gradient(40% 30% at 50% 55%,rgba(255,255,255,.9),transparent 70%);opacity:0;pointer-events:none;z-index:3}
+.st-cam{position:absolute;inset:0;transform-origin:50% 60%;will-change:transform}
+.st-caps{position:absolute;left:0;right:0;top:0;padding:26px max(20px,4vw) 0;pointer-events:none;z-index:4}
+.st-cap{position:absolute;left:max(20px,4vw);right:max(20px,4vw);top:26px;visibility:hidden}
+.st-cap small{font:700 10.5px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:#8fb8ff}
+.st-cap h3{margin:8px 0 6px;font:400 clamp(32px,5.6vw,60px)/1.02 var(--display);letter-spacing:-.01em}
+.st-cap .ln{display:block;overflow:hidden;padding-bottom:.06em} .st-cap .ln>span{display:block;transform:translateY(105%);will-change:transform}
+.st-cap p{margin:0;max-width:44ch;font:14px/1.5 var(--mono);color:#b8c4cc;opacity:0}
+.st-tape{position:absolute;inset:0;pointer-events:none}
+.sc-chip{position:absolute;left:0;top:0;padding:3px 7px;border-radius:5px;border:1px solid rgba(143,184,255,.3);background:rgba(16,28,40,.72);font:700 13px var(--mono);color:#cfe0ff;opacity:0;will-change:transform,opacity;transition:background .5s,border-color .5s,box-shadow .5s,color .5s}
+.sc-chip.me.lit{border-color:var(--t2,#8fb8ff);background:color-mix(in srgb,var(--t1) 75%,#0a1018);color:#fff;box-shadow:0 0 18px -2px color-mix(in srgb,var(--t1) 80%,#5ab0ff);z-index:2}
+.st-bars{position:absolute;left:0;right:0;bottom:84px;display:grid;place-items:center;opacity:0;will-change:opacity,transform}
+.sbx{position:relative;display:flex;align-items:flex-end;gap:min(2.2vw,14px);height:clamp(150px,30vh,250px);width:min(86%,620px);border-bottom:2px solid rgba(238,242,244,.45)}
+.sb{flex:1;height:calc(var(--h)*100%);transform-origin:50% 100%;transform:scaleY(0);border-radius:5px 5px 0 0;background:rgba(238,242,244,.2);position:relative;will-change:transform}
+.sb.h{background:linear-gradient(var(--t1),color-mix(in srgb,var(--t1) 55%,#000));box-shadow:inset 0 0 0 1.5px var(--t2)}
+.sb b{display:none}
+.sline{position:absolute;left:-6px;right:-6px;bottom:calc(var(--y)*100%);border-top:2px dashed #ffcf5a;opacity:0;transform-origin:0 50%;transform:scaleX(0)}
+.sline em{position:absolute;right:0;top:-22px;font:700 12px var(--mono);font-style:normal;color:#ffcf5a}
+.st-stack{position:absolute;left:50%;top:58%;width:min(84%,440px);height:0;opacity:0;transform:translateX(-50%)}
+.sl{position:absolute;left:0;right:0;top:-46px;height:92px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;align-items:center;padding:12px 18px;border-radius:16px;opacity:0;
+  border:1.5px solid rgba(143,184,255,.55);background:linear-gradient(135deg,#22344c,#0d151f 70%);box-shadow:0 24px 44px -22px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.18);will-change:transform,opacity}
+.sl small{grid-column:1/-1;font:700 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:#8fb8ff}
+.sl b{font:400 clamp(28px,7vw,38px)/1 var(--display);white-space:nowrap} .sl span{min-width:0;font:12.5px/1.35 var(--mono);color:#b8c4cc}
+.sl.l2{border-color:rgba(255,207,90,.6)} .sl.l2 small{color:#ffcf5a} .sl.l3{border-color:rgba(125,255,161,.5)} .sl.l3 small{color:#7dffa1}
+.sl.fin{border-color:var(--t2,#fff);background:linear-gradient(135deg,color-mix(in srgb,var(--t1) 65%,#0d151f),#0d151f 75%);box-shadow:0 0 50px -8px color-mix(in srgb,var(--t1) 70%,#5ab0ff)} .sl.fin b{font-size:50px}
+.st-dist{position:absolute;left:0;right:0;bottom:80px;display:grid;justify-items:center;gap:16px;opacity:0}
+.sdx{position:relative;display:flex;align-items:flex-end;gap:2px;height:clamp(130px,24vh,210px);width:min(86%,620px);border-bottom:2px solid rgba(238,242,244,.45)}
+.sdx i{flex:1;height:calc(var(--h)*100%);transform-origin:50% 100%;transform:scaleY(0);background:rgba(238,242,244,.24);border-radius:3px 3px 0 0;will-change:transform}
+.sdx i.o{background:linear-gradient(color-mix(in srgb,var(--t1) 60%,#5ab0ff),color-mix(in srgb,var(--t1) 80%,#0a1018))}
+.sdx .sline{left:calc(var(--x)*100%);right:auto;top:-10px;bottom:0;border-top:0;border-left:2px dashed #ffcf5a;transform-origin:50% 0;transform:scaleY(0)}
+.sdx .sline em{left:6px;right:auto;top:-8px}
+.st-px{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 22px;max-width:92%;opacity:0}
+.st-px span small{display:block;font:700 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#8fb8ff;white-space:nowrap} .st-px span b{display:block;font:400 clamp(26px,7.4vw,38px)/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.st-px .seal{opacity:0;will-change:transform,opacity}
+.st-ctl{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:12px;z-index:5}
+.st-play{flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(238,242,244,.5);background:rgba(10,16,24,.6);display:grid;place-items:center;color:#eef2f4}
+.st-play i{width:0;height:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent currentColor;margin-left:3px}
+.story.playing .st-play i{width:12px;height:14px;border:0;margin:0;border-left:4px solid currentColor;border-right:4px solid currentColor}
+.story.done .st-play i{width:14px;height:14px;border:2.5px solid currentColor;border-radius:50%;border-top-color:transparent;margin:0}
+.st-dots{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.st-dots button{display:grid;gap:5px;text-align:left;border:0;background:none;color:rgba(238,242,244,.55);padding:4px 0;font:700 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.st-dots button.on{color:#eef2f4}
+.st-dots i{display:block;height:3px;border-radius:2px;background:rgba(238,242,244,.2);position:relative;overflow:hidden}
+.st-dots i::after{content:"";position:absolute;inset:0;background:#8fb8ff;transform-origin:0 50%;transform:scaleX(var(--k,0))}
+.st-skip{display:block;margin-top:10px;text-align:center;font:700 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+@media(max-width:620px){.sl b{font-size:30px}.sl.fin b{font-size:40px}.st-dots span{display:none}.st-bars,.st-dist{bottom:72px}}
+@media (prefers-reduced-motion:reduce){.st-glow{transform:none!important}}
+/* ---------- v3.7.1 league change disc (replaces the page snapshot transition) ---------- */
+.iris-w{position:fixed;left:0;right:0;bottom:0;z-index:30;overflow:hidden;pointer-events:none}
+.iris-fx{position:absolute;border-radius:50%;pointer-events:none;background:var(--desk);box-shadow:inset 0 0 0 6px color-mix(in srgb,var(--ink) 35%,transparent);will-change:transform,opacity;transform:scale(.02)}
+.iris-fx.NBA{background:color-mix(in srgb,#c8743a 55%,var(--desk))} .iris-fx.NFL{background:color-mix(in srgb,#2f6b45 60%,var(--desk))}
+/* ---------- v3.7 stakes on the ticket ---------- */
+.tk-stub .stake{font:700 12px var(--mono);letter-spacing:.04em;padding:3px 8px;border-radius:999px;border:1.5px solid var(--ink);white-space:nowrap}
+/* ---------- v3.8.2 NBA matchups: a list of games, each opens to its sheet ---------- */
+.nm-list{display:grid;gap:10px}
+.nm-g{border:2px solid var(--ink);border-radius:14px;background:var(--panel);box-shadow:2px 2px 0 var(--ink);overflow:hidden;transition:box-shadow .3s}
+.nm-g.open{box-shadow:var(--lift)}
+.nm-gh{width:100%;display:grid;grid-template-columns:auto auto auto 1fr auto auto;grid-template-areas:"a at h when pc chev" "hints hints hints hints hints hints";align-items:center;gap:8px 10px;padding:12px 14px;border:0;background:none;text-align:left;color:var(--ink)}
+.nm-tm{display:flex;align-items:center;gap:6px} .nm-tm:first-child{grid-area:a} .nm-tm:nth-of-type(3){grid-area:h}
+.nm-tm i{width:6px;height:26px;border-radius:2px;background:linear-gradient(var(--t1) 0 70%,var(--t2) 70%)}
+.nm-tm b{font:700 22px/1 var(--cond);letter-spacing:.03em}
+.nm-at{grid-area:at;font:700 13px var(--mono);color:var(--mute)}
+.nm-when{grid-area:when;font:12px var(--mono);color:var(--mute);white-space:nowrap}
+.nm-pc{grid-area:pc;display:grid;justify-items:end;line-height:1.1}
+.nm-pc small{font:700 9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)} .nm-pc b{font:700 16px var(--mono)} .nm-pc em{font:700 10.5px var(--mono);font-style:normal}
+.nm-chev{grid-area:chev;width:10px;height:10px;border:solid var(--ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translateY(-3px);transition:transform .35s var(--ease)}
+.nm-g.open .nm-chev{transform:rotate(225deg) translateY(-3px)}
+.nm-hints{grid-area:hints;display:flex;flex-wrap:wrap;gap:6px}
+.nm-hint{display:inline-flex;gap:5px;align-items:baseline;padding:3px 8px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--good) 60%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent);font:12px var(--mono);color:var(--ink)}
+.nm-hint b{font-weight:700} .nm-hint i{font-style:normal;font-weight:700;color:var(--good)}
+.nm-det{padding:0 12px 14px;border-top:2px dashed var(--rule);animation:nmOpen .45s var(--ease)}
+@keyframes nmOpen{from{opacity:0;transform:translateY(-10px)}}
+.nm-fx{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;margin:12px 0;border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+.nm-fx .fx-t{padding:12px 14px;background:var(--t1);color:var(--tn);display:grid;gap:2px;align-content:center;min-width:0}
+.nm-fx .fx-t.h{text-align:right}
+.nm-fx .fx-t small{font:700 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+.nm-fx .fx-t b{font:700 30px/1 var(--cond);letter-spacing:.02em}
+.nm-p{font:12px var(--mono);white-space:nowrap}
+.nm-mid{display:grid;justify-items:center;align-content:center;gap:2px;padding:10px 12px;background:var(--panel)}
+.nm-mid span{font:700 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);white-space:nowrap} .nm-mid b{font:700 26px/1 var(--mono)} .nm-mid em{font:700 11px var(--mono);font-style:normal;white-space:nowrap}
+.nm-dvp{padding:12px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);min-width:0}
+.nm-dvp table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:3px;margin-top:6px}
+.nm-dvp col.c0{width:24%}
+.nm-dvp th{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);text-align:center;padding:2px 0}
+.nm-dvp tbody th{text-align:left;font:700 13px var(--text);color:var(--ink);letter-spacing:0;text-transform:none}
+.nm-dvp tbody th .sh{display:none}
+.nm-dvp td{padding:6px 2px;text-align:center;border-radius:8px;background:color-mix(in srgb,var(--ink) 5%,transparent);overflow:hidden}
+.nm-dvp td b{display:block;font:700 14px var(--mono)} .nm-dvp td small{display:block;font:10.5px var(--mono);color:var(--mute);white-space:nowrap}
+.nm-dvp td.soft{background:color-mix(in srgb,var(--good) 22%,transparent)} .nm-dvp td.tough{background:color-mix(in srgb,#ff5a4f 16%,transparent)}
+.nm-two{margin-top:12px;align-items:start}
+.nm-side{border:2px solid var(--ink);border-radius:12px;background:var(--panel);overflow:hidden}
+.nm-band{display:flex;align-items:baseline;gap:10px;padding:9px 12px;background:var(--t1);color:var(--tn);box-shadow:inset 0 -4px 0 var(--t2)}
+.nm-band b{font:700 20px/1 var(--cond);letter-spacing:.04em} .nm-band span{font:12px var(--mono);opacity:.9}
+.nm-c{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--rule)}
+.nm-n{flex:1;min-width:0;display:grid;gap:2px} .nm-n b{font:700 15px/1.2 var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .nm-n small{font:11.5px var(--mono);color:var(--mute)}
+.nm-tag{justify-self:start;padding:1px 6px;border-radius:4px;border:1px solid var(--rule);font:700 9.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.nm-tag.soft{border-color:var(--good);color:var(--good)} .nm-tag.tough{border-color:#ff5a4f;color:#ff5a4f}
+.nm-m{flex:none;display:flex;gap:8px;align-items:center}
+.nm-m>span{display:grid;justify-items:center;min-width:30px} .nm-m small{font:700 9px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)} .nm-m b{font:700 14px var(--mono)}
+.nm-tr{min-width:34px;font:700 12px var(--mono);color:var(--mute)} .nm-tr.up{color:var(--good)} .nm-tr.dn{color:#ff5a4f}
+@media(max-width:620px){
+  .nm-gh{grid-template-columns:auto auto auto 1fr auto;grid-template-areas:"a at h pc chev" "when when when when when" "hints hints hints hints hints"}
+  .nm-fx .fx-t{padding:10px}.nm-fx .fx-t b{font-size:24px}.nm-mid{padding:8px}.nm-mid b{font-size:20px}
+  .nm-dvp{padding:10px 8px}.nm-dvp col.c0{width:12%}.nm-dvp tbody th .lf{display:none}.nm-dvp tbody th .sh{display:inline;font:700 14px var(--mono)}
+  .nm-dvp td small .pc{display:none}.nm-dvp td b{font-size:13px}
+  .nm-m{gap:5px}.nm-m b{font-size:13px}.nm-m>span{min-width:26px}
+}
 /* ---------- v3.5 build 2: trends by split ---------- */
 .trsl{display:grid;gap:10px}
 .trs{border:2px solid var(--ink);border-radius:12px;background:linear-gradient(100deg,color-mix(in srgb,var(--t1) 14%,var(--panel)) 0,var(--panel) 45%);box-shadow:2px 2px 0 var(--ink);overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 170px}
@@ -1293,9 +1404,9 @@ const TABS = ['desk','board','research','stress','book','model'];
 
 /* ---------- state ---------- */
 const S = { lg:'NBA', tab:'board', memo:null, game:'all', mkt:'pts', q:'', sort:'rated', limit:40, stressSide:null, relMkt:null,
-            scen:{NBA:{},NFL:{}}, store:{ lines:{}, book:[], settings:{ bank:25, kf:0.25, odds:-110 }, updated:0 }, feed:Object.assign({}, DATA.feed || {}), sync:'This device',
+            scen:{NBA:{},NFL:{}}, store:{ lines:{}, book:[], settings:{ bank:500, kf:0.25, odds:-110 }, updated:0 }, feed:Object.assign({}, DATA.feed || {}), sync:'This device',
             fresh:true, enter:true, open:new Set(), tote:{}, tapePaused:false, flapped:false, memoShown:null,
-            rs:{ tool:'role', game:null, lens:'rec', per:'Full', side:'off', grp:'all', sort:null, hg:'all', hm:'all', hs:'over', hv:'list', gs:'best', sp:'over', sq:'' } };
+            rs:{ tool:'role', game:null, lens:'rec', per:'Full', side:'off', grp:'all', sort:null, hg:'all', hm:'all', hs:'over', hv:'list', gs:'best', sp:'over', sq:'', ng:'' } };
 const DESK = DATA.desk || { bets:[], days:[], unit:.5, bankroll:25 };
 if (DESK.bets.length) S.tab = 'desk';
 const IDX = {};
@@ -1606,13 +1717,15 @@ function filtered() {
   return a;
 }
 function rowHtml(pr, i) {
-  const p = pr.e.p, d = dist(pr), a = assess(pr), M = MK[pr.lg][pr.mkt];
+  const p = pr.e.p, a = assess(pr), M = MK[pr.lg][pr.mkt], fl = getLine(pr.key);
+  const dk = !pr.binary && fl && fl.m != null && !Object.keys(S.scen[pr.lg] || {}).length;      // desk number: the model moved onto what the books say
+  const d = dk ? dist({ key: pr.key + '#m', mu: fl.m, lg: pr.lg, mkt: pr.mkt, binary: false }) : dist(pr), proj = dk ? +fl.m : pr.mu;
   const fair = pr.binary ? odds(E.amer(d[1])) : E.fairLine(d);
   const ln = a ? a.ln : null, sp = a ? a.sp : pr.binary ? { over: d[1] } : E.split(d, fair);      // with a book line, the chance shown is the desk's, not the raw model's
   return `<button class="row pl${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}${i < 3 ? ' top3' : ''}" style="--i:${i || 0};${tcol(pr.lg, p.team)}" data-open="${esc(pr.key)}">
     ${ctlHtml(pr.key)}${whoHtml(pr, M.s, (i || 0) + 1)}
     <span class="cells">
-      <span class="cell"><small>Proj</small><span>${pr.binary ? pct(d[1]) : f1(pr.mu)}</span></span>
+      <span class="cell" title="${dk ? `Desk number. Model alone ${f1(pr.mu)}, other books ${f1(fl.mm)}` : 'Model'}"><small>${dk ? 'Proj' : 'Model'}</small><span>${pr.binary ? pct(d[1]) : f1(proj)}</span></span>
       <span class="cell"><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><span>${fair}</span></span>
       <span class="cell"><small>Book line</small><span class="${ln ? '' : 'mut'}">${ln ? (pr.binary ? (ln.o != null ? odds(ln.o) : ln.u != null ? 'No ' + odds(ln.u) : 'enter') : ln.line) : 'enter'}</span></span>
       <span class="cell"><small>${pr.binary ? 'Yes' : 'Over'} %</small><span>${pct(sp.over)}</span></span>
@@ -1874,13 +1987,15 @@ function bookHtml() {
 
 /* ---------- the desk: the model's own bets, each with its case file ---------- */
 const tkKey = b => b.id + '|' + b.side;
+const unitOf = b => b.unit || DESK.legacy_unit || 0.5;      // bets before v3.7 were $0.50 units and stay that way
+const stakeTxt = b => `${b.units % 1 ? (b.units === .25 ? '¼' : b.units === .5 ? '½' : b.units === .75 ? '¾' : b.units) : b.units}u · ${money(b.units * unitOf(b))}`;
 const betLabel = b => `${b.side}${b.mkt === 'any_td' ? ' anytime TD' : ' ' + b.line + ' ' + MK[b.lg][b.mkt].n.toLowerCase()}`;
 const shortLabel = b => `${b.side === 'Over' ? 'O' : b.side === 'Under' ? 'U' : b.side} ${b.mkt === 'any_td' ? 'TD' : b.line + ' ' + MK[b.lg][b.mkt].s}`;
 function closeHtml(b) {
   const c = b.close; if (!c) return '';
-  const px = b.side === 'Over' ? c.o : c.u, up = c.move != null && c.move >= 0;
+  const px = b.alt ? null : b.side === 'Over' ? c.o : c.u, up = c.move != null && c.move >= 0;
   return `<div class="clv"><span class="lbl">Closing line check · ${esc(c.t)}</span>
-    <span>Hard Rock closed the ${esc(b.side)} ${c.line != null ? c.line : b.line} at <b class="num">${px != null ? odds(px) : 'off the board'}</b>. The desk holds <b class="num">${odds(b.odds)}</b>. At the close ${c.nb} books made this a <b class="num">${pct(c.fair)}</b> shot${c.move != null ? `, ${up ? 'up' : 'down'} ${Math.abs(c.move * 100).toFixed(1)} points since the bet` : ''}.</span>
+    <span>${b.alt ? 'An alternate line: Hard Rock\'s close is tracked on the main line only.' : `Hard Rock closed the ${esc(b.side)} ${c.line != null ? c.line : b.line} at <b class="num">${px != null ? odds(px) : 'off the board'}</b>.`} The desk holds <b class="num">${odds(b.odds)}</b>. At the close ${c.nb} books made this a <b class="num">${pct(c.fair)}</b> shot${c.move != null ? `, ${up ? 'up' : 'down'} ${Math.abs(c.move * 100).toFixed(1)} points since the bet` : ''}.</span>
     <span>Closing line value <b class="num ${c.clv >= 0 ? 'pos' : 'neg'}">${sgn(c.clv * 100)}%</b>. ${c.clv >= 0 ? 'The desk beat the close.' : 'The close beat the desk. One bet proves nothing either way. The average over many bets is the number that matters.'}</span></div>`;
 }
 function caseHtml(b) {
@@ -1901,11 +2016,11 @@ function ticketHtml(b, i) {
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}" style="--i:${i}">
     <button class="tk-main" data-tk="${esc(k)}" aria-expanded="${op}">
-      <span class="tk-body"><span class="lbl tk-eye">${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
+      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
         ${w ? `<span class="tk-head">${esc(w.head)}</span>` : ''}
-        <span class="tk-cells">${cell('Desk says', pct(b.p))}${cell('Needs', pct(be))}${cell('Edge', sgn(b.edge * 100), 'pos')}${cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('CLV', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
-      <span class="tk-stub"><span class="odds">${odds(b.odds)}</span><span class="seal sm g">${esc(b.rating)}</span><span class="bar" aria-hidden="true"></span><span class="serial">No. ${serial}</span></span>
+        <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('CLV', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
+      <span class="tk-stub"><span class="odds">${odds(b.odds)}</span><span class="stake">${stakeTxt(b)}</span><span class="seal sm g">${esc(b.rating)}</span><span class="bar" aria-hidden="true"></span><span class="serial">No. ${serial}</span></span>
       <span class="tk-more"><span>${op ? 'Close the case file' : 'Open the case file: why the desk made this bet'}</span><i aria-hidden="true">&#9662;</i></span>
     </button>
     <div class="tk-file"${op ? '' : ' inert'}><div>${caseHtml(b)}</div></div></article>`;
@@ -1913,14 +2028,15 @@ function ticketHtml(b, i) {
 function deskHtml() {
   const all = DESK.bets, B = all.filter(b => !b.superseded), st = b => b.status, won = B.filter(b => st(b) === 'won'), lost = B.filter(b => st(b) === 'lost'), open = B.filter(b => st(b) === 'open');
   const u = b => st(b) === 'won' ? (E.dec(b.odds) - 1) * b.units : st(b) === 'lost' ? -b.units : 0, graded = won.concat(lost), units = sum(graded.map(u)), n = graded.length;
+  const usd = sum(graded.map(b => u(b) * unitOf(b))), staked = sum(graded.map(b => b.units * unitOf(b)));
   const rec = a => { const w = a.filter(b => st(b) === 'won').length, l = a.filter(b => st(b) === 'lost').length; return { w, l, hit: w + l ? w / (w + l) : null, u: sum(a.map(u)) }; };
-  const best = rec(B.filter(b => b.best)), be = n ? sum(graded.map(b => 1 / E.dec(b.odds))) / n : (B.length ? sum(B.map(b => 1 / E.dec(b.odds))) / B.length : .524);
+  const best = rec(B.filter(b => b.best)), conf = rec(B.filter(b => b.lane === 'confident')), be = n ? sum(graded.map(b => 1 / E.dec(b.odds))) / n : (B.length ? sum(B.map(b => 1 / E.dec(b.odds))) / B.length : .524);
   const cl = B.filter(b => b.close), clv = cl.length ? sum(cl.map(b => b.close.clv)) / cl.length : null, beat = cl.filter(b => b.close.clv > 0).length, mv = cl.filter(b => b.close.move != null);
   const lr = lg => { const r = rec(B.filter(b => b.lg === lg)); return `${lg} ${r.w}-${r.l}`; };
   const F = {
-    rec: [['Record', `${won.length}-${lost.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Best bets', `${best.w}-${best.l}`, `units ${sgn(best.u, 2)}`, '']],
+    rec: [['Record', `${won.length}-${lost.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Confident plays', `${conf.w}-${conf.l}`, conf.w + conf.l ? `units ${sgn(conf.u, 2)} · best bets ${best.w}-${best.l}` : `none graded yet · best bets ${best.w}-${best.l}`, '']],
     hit: [['Hit rate', n ? pct(won.length / n) : 'n/a', `needs ${pct(be)} to break even`, n && won.length / n >= be ? 'gd' : ''], ['Break even', pct(be), 'at the average price paid', '']],
-    units: [['Units', sgn(units, 2), n ? `ROI ${sgn(units / n * 100)}% on ${n} bets` : 'no graded bets yet', units >= 0 ? 'gd' : 'bd'], ['On paper', money(units * DESK.unit), `at ${money(DESK.unit)} a unit`, units >= 0 ? 'gd' : 'bd']],
+    units: [['Units', sgn(units, 2), n ? `ROI ${sgn(staked ? usd / staked * 100 : 0)}% on ${n} bets` : 'no graded bets yet', units >= 0 ? 'gd' : 'bd'], ['On paper', money(usd), `${money(staked)} staked · $25 units since 11-17`, usd >= 0 ? 'gd' : 'bd']],
     clv: [['Closing line', clv == null ? 'n/a' : sgn(clv * 100) + '%', clv == null ? 'tracking starts with the next card' : `${beat} of ${cl.length} beat the close`, clv == null ? '' : clv >= 0 ? 'gd' : 'bd'],
           ['Market move', mv.length ? sgn(sum(mv.map(b => b.close.move)) / mv.length * 100) : 'n/a', 'points toward the bet, on average', '']],
   };
@@ -1938,18 +2054,18 @@ function deskHtml() {
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   const srow = b => { const k = tkKey(b), sp = stampOf(b), has = !!b.why && !b.superseded, op = has && S.open.has(k);
     const inner = `<span class="rs ${sp[1]}">${sp[0]}</span><span class="who"><b>${esc(b.name)} ${esc(betLabel(b))}</b><span>${esc(b.date.slice(5))} · ${esc(b.lg)} · ${esc(b.gl)}${b.best ? ' · best bet' : ''}</span></span>
-      <span class="cells c4">${cell('Odds', odds(b.odds))}${cell('Desk said', pct(b.p))}${cell('Result', b.result != null ? b.result : '·')}${cell('Units', b.superseded ? '·' : sgn(u(b), 2), u(b) > 0 ? 'pos' : u(b) < 0 ? 'neg' : '')}</span>`;
+      <span class="cells c4">${cell('Odds', odds(b.odds))}${cell('Desk said', pct(b.p))}${cell('Result', b.result != null ? b.result : '·')}${cell(`P/L · ${stakeTxt(b)}`, b.superseded ? '·' : money(u(b) * unitOf(b)), u(b) > 0 ? 'pos' : u(b) < 0 ? 'neg' : '')}</span>`;
     return has ? `<div class="srow${op ? ' open' : ''}"><button class="row" data-tk="${esc(k)}" aria-expanded="${op}">${inner}<span class="tk-more"><span>Case file</span><i aria-hidden="true">&#9662;</i></span></button><div class="tk-file"${op ? '' : ' inert'}><div>${caseHtml(b)}</div></div></div>`
       : `<div class="srow"><div class="row">${inner}</div></div>`; };
   const settled = all.filter(b => st(b) !== 'open').reverse();
   return `${mast('desk', 'The desk', 'Logged before tip at Hard Rock prices. Paper only.')}<section class="tote" aria-label="Desk record">
-      <div class="tote-h"><span>The board · desk record</span><span>one unit ${money(DESK.unit)} · paper only</span></div>
+      <div class="tote-h"><span>The board · desk record</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only</span></div>
       <div class="tote-g">${tc('rec')}${tc('hit')}${tc('units')}${tc('clv')}</div>
       <div class="tape${S.tapePaused ? ' paused' : ''}" id="tape"><span class="tape-live" aria-hidden="true"><i></i>Live</span><button class="tape-b" data-act="tape" aria-pressed="${S.tapePaused}">${S.tapePaused ? 'Run' : 'Hold'}</button><div class="tape-w"><div class="tape-r"><div class="tape-s">${tape}</div><div class="tape-s" aria-hidden="true">${tape}</div></div></div></div>
     </section>
-    <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet`).join(' · ')}</span></div>
+    <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet${d.conf ? `, ${d.conf.picks} confident of ${d.conf.quotes} likely quotes` : ''}`).join(' · ')}</span></div>
     ${open.length ? `<div class="cards">${open.slice().sort((a, b) => (b.best ? 1 : 0) - (a.best ? 1 : 0)).map(ticketHtml).join('')}</div>` : '<p class="prose">The next daily run posts the card here. A night with no bet is a normal night.</p>'}
-    <p class="prose" style="margin-top:14px">Logged before tip at Hard Rock prices and graded from the box score. A bet needs two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player.${cenTxt}</p>
+    <p class="prose" style="margin-top:14px">Logged before tip at Hard Rock prices and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a Hard Rock price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10.${cenTxt}</p>
     ${passed.length ? `<div class="hd"><h2>Passed on</h2><span>the closest calls from ${esc(lastDate)} and the test each one failed</span></div><div class="passes">${passed.map(passHtml).join('')}</div>` : ''}
     <div class="hd"><h2>The ledger</h2><span>${settled.length} settled</span></div>
     ${n ? `<div class="grid2" style="margin-bottom:14px">${split('By market', b => b.lg + '|' + b.mkt, k => k.split('|')[0] + ' ' + MK[k.split('|')[0]][k.split('|')[1]].n)}${split('By rating', b => b.rating, k => k)}</div>` : ''}
@@ -1968,13 +2084,13 @@ function modelHtml() {
   const B = DESK.bets.filter(b => !b.superseded), gr = B.filter(b => b.status === 'won' || b.status === 'lost').length, cl = B.filter(b => b.close);
   const cal = Object.entries(DATA.calib || {}).filter(([k, v]) => k.startsWith(lg + '|') && v.n);
   const lastDate = DESK.days.length ? DESK.days[DESK.days.length - 1].date : null, dd = DESK.days.filter(d => d.date === lastDate), priced = sum(dd.map(d => d.sides_priced || 0)), bet = sum(dd.map(d => d.picks || 0));
-  return `${mast('model', 'The model audit')}<p class="prose">${esc(L.backtest_note)} Every projection in the test used only games played before it. Data through ${esc(L.data_through)}.</p>
+  return `${mast('model', 'The model audit')}${storyHtml()}<p class="prose" id="audit">${esc(L.backtest_note)} Every projection in the test used only games played before it. Data through ${esc(L.data_through)}.</p>
   <div class="card" style="margin-bottom:16px"><div class="sec"><h3><span>Standing orders: how the desk runs if it has to earn its keep</span></h3></div>
     <ol class="orders">
       <li><b>Price before prediction.</b><span>The desk bets at one book, so there is no shopping for a better number. The lever is to pass unless Hard Rock is out of line with the other books, or the model disagrees about one player by more than it does about the rest.</span></li>
       <li><b>Judge the desk by the closing line.</b><span>Wins and losses take hundreds of bets to mean anything. Whether the price taken beat the closing price shows up in weeks. ${cl.length ? `Tracked on ${cl.length} bet${cl.length === 1 ? '' : 's'} so far.` : 'Tracking starts with the next card.'}</span></li>
       <li><b>Pass most of the time.</b><span>${priced ? `On ${esc(lastDate)} the desk priced ${priced} sides and bet ${bet}.` : 'Most sides priced are never bet.'} That ratio is the job, not a slow night.</span></li>
-      <li><b>Flat stakes, no chasing.</b><span>One unit a bet. No doubling after a loss and no extra bets to get even.</span></li>
+      <li><b>Sized stakes, no chasing.</b><span>A quarter unit to two units, set by the grade before the bet, never after a result. No doubling after a loss and no extra bets to get even.</span></li>
       <li><b>Paper until the record earns more.</b><span>The bar is 300 graded bets with closing line value above zero and a hit rate above break even. Today: ${gr} graded bets and ${(DATA.audit_n || 0).toLocaleString()} graded sides in the audit, which so far show the desk about level with a coin flip against Hard Rock's own line. That is not an edge yet.</span></li>
       <li><b>A bankroll is money that can go to zero.</b><span>Even a real edge has long losing runs. Professionals keep the roll apart from living money for that reason.</span></li>
     </ol></div>
@@ -2003,11 +2119,11 @@ function modelHtml() {
 // Matchup sheets built by research_nfl.py from free play-by-play, plus hit rates against the lines on file.
 // Context for reading a price. None of it feeds the pick policy.
 const RS = { d:null, st:'idle' };
-const RTOOLS = [['role','Role matchups'],['hit','Hit rates'],['split','Trends by split'],['grade','Market grades'],['td','Touchdowns'],['ftd','First touchdown'],['rz','Red zone'],['lanes','Run lanes'],['share','Team share'],['teams','Team board'],['tend','Tendencies'],['line','Trenches']];
+const RTOOLS = [['nmu','Matchups'],['role','Role matchups'],['hit','Hit rates'],['split','Trends by split'],['grade','Market grades'],['td','Touchdowns'],['ftd','First touchdown'],['rz','Red zone'],['lanes','Run lanes'],['share','Team share'],['teams','Team board'],['tend','Tendencies'],['line','Trenches']];
 const ROLES = ['QB','RB1','RB2','WR1','WR2','WR3','TE1','TE2'];
-const NBA_T = ['hit', 'split', 'grade'];
-const rsTool = () => S.lg === 'NBA' ? (NBA_T.includes(S.rs.tool) ? S.rs.tool : 'hit') : S.rs.tool;
-const rtools = () => S.lg === 'NBA' ? RTOOLS.filter(t => NBA_T.includes(t[0])) : RTOOLS;
+const NBA_T = ['nmu', 'hit', 'split', 'grade'];
+const rsTool = () => S.lg === 'NBA' ? (NBA_T.includes(S.rs.tool) ? S.rs.tool : 'nmu') : (S.rs.tool === 'nmu' ? 'role' : S.rs.tool);
+const rtools = () => S.lg === 'NBA' ? RTOOLS.filter(t => NBA_T.includes(t[0])) : RTOOLS.filter(t => t[0] !== 'nmu');
 const avg = a => a.length ? sum(a) / a.length : 0;
 const nz = (x, d = 1) => x == null || !isFinite(x) ? '·' : (+x).toFixed(d);
 const t12 = t => { const [h, m] = String(t).split(':').map(Number); return `${(h + 11) % 12 + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
@@ -2156,6 +2272,52 @@ function lineHtml(R, g) {
 }
 
 /* hit rates: the last ten games against the line on file, beside the desk's own chance */
+/* ---------- build 3: NBA matchup sheets ---------- */
+const MAT = { st: 'idle' };
+function loadMat() {
+  if (MAT.st !== 'idle') return; MAT.st = 'load';
+  fetch('research/nba_match.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => { MAT.st = 'ready'; MAT.d = d; })
+    .catch(() => { MAT.st = 'error'; }).then(() => { if (S.tab === 'research' && S.lg === 'NBA' && rsTool() === 'nmu') rsPaint(); });
+}
+function nmuHtml() {
+  loadMat();
+  if (MAT.st === 'error') return `<div class="banner"><span>The matchup file did not load.</span><button class="btn ghost sm" data-act="matRetry">Try again</button></div>`;
+  if (MAT.st !== 'ready') return `<div class="card"><span class="lbl">Charting every defense by position</span><div class="wait"><i></i><i></i><i></i></div></div>`;
+  const M = MAT.d, G = IDX.NBA.games, gs = Object.values(G).sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time));
+  if (!gs.length) return '<p class="prose">No NBA games on the slate.</p>';
+  const n = Object.keys(M.teams).length, T = t => M.teams[t] || { pace: M.lg.pace, pace_rk: 15, dvp: {}, g: 0 };
+  const K = [['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['fg3', '3PM']], P = [['G', 'Guards'], ['F', 'Forwards'], ['C', 'Centers']];
+  // the softest spot each offense gets tonight: its position and stat where the other defense gives up the most
+  const soft = (off, D) => { let best = null; for (const [pos, pn] of P) for (const [k, kn] of K) { const z = D.dvp[pos] && D.dvp[pos][k]; if (z && (!best || z[1] < best.r)) best = { r: z[1], pn, kn }; } return best ? `<span class="nm-hint"><b>${esc(off)}</b> ${best.pn.toLowerCase()} · ${best.kn} <i>#${best.r}</i></span>` : ''; };
+  const card = g => { const A = T(g.away), H = T(g.home), pace = (A.pace + H.pace) / 2, pd = pace - M.lg.pace, open = S.rs.ng === g.id;
+    return `<article class="nm-g${open ? ' open' : ''}" id="nm-${g.id}">
+      <button class="nm-gh" data-rs="ng:${g.id}" aria-expanded="${open}">
+        <span class="nm-tm" style="${tcol('NBA', g.away)}"><i></i><b>${esc(g.away)}</b></span><span class="nm-at">@</span><span class="nm-tm" style="${tcol('NBA', g.home)}"><i></i><b>${esc(g.home)}</b></span>
+        <span class="nm-when">${esc(g.day.slice(5))} · ${t12(g.time)}</span>
+        <span class="nm-pc"><small>Pace</small><b>${pace.toFixed(1)}</b><em class="${pd >= 0 ? 'pos' : 'neg'}">${pd >= 0 ? '+' : ''}${pd.toFixed(1)}</em></span>
+        <span class="nm-hints">${soft(g.away, H)}${soft(g.home, A)}</span>
+        <span class="nm-chev" aria-hidden="true"></span>
+      </button>
+      ${open ? `<div class="nm-det">${detail(g, A, H, pace, pd)}</div>` : ''}</article>`; };
+  const detail = (g, A, H, pace, pd) => {
+    const half = (t, side, X) => `<div class="fx-t ${side}" style="${tcol('NBA', t)}"><small>${side === 'a' ? 'Away' : 'Home'}</small><b>${esc(t)}</b><span class="nm-p">Pace ${X.pace.toFixed(1)}</span><span class="nm-p">#${X.pace_rk} of ${n}</span></div>`;
+    const head = `<section class="nm-fx">${half(g.away, 'a', A)}<div class="nm-mid"><span>Pace tonight</span><b>${pace.toFixed(1)}</b><em class="${pd >= 0 ? 'pos' : 'neg'}">${pd >= 0 ? '+' : ''}${pd.toFixed(1)} vs league</em></div>${half(g.home, 'h', H)}</section>`;
+    const cell = (D, pos, k) => { const z = D.dvp[pos] && D.dvp[pos][k]; if (!z) return '<td>·</td>'; const lg = M.lg.dvp[pos][k], pc = lg ? (z[0] / lg - 1) * 100 : 0, cls = z[1] <= 10 ? 'soft' : z[1] > n - 10 ? 'tough' : '';
+      return `<td class="${cls}"><b>${z[0].toFixed(1)}</b><small><span class="pc">${pc >= 0 ? '+' : ''}${pc.toFixed(0)}% · </span>#${z[1]}</small></td>`; };
+    const dvp = (off, D, dn) => `<div class="nm-dvp"><span class="lbl">${esc(off)} offense against the ${esc(dn)} defense</span><table><colgroup><col class="c0"><col><col><col><col></colgroup><thead><tr><th></th>${K.map(k => `<th>${k[1]}</th>`).join('')}</tr></thead><tbody>${P.map(([pos, nm]) => `<tr><th scope="row"><span class="lf">${nm}</span><span class="sh">${pos}</span></th>${K.map(([k]) => cell(D, pos, k)).join('')}</tr>`).join('')}</tbody></table></div>`;
+    const base = compute('NBA', true), mins = M.min;
+    const roster = t => (IDX.NBA.byTeam[t] || []).map(p => ({ p, e: base[g.id + '|' + p.id], m: mins[p.id] })).filter(r => r.e && r.e.parts.mn >= 8).sort((a, b) => b.e.parts.mn - a.e.parts.mn);
+    const pcard = (r, D, i) => { const p = r.p, mn = r.e.parts.mn, m = r.m, tr = m ? m[1] - m[0] : 0, z = D.dvp[p.grp] && D.dvp[p.grp].pts;
+      const tag = z ? (z[1] <= 10 ? ['soft', `Soft · ${p.grp} pts #${z[1]}`] : z[1] > n - 10 ? ['tough', `Tough · ${p.grp} pts #${z[1]}`] : ['', `Middle · ${p.grp} pts #${z[1]}`]) : ['', ''];
+      return `<div class="nm-c" style="--i:${i}">${jersey('NBA', p)}<span class="nm-n"><b>${esc(p.name)}</b><small>${esc(p.pos)}${p.q ? ' · questionable' : ''}${p.missed ? ' · missed last game' : ''}</small>${tag[1] ? `<span class="nm-tag ${tag[0]}">${tag[1]}</span>` : ''}</span>
+        <span class="nm-m"><span><small>Proj</small><b>${f1(mn)}</b></span><span><small>L5</small><b>${m ? f1(m[1]) : '·'}</b></span><span><small>Szn</small><b>${m ? f1(m[0]) : '·'}</b></span><span class="nm-tr ${tr >= 2 ? 'up' : tr <= -2 ? 'dn' : ''}">${tr >= 2 ? '▲' : tr <= -2 ? '▼' : '·'}${m && Math.abs(tr) >= 2 ? Math.abs(tr).toFixed(1) : ''}</span></span></div>`; };
+    const side = (t, D, dn) => `<div class="nm-side" style="${tcol('NBA', t)}"><div class="nm-band"><b>${esc(t)}</b><span>minutes against ${esc(dn)}</span></div>${roster(t).map((r, i) => pcard(r, D, i)).join('') || '<p class="prose">No rotation on file.</p>'}</div>`;
+    return `${head}<div class="two w">${dvp(g.away, H, g.home)}${dvp(g.home, A, g.away)}</div><div class="two w nm-two">${side(g.away, H, g.home)}${side(g.home, A, g.away)}</div>`;
+  };
+  return `<div class="nm-list">${gs.map(card).join('')}</div>
+    <p class="note">Tap a game to open it. Pace is possessions a game from the box score. Defense by position is what each defense gives up a game to guards, forwards and centers this season against the league average, and its rank (#1 gives up the most; green is a top-10 soft spot, red a bottom-10 tough one). Under each game, the softest spot each offense gets tonight. Minutes: the desk's projection, last five (L5) and season. Through ${esc(M.asof)}.</p>`;
+}
+
 /* ---------- build 2: trends by split ---------- */
 const SPL = { NBA: { st: 'idle' }, NFL: { st: 'idle' } };
 function loadSplits(lg) {
@@ -2324,7 +2486,7 @@ function rsGaps() {
     <li><b>NBA matchup sheets and trends by split.</b> Free data covers these. They are the next build.</li></ul></details>`;
 }
 function rsBody() {
-  const tool = rsTool(); if (tool === 'hit') return hitHtml(); if (tool === 'grade') return gradeHtml(); if (tool === 'split') return splitHtml();
+  const tool = rsTool(); if (tool === 'hit') return hitHtml(); if (tool === 'grade') return gradeHtml(); if (tool === 'split') return splitHtml(); if (tool === 'nmu') return nmuHtml();
   if (RS.st === 'error') return `<div class="banner"><span>The research file did not load.</span><button class="btn ghost sm" data-act="rsRetry">Try again</button></div>`;
   if (RS.st !== 'ready') return `<div class="card"><span class="lbl">Pulling the form book</span><div class="wait"><i></i><i></i><i></i></div></div>`;
   const R = RS.d, g = rsGame(R); S.rs.game = g.id;
@@ -2334,8 +2496,8 @@ function rsBody() {
   return `<div class="gstrip" role="group" aria-label="Game">${wk.map(w => `<span class="gw">Week ${w}</span>${R.games.filter(x => x.week === w).map(x => `<button data-rs="game:${x.id}" aria-pressed="${x.id === g.id}"><span class="gs"><i style="background:${sw(x.away)}"></i><i style="background:${sw(x.home)}"></i></span><b>${x.away} @ ${x.home}</b><small>${esc(x.wd)} ${t12(x.time)}</small></button>`).join('')}`).join('')}</div>
     ${fixtureHtml(R, g)}<div class="rsheet">${F(R, g)}</div>`;
 }
-const RDESC = { role: 'each starter against the defense he faces', hit: 'last ten games against the line, every market', grade: 'Hard Rock against every other book', split: 'home or away, rest, soft or tough defense', td: 'touchdowns, red zone looks and a fair price', ftd: 'who scored the first touchdown, and how often', rz: 'trips inside the 20 and who gets the ball', lanes: 'where each back runs, lane by lane', share: 'carries and targets as a share of the team', teams: 'every club ranked, offense or defense', tend: 'pace and play calling, both clubs on one scale', line: 'line play: pressure, sacks, the edge' };
-const RGRP = [['Players', ['role', 'hit', 'split', 'td', 'ftd']], ['Markets', ['grade']], ['Teams', ['rz', 'lanes', 'share', 'teams', 'tend', 'line']]];
+const RDESC = { role: 'each starter against the defense he faces', hit: 'last ten games against the line, every market', grade: 'Hard Rock against every other book', split: 'home or away, rest, soft or tough defense', nmu: 'defense by position, pace, minutes', td: 'touchdowns, red zone looks and a fair price', ftd: 'who scored the first touchdown, and how often', rz: 'trips inside the 20 and who gets the ball', lanes: 'where each back runs, lane by lane', share: 'carries and targets as a share of the team', teams: 'every club ranked, offense or defense', tend: 'pace and play calling, both clubs on one scale', line: 'line play: pressure, sacks, the edge' };
+const RGRP = [['Players', ['nmu', 'role', 'hit', 'split', 'td', 'ftd']], ['Markets', ['grade']], ['Teams', ['rz', 'lanes', 'share', 'teams', 'tend', 'line']]];
 function toolBar(tool) {
   const T = rtools(), ks = T.map(t => t[0]), nm = Object.fromEntries(T), n = ks.length, i = Math.max(0, ks.indexOf(tool)), nn = j => String(j + 1).padStart(2, '0');
   const opt = k => `<option value="${k}" data-short="${nm[k]}"${k === ks[i] ? ' selected' : ''}>${nn(ks.indexOf(k))}  ${nm[k]} · ${RDESC[k]}</option>`;
@@ -2353,11 +2515,12 @@ function researchHtml() {
     <section class="wr fr${S.enter ? ' in' : ''}" aria-label="Film room console">
       <div class="wr-head"><span class="wr-dot" aria-hidden="true"></span><b>Film room</b><span>${lg === 'NFL' ? 'Matchups, trends and hit rates' : 'Hit rates against tonight\'s lines'}</span></div>
       <p class="wr-lede">Context for reading a price, not a second opinion on the bet. Nothing in this room changes what the desk picks.</p>
-      ${toolBar(tool)}${lg === 'NBA' ? '<p class="wr-soon">NBA matchup sheets (defense by position, pace, minutes) are coming in a later build.</p>' : ''}
+      ${toolBar(tool)}
     </section>
     <div id="rsBody">${rsBody()}</div>${rsGaps()}`;
 }
-function rsAfter(root, fresh) {      // pills slide from where they were, counters roll from what they showed
+function rsAfter(root, fresh) {
+  const og = root.querySelector('.nm-g.open'); if (og && !fresh) requestAnimationFrame(() => { const r = og.getBoundingClientRect(); if (r.top < 120 || r.top > innerHeight * .6) window.scrollTo({ top: r.top + scrollY - 130, behavior: RM() ? 'auto' : 'smooth' }); });      // pills slide from where they were, counters roll from what they showed
   root.querySelectorAll('.seg').forEach(sg => placeSeg(sg, true)); rollTicks(root, fresh);
   const gs = root.querySelector('.gstrip'), gb = gs && gs.querySelector('[aria-pressed="true"]'); if (gb) { const to = Math.max(0, gb.offsetLeft - (gs.clientWidth - gb.offsetWidth) / 2); if (gs.dataset.x != null) { gs.scrollLeft = +gs.dataset.x; } gs.scrollTo({ left: to, behavior: RM() || gs.dataset.x == null ? 'auto' : 'smooth' }); }
 }
@@ -2698,10 +2861,27 @@ function flap(el, delay) {          // split-flap: each digit rolls through a fe
     const tick = () => { n++; sp.textContent = n >= steps ? fin : (i * 7 + n * 3) % 10; sp.classList.remove('go'); void sp.offsetWidth; sp.classList.add('go'); if (n < steps) setTimeout(tick, 75); };
     setTimeout(tick, (delay || 0) + i * 45); });
 }
-function go(fn, dir) {              // a change of sheet: page turn where the browser can do it, a slide-in where it cannot
+function go(fn, dir) {              // a change of sheet. No View Transitions: on a big unfolded screen Safari's whole-page snapshot could stall and leave the screen blank
   S.fresh = true; S.enter = true;
-  if (!RM() && document.startViewTransition) { document.documentElement.dataset.dir = dir || 'fwd'; try { return document.startViewTransition(fn); } catch (e) {} }
-  fn(); if (RM()) return; const m = $('#main'); m.classList.remove('enter', 'iris'); void m.offsetWidth; m.classList.add(dir === 'iris' ? 'iris' : 'enter');
+  if (RM()) { fn(); return; }
+  if (dir === 'iris') return irisGo(fn);
+  fn(); sheetIn(dir);
+}
+function sheetIn(dir) {             // only what is on screen slides in, a few pieces at a time; the rest of the page simply appears
+  const m = $('#main'); if (!m || !m.animate) return; const H = innerHeight, k = dir === 'back' ? -1 : 1;
+  [...m.children].filter(el => { const r = el.getBoundingClientRect(); return r.height && r.bottom > 0 && r.top < H; }).slice(0, 5)
+    .forEach((el, i) => el.animate([{ transform: `translateX(${18 * k}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: i * 45, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }));
+}
+function irisGo(fn) {               // league change: a disc in the new league's colour grows from the switch, the sheet changes under it, the disc fades
+  const at = S.irisAt || { x: innerWidth / 2, y: 60 }, hd = document.querySelector('header.top'), top = Math.max(0, hd ? hd.getBoundingClientRect().bottom : 0);
+  const R = Math.hypot(Math.max(at.x, innerWidth - at.x), Math.max(at.y, innerHeight - at.y)) + 8;
+  const w = document.createElement('div'), d = document.createElement('div'); w.className = 'iris-w'; w.style.top = top + 'px';      // the disc stays under the header, so the arcade scene stays in view
+  d.className = 'iris-fx ' + (at.lg || ''); d.style.cssText = `left:${at.x - R}px;top:${at.y - top - R}px;width:${2 * R}px;height:${2 * R}px`;
+  w.appendChild(d); document.body.appendChild(w); S.irisBusy = true; let swapped = false;
+  const swap = () => { if (swapped) return; swapped = true; fn(); window.scrollTo(0, 0); sheetIn('fwd');
+    d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' }).onfinish = () => { w.remove(); S.irisBusy = false; }; setTimeout(() => { w.remove(); S.irisBusy = false; }, 900); };
+  const a = d.animate([{ transform: 'scale(.02)' }, { transform: 'scale(1)' }], { duration: 380, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+  a.onfinish = swap; setTimeout(swap, 700);      // never leave the page waiting on the disc
 }
 let memoT;
 function showMemo() {
@@ -2715,6 +2895,146 @@ function showMemo() {
     if (first || sw) { const d = $('#mDist'); if (d) d.classList.add('grow'); } S.memoShown = S.memo; }
   else { document.body.classList.remove('memo-open'); m.inert = true; S.memoShown = null; memoT = setTimeout(() => { if (!S.memo) m.innerHTML = ''; }, 240); }
 }
+
+/* ---------- the story on the Model page: raw box scores become one priced number, as you scroll ---------- */
+let STORY = null;
+function storySubject() {
+  const lg = S.lg, cand = PROPS.filter(pr => !pr.binary && pr.e.p.logs && (lg === 'NBA' ? pr.e.p.logs.pts : true));
+  const withLine = cand.map(pr => ({ pr, ln: getLine(pr.key), a: assess(pr) })).filter(z => z.ln && z.ln.m != null && z.a && !z.a.hold).sort((a, b) => b.a.adj - a.a.adj);      // the strongest priced prop that is not on hold
+  if (withLine.length) return withLine[0];
+  const z = cand.slice().sort((a, b) => b.mu - a.mu)[0]; return z ? { pr: z, ln: null, a: null } : null;
+}
+/* The film: plays by itself once it is on screen, about fourteen seconds, then rests on the priced frame.
+   Four scenes, each with a slow camera push; cuts are cross-dissolves with a zoom, as in the reference. Tap a dot to jump, the button to pause or replay. */
+const FILM = { dur: 14.6, scenes: [0, 3.6, 7.8, 10.9], names: ['The tape', 'One player', 'Three parts', 'Priced'] };
+const lines = t => t.split('|').map(x => `<span class="ln"><span>${x}</span></span>`).join('');
+function storyHtml() {
+  const sub = storySubject(); STORY = null; if (!sub) return '';
+  const { pr, ln, a } = sub, lg = pr.lg, p = pr.e.p, M = MK[lg][pr.mkt], L = DATA[lg];
+  const v = logVals(pr).slice(-10), line = ln ? ln.line : E.fairLine(dist(pr)), mx = Math.max(line * 1.25, ...v, 1);
+  const cal = (DATA.calib || {})[lg + '|' + pr.mkt], w = cal ? cal.w : .25, muf = ln ? +ln.m : pr.mu, mm = ln ? +ln.mm : null;
+  const d = dist({ key: pr.key + '#story', mu: muf, lg, mkt: pr.mkt, binary: false }), sp = E.split(d, line), lo = Math.max(0, Math.floor(line - muf * .9)), hi = Math.ceil(line + muf * .9);
+  const db = []; for (let k = lo; k <= hi; k++) db.push([k, d[k] || 0]); const dmx = Math.max(...db.map(z => z[1]));
+  const games = Object.values(L.backtest).reduce((s, z) => Math.max(s, z && z.n ? z.n : 0), 0);
+  const pool = []; for (const q of L.players.slice(0, 80)) { const lv = lg === 'NBA' ? q.logs.pts : (q.logs.recyd || q.logs.ryd || []); for (const x of lv.slice(-3)) pool.push(x); }
+  const chips = v.concat(pool.slice(0, 44)).map((x, i) => `<span class="sc-chip${i < v.length ? ' me' : ''}">${x}</span>`).join('');
+  STORY = { n: v.length, over: sp.over, t: 0, playing: false, played: false };
+  const bars = v.map(x => `<i class="sb${x > line ? ' h' : ''}" style="--h:${x / mx}"><b>${x}</b></i>`).join('');
+  const dbars = db.map(([k, q]) => `<i class="${k > line ? 'o' : ''}" style="--h:${q / dmx}"></i>`).join('');
+  const layer = (cls, k, big, small) => `<div class="sl ${cls}"><small>${k}</small><b>${big}</b><span>${small}</span></div>`;
+  const cap = (i, k, h, t) => `<div class="st-cap" data-c="${i}"><small>${String(i + 1).padStart(2, '0')} · ${k}</small><h3>${lines(h)}</h3><p>${t}</p></div>`;
+  return `<section class="story" id="story" aria-label="Film: how one number is made, from the box score to the price">
+    <div class="st-stage" style="${tcol(lg, p.team)}">
+      <div class="st-glow" aria-hidden="true"></div><div class="st-flash" aria-hidden="true"></div>
+      <div class="st-cam">
+        <div class="st-tape" aria-hidden="true">${chips}</div>
+        <div class="st-bars" aria-hidden="true"><div class="sbx">${bars}<span class="sline" style="--y:${line / mx}"><em>${line}</em></span></div></div>
+        <div class="st-stack" aria-hidden="true">
+          ${layer('l1', 'Model', f1(pr.mu), lg === 'NBA' ? `${f1(pr.e.parts.mn)} minutes × his rate` : 'volume × share × efficiency')}
+          ${layer('l2', 'Books', mm != null ? f1(mm) : '·', ln ? `what ${ln.nb || 0} books imply` : 'no line on file yet')}
+          ${layer('l3', 'Weight', `${Math.round(w * 100)} / ${100 - Math.round(w * 100)}`, `model / books, from ${cal ? cal.n : 0} graded lines`)}
+          <div class="sl fin"><small>Desk number</small><b>${f1(muf)}</b><span>${esc(M.n.toLowerCase())} · ${esc(p.name)}</span></div>
+        </div>
+        <div class="st-dist" aria-hidden="true"><div class="sdx">${dbars}<span class="sline" style="--x:${(line - lo + .5) / (hi - lo + 1)}"><em>${line}</em></span></div>
+          <div class="st-px"><span><small>Over ${line}</small><b class="st-pct">0%</b></span>${ln ? `<span><small>Hard Rock</small><b>${odds(ln.o)}</b></span>` : ''}${a ? `<span class="seal sm g st-seal">${esc(a.rating)}</span>` : ''}</div></div>
+      </div>
+      <div class="st-caps">
+        ${cap(0, 'The tape', 'Every box score.|Every night.', `${games.toLocaleString()} ${lg} player games tested. ${L.players.length} players on tonight's slate.`)}
+        ${cap(1, 'One player', esc(p.name), `His last ${v.length} in ${esc(M.n.toLowerCase())}, against tonight's line of ${line}.`)}
+        ${cap(2, 'Three parts', 'Three parts.|One number.', 'The model, the books, and the weight history earned between them.')}
+        ${cap(3, 'Priced', 'Every outcome|at once.', ln ? `${pct(sp.over)} over ${line}. Hard Rock asks ${odds(ln.o)}.` : `No book line yet. Fair line ${line}.`)}
+      </div>
+      <div class="st-ctl">
+        <button class="st-play" data-act="filmPlay" aria-label="Pause"><i aria-hidden="true"></i></button>
+        <div class="st-dots" role="group" aria-label="Scenes">${FILM.names.map((n, i) => `<button data-act="filmSeek" data-s="${i}" aria-label="${n}"><span>${n}</span><i></i></button>`).join('')}</div>
+      </div>
+    </div>
+    <a class="st-skip" href="#audit" data-act="storySkip">Skip to the audit</a>
+  </section>`;
+}
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x, seg = (p, a, b) => clamp01((p - a) / (b - a));
+const eIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, eOut = t => 1 - Math.pow(1 - t, 3), eBack = t => { const c = 1.5; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+function storyMount() {
+  const st = $('#story'); if (!st || !STORY) return;
+  const stage = st.querySelector('.st-stage'), R = stage.getBoundingClientRect(), W = R.width, H = R.height;
+  const bars = [...st.querySelectorAll('.sb')], bxr = st.querySelector('.sbx').getBoundingClientRect();
+  STORY.home = [...st.querySelectorAll('.sc-chip')].map((c, i) => {
+    const hx = (Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1, hy = (Math.sin(i * 78.233) * 12543.31 % 1 + 1) % 1;
+    const x = W * (.05 + .9 * hx) - c.offsetWidth / 2, y = H * (.34 + .52 * hy); let gx = x, gy = y;
+    if (i < bars.length) { const b = bars[i].getBoundingClientRect(), hh = parseFloat(bars[i].style.getPropertyValue('--h')) * bxr.height;      // he lands on top of where his bar will stand, and stays as its label
+      gx = b.left - R.left + b.width / 2 - c.offsetWidth / 2; gy = bxr.bottom - R.top - hh - c.offsetHeight - 6; }
+    return { el: c, x, y, gx, gy, ph: i * 1.7 };
+  });
+  STORY.el = { stage, cam: st.querySelector('.st-cam'), caps: [...st.querySelectorAll('.st-cap')], bars, sline: st.querySelector('.sbx .sline'), sbars: st.querySelector('.st-bars'),
+    stack: st.querySelector('.st-stack'), layers: [...st.querySelectorAll('.sl:not(.fin)')], fin: st.querySelector('.sl.fin'), dist: st.querySelector('.st-dist'), dbars: [...st.querySelectorAll('.sdx i')],
+    dline: st.querySelector('.sdx .sline'), px: st.querySelector('.st-px'), pct: st.querySelector('.st-pct'), seal: st.querySelector('.st-seal'), glow: st.querySelector('.st-glow'), flash: st.querySelector('.st-flash'),
+    dots: [...st.querySelectorAll('.st-dots button')], play: st.querySelector('.st-play'), tape: st.querySelector('.st-tape') };
+  if (RM()) { STORY.t = FILM.dur; filmFrame(FILM.dur); st.classList.add('done'); return; }
+  filmFrame(STORY.t);
+  if (STORY.io) STORY.io.disconnect();
+  STORY.io = new IntersectionObserver(es => { for (const e of es) { if (e.isIntersecting && !STORY.played) filmPlay(true); else if (!e.isIntersecting && STORY.playing) filmPause(); } }, { threshold: .5 });
+  STORY.io.observe(stage);
+}
+function filmPlay(on) {
+  if (!STORY || !STORY.el) return; const st = $('#story');
+  if (on === false || (on == null && STORY.playing)) return filmPause();
+  if (STORY.t >= FILM.dur) STORY.t = 0;
+  STORY.playing = true; STORY.played = true; st.classList.remove('done'); st.classList.add('playing'); STORY.el.play.setAttribute('aria-label', 'Pause');
+  let last = performance.now();
+  const step = now => { if (!STORY || !STORY.playing || !document.body.contains(STORY.el.stage)) return; STORY.t += Math.min(.05, (now - last) / 1000); last = now;
+    if (STORY.t >= FILM.dur) { STORY.t = FILM.dur; filmFrame(FILM.dur); filmPause(true); return; } filmFrame(STORY.t); STORY.raf = requestAnimationFrame(step); };
+  cancelAnimationFrame(STORY.raf); STORY.raf = requestAnimationFrame(step);
+}
+function filmPause(ended) {
+  if (!STORY) return; STORY.playing = false; cancelAnimationFrame(STORY.raf); const st = $('#story'); if (!st) return;
+  st.classList.remove('playing'); st.classList.toggle('done', !!ended); STORY.el.play.setAttribute('aria-label', ended ? 'Replay' : 'Play');
+}
+function filmSeek(i) { if (!STORY || !STORY.el) return; STORY.t = FILM.scenes[i] + .01; filmFrame(STORY.t); filmPlay(true); }
+function filmFrame(T) {
+  const E_ = STORY.el, n = STORY.n; if (!E_) return;
+  const set = (el, tf, op) => { if (!el) return; if (tf != null) el.style.transform = tf; if (op != null) el.style.opacity = op.toFixed(3); };
+  // camera: a slow push inside each scene, a quick zoom through each cut
+  const sc = FILM.scenes, si = T < sc[1] ? 0 : T < sc[2] ? 1 : T < sc[3] ? 2 : 3, s0 = sc[si], s1 = si < 3 ? sc[si + 1] : FILM.dur;
+  set(E_.cam, `scale(${(1 + .045 * eIO(seg(T, s0, s1))).toFixed(4)})`);
+  set(E_.glow, `translate(${(Math.sin(T * .35) * 14).toFixed(1)}%, ${(Math.cos(T * .27) * 10).toFixed(1)}%) scale(${(1 + .15 * Math.sin(T * .5)).toFixed(3)})`);
+  E_.dots.forEach((d, i) => { d.classList.toggle('on', i === si); d.style.setProperty('--k', i < si ? 1 : i === si ? seg(T, s0, s1).toFixed(3) : 0); });
+  // captions: lines rise out of a mask, the block fades out at the cut
+  const cw = [[.15, 3.55], [4.0, 7.4], [8.0, 10.7], [11.1, 99]];
+  E_.caps.forEach((c, i) => { const [a, b] = cw[i], out = seg(T, b, b + .45); c.style.opacity = (1 - out).toFixed(3); c.style.visibility = T < a - .1 || out >= 1 ? 'hidden' : 'visible';
+    c.querySelectorAll('.ln > span').forEach((l, j) => { const k = eOut(seg(T, a + j * .12, a + .7 + j * .12)); l.style.transform = `translateY(${((1 - k) * 105).toFixed(1)}%)`; });
+    const pp = c.querySelector('p'); if (pp) { const k = eOut(seg(T, a + .35, a + 1.0)); pp.style.opacity = k.toFixed(3); pp.style.transform = `translateY(${((1 - k) * 8).toFixed(1)}px)`; } });
+  // 1 the tape: numbers surface and drift; at the cut his ten light up and fly to the floor, the rest sink away
+  const fly = T - 3.3;
+  STORY.home.forEach((h, i) => { const me = i < n, a0 = eOut(seg(T, .15 + (i % 23) * .045, .9 + (i % 23) * .045));
+    const dx = Math.sin(T * .6 + h.ph) * 7, dy = -T * 7 + Math.cos(T * .45 + h.ph) * 5;
+    if (me) { const k = eIO(seg(fly, i * .045, .95 + i * .045)), x = h.x + dx * (1 - k) + (h.gx - h.x) * k, y = h.y + dy * (1 - k) + (h.gy - h.y) * k, lift = Math.sin(k * Math.PI) * -46;
+      const gone = eIO(seg(T, 7.3, 7.75));
+      set(h.el, `translate(${x.toFixed(1)}px,${(y + lift - 24 * gone).toFixed(1)}px) scale(${(1 + .15 * k - .1 * gone).toFixed(3)})`, a0 * (1 - gone)); h.el.classList.toggle('lit', T > 3.1); }
+    else { const k = eIO(seg(fly, 0, .8)); set(h.el, `translate(${(h.x + dx).toFixed(1)}px,${(h.y + dy + 30 * k).toFixed(1)}px) scale(${(1 - .35 * k).toFixed(3)})`, a0 * .78 * (1 - k)); } });
+  if (E_.tape) E_.tape.style.visibility = T > 7.8 ? 'hidden' : 'visible';
+  // 2 one player: the bars rise with a little overshoot, the line wipes across
+  const bOut = eIO(seg(T, 7.3, 7.9));
+  set(E_.sbars, `translateY(${(-24 * bOut).toFixed(1)}px) scale(${(1 - .1 * bOut).toFixed(3)})`, (T < 3.95 ? 0 : 1) * (1 - bOut));
+  E_.bars.forEach((b, i) => set(b, `scaleY(${Math.max(0, eBack(seg(T, 4.0 + i * .07, 4.75 + i * .07))).toFixed(3)})`));
+  set(E_.sline, `scaleX(${eOut(seg(T, 5.2, 5.9)).toFixed(3)})`, seg(T, 5.15, 5.3));
+  // 3 three parts: glass layers arrive from depth, pull apart, then press into one number with a flash
+  const ex = eIO(seg(T, 8.7, 9.4)) * (1 - eIO(seg(T, 9.9, 10.3))), gone = eIO(seg(T, 10.15, 10.4)), fin = eOut(seg(T, 10.3, 10.65)), sOut = eIO(seg(T, 10.95, 11.4));
+  set(E_.stack, `translate(-50%,${(-30 * sOut).toFixed(1)}px) scale(${(1 - .08 * sOut).toFixed(3)})`, T < 7.8 ? 0 : 1 - sOut);
+  E_.layers.forEach((l, i) => { const k = eOut(seg(T, 7.85 + i * .16, 8.55 + i * .16));
+    set(l, `translateY(${((i - 1) * 108 * ex + (1 - k) * 60).toFixed(1)}px) scale(${(.82 + .18 * k - .1 * gone).toFixed(3)}) rotate(${((i - 1) * -1.6 * ex).toFixed(2)}deg)`, k * (1 - gone)); });      // solid cards: when they meet, only the top one shows, then all three go
+  set(E_.fin, `scale(${(.86 + .14 * eBack(seg(T, 10.3, 10.75))).toFixed(3)})`, fin);
+  set(E_.flash, null, Math.max(0, Math.sin(seg(T, 10.2, 10.75) * Math.PI)) * .55);
+  // 4 priced: the curve rolls up left to right, the line drops, the chance counts up, the stamp lands
+  const dIn = seg(T, 11.0, 11.35);
+  set(E_.dist, `translateY(${((1 - eOut(dIn)) * 24).toFixed(1)}px)`, dIn);
+  E_.dbars.forEach((b, i) => set(b, `scaleY(${Math.max(0, eBack(seg(T, 11.25 + i * .045, 11.95 + i * .045))).toFixed(3)})`));
+  set(E_.dline, `scaleY(${eOut(seg(T, 12.4, 12.85)).toFixed(3)})`, seg(T, 12.35, 12.5));
+  const pk = seg(T, 12.7, 13.5); set(E_.px, `translateY(${((1 - eOut(seg(T, 12.6, 13.0))) * 12).toFixed(1)}px)`, seg(T, 12.6, 12.9));
+  if (E_.pct) E_.pct.textContent = (eOut(pk) * STORY.over * 100).toFixed(1) + '%';
+  if (E_.seal) { const k = seg(T, 13.6, 13.95); set(E_.seal, `scale(${(2.4 - 1.4 * eOut(k)).toFixed(3)}) rotate(${(-16 + 7 * k).toFixed(1)}deg)`, k); }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && STORY && STORY.playing) filmPause(); });
+addEventListener('resize', () => { if (S.tab === 'model') requestAnimationFrame(storyMount); });
 
 /* ---------- render + events ---------- */
 function render() {
@@ -2740,11 +3060,11 @@ function render() {
   if (S.tab === 'board') requestAnimationFrame(() => { boardEnter(); spotMount(); });
   trayPaint();
   if (S.tab === 'research') requestAnimationFrame(() => { const m = $('#main'); if (m) rsAfter(m, wasEnter); });
+  if (S.tab === 'model') requestAnimationFrame(storyMount);
 }
 function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'research' ? researchHtml() : modelHtml(); }
-function setLeague(lg) { if (S.lg === lg) return;
-  const r = $('#lg').getBoundingClientRect(), m = $('#main').getBoundingClientRect(), rs = document.documentElement.style;      // the new sheet opens out from the side of the switch the ball lands on
-  rs.setProperty('--ix', Math.round(r.left + (lg === 'NFL' ? .75 : .25) * r.width - m.left) + 'px'); rs.setProperty('--iy', Math.round(r.top + r.height / 2 - m.top) + 'px');
+function setLeague(lg) { if (S.lg === lg || S.irisBusy) return;
+  const r = $('#lg').getBoundingClientRect(); S.irisAt = { x: r.left + (lg === 'NFL' ? .75 : .25) * r.width, y: r.top + r.height / 2, lg };      // the change opens out from the side of the switch the ball lands on
   const vt = go(() => { S.lg = lg; S.memo = null; S.game = 'all'; S.mkt = lg === 'NBA' ? 'pts' : 'rec_yds'; S.q = ''; S.limit = 40; S.stressSide = null; S.relMkt = null; render(); const st = $('#stamp'); if (!RM()) { st.classList.remove('flip'); void st.offsetWidth; st.classList.add('flip'); } }, 'iris');
   // Safari can hold the screen still for a moment before a page change shows. Starting the scene only once the change is ready keeps the ball in view.
   if (vt && vt.ready) { let done = false; const play = () => { if (!done) { done = true; arcade(lg); } }; vt.ready.then(play, play); setTimeout(play, 1500); } else arcade(lg); }
@@ -2759,7 +3079,7 @@ document.addEventListener('click', e => {
   const sc = e.target.closest('[data-spot]'); if (sc) { if (spSwiped) return; const i = +sc.dataset.spot; if (i === SPI) openMemo(SPOT[i].key); else spotSet(i, sc); return; }
   const t = e.target.closest('[data-open],[data-desk],[data-act],[data-mk],[data-step],[data-set],[data-del],[data-tk],[data-flip],[data-rs],[data-fm],[data-fs]'); if (!t) return;
   if (t.dataset.fm || t.dataset.fs) { if (t.dataset.fm) { S.mkt = t.dataset.fm; S.limit = 40; } else S.sort = t.dataset.fs; segPress(t); repaintBoard(true); return; }
-  if (t.dataset.rs) { const v = t.dataset.rs, i = v.indexOf(':'); S.rs[v.slice(0, i)] = v.slice(i + 1); rsPaint(t.classList.contains('tl-st') ? `.tl-st.${t.classList.contains('nx') ? 'nx' : 'pv'}` : t.closest('.tl-run') ? '#rsTool + .px' : `[data-rs="${v}"]`); return; }
+  if (t.dataset.rs) { const v = t.dataset.rs, i = v.indexOf(':'), key = v.slice(0, i), val = v.slice(i + 1); S.rs[key] = key === 'ng' && S.rs.ng === val ? '' : val;      /* a game card opens and closes */ rsPaint(t.classList.contains('tl-st') ? `.tl-st.${t.classList.contains('nx') ? 'nx' : 'pv'}` : t.closest('.tl-run') ? '#rsTool + .px' : `[data-rs="${v}"]`); return; }
   if (t.dataset.desk) { const k = t.dataset.desk, lg = k.split('|')[0]; if (S.lg !== lg) { S.lg = lg; S.game = 'all'; S.mkt = 'all'; S.q = ''; S.stressSide = null; S.relMkt = null; } buildProps(); if (PMAP[k]) { S.memo = k; render(); $('#memo').scrollTop = 0; } return; }
   if (t.dataset.tk) {             // open or close a case file in place, so the paper can move
     const k = t.dataset.tk, box = t.closest('.tk,.srow'), on = !S.open.has(k); if (on) S.open.add(k); else S.open.delete(k);
@@ -2778,6 +3098,10 @@ document.addEventListener('click', e => {
   else if (a === 'rsRetry') { RS.st = 'idle'; loadResearch(); rsPaint(); }
   else if (a === 'tape') { S.tapePaused = !S.tapePaused; const tp = $('#tape'); tp.classList.toggle('paused', S.tapePaused); t.textContent = S.tapePaused ? 'Run' : 'Hold'; t.setAttribute('aria-pressed', S.tapePaused); }
   else if (a === 'more') { S.limit += 60; repaintBoard(false); }
+  else if (a === 'filmPlay') { filmPlay(); }
+  else if (a === 'filmSeek') { filmSeek(+t.dataset.s); }
+  else if (a === 'storySkip') { e.preventDefault(); const t = $('#audit'); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 140, behavior: RM() ? 'auto' : 'smooth' }); }
+  else if (a === 'matRetry') { MAT.st = 'idle'; rsPaint(); }
   else if (a === 'spRetry') { SPL[S.lg].st = 'idle'; rsPaint(); }
   else if (a === 'resetScen') { S.scen[S.lg] = {}; if (S.tab === 'stress') return stressPaint(null); render(); }
   else if (a === 'clearLine' && pr) { delete S.store.lines[pr.key]; persist(); render(); }

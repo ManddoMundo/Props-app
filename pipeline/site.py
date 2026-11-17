@@ -15,7 +15,7 @@ open(D+"index.html","w").write(head+page+"\n</body></html>\n")
 json.dump({"name":"Fair Line","short_name":"Fair Line","description":"NBA and NFL player prop model with a paper-bet desk.","start_url":".","scope":".","display":"standalone","background_color":"#cdd8c4","theme_color":"#f5f7ea",
            "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]},open(D+"manifest.webmanifest","w"),indent=1)
 if os.path.exists(O+"research/nfl.json"): shutil.copy(O+"research/nfl.json",D+"research/nfl.json")
-for f in ("splits_nba.json","splits_nfl.json"):      # trends by split, fetched when the sheet opens
+for f in ("splits_nba.json","splits_nfl.json","nba_match.json"):      # trends by split, fetched when the sheet opens
     if os.path.exists(O+"research/"+f): shutil.copy(O+"research/"+f,D+"research/"+f)
 for n in ("icon-180.png","icon-192.png","icon-512.png"):
     if os.path.exists(S+"icons/"+n): shutil.copy(S+"icons/"+n,D+n)

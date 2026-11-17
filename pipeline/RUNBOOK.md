@@ -130,3 +130,12 @@ run.sh runs `python3 splits.py` after ww.py. It writes out/research/splits_nba.j
 
 ## Lines pull windows (relay_pull.py, v3.5)
 Scheduled GitHub runs can start late. due() now treats 6:30 to 10:45 AM Eastern as the morning refresh, and 11:00 AM to 3:30 PM (weekends to 12:45 PM) as the midday pull. If the midday pull still has not happened, run Fair Line daily by hand with mode midday.
+
+## Confident plays (daily.py confident, v3.6)
+Runs in the midday job after `pick`, on the same _today lines file, which now carries alternate ladders. Rules live in CFG (conf_*): books' fair chance >= 72% (from the other books' consensus number on the main line, through the model's curve), model alone >= 68%, Hard Rock's price no worse than fair by 1 point, odds -140 to -500, 2-point early-exit haircut on overs, 93% cap, 3+ books, NBA 24+ projected minutes, edge-lane lineup tests. Bets carry lane="confident" and keep the $0.50 unit. Candidates and reasons land in out/conf/{LG}_{date}.json. The edge lane ignores confident bets when it checks whether a day was picked.
+
+## NBA matchup sheets (nba_match.py, v3.6)
+run.sh runs it after splits.py; writes out/research/nba_match.json; site.py copies it; the page fetches it when the sheet opens. Display only.
+
+## Stakes (v3.7)
+CFG unit $25, bankroll $500 per lane. stake_units() sizes each bet (edge by rating, confident by price edge and books' chance, leans 0.25); put_stake() caps a bet at max_units and a day at day_units and writes units, unit and usd onto the bet. history() keeps legacy_unit (0.5) for bets made before v3.7; reports and the page value each bet at its own unit. `daily.py fill DATE` runs after both leagues at midday and tops the day up to min_daily with leans.

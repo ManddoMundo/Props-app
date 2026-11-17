@@ -20,6 +20,10 @@ MARKETS = {"NBA": ["player_points", "player_rebounds", "player_assists", "player
                    "player_points_rebounds", "player_points_assists", "player_rebounds_assists"],
            "NFL": ["player_pass_yds", "player_pass_attempts", "player_pass_completions", "player_pass_tds", "player_rush_yds",
                    "player_rush_attempts", "player_receptions", "player_reception_yds", "player_anytime_td"]}
+# Alternate lines (the 15+, 20+, 25+ ladder) for the confident-plays lane. Midday pull only, full plan only: about 5 credits a game.
+ALT = {"NBA": ["player_points_alternate", "player_rebounds_alternate", "player_assists_alternate", "player_threes_alternate",
+               "player_points_rebounds_assists_alternate"],
+       "NFL": ["player_pass_yds_alternate", "player_rush_yds_alternate", "player_reception_yds_alternate", "player_receptions_alternate"]}
 LITE = {"NBA": ["player_points", "player_rebounds", "player_assists"], "NFL": ["player_reception_yds", "player_rush_yds", "player_pass_yds"]}
 CODE = {"NBA": {"hawks": "ATL", "celtics": "BOS", "nets": "BKN", "hornets": "CHA", "bulls": "CHI", "cavaliers": "CLE", "mavericks": "DAL",
                 "nuggets": "DEN", "pistons": "DET", "warriors": "GS", "rockets": "HOU", "pacers": "IND", "clippers": "LAC", "lakers": "LAL",
@@ -92,6 +96,10 @@ def rows_for(ev):
                 nm = " ".join(str(o.get("description") or "").replace("|", "/").split())
                 if nm:
                     by.setdefault((nm, o.get("point")), {})[str(o.get("name") or "").lower()] = o.get("price")
+            if m.get("key", "").endswith("_alternate"):      # a ladder: keep every rung
+                for (nm, pt), d in sorted(by.items(), key=lambda kv: (kv[0][0], kv[0][1] if kv[0][1] is not None else 0)):
+                    out.append("|".join([bk.get("key", ""), m.get("key", ""), nm, fmt(pt), fmt(d.get("over", d.get("yes")), True), fmt(d.get("under", d.get("no")), True)]))
+                continue
             best = {}
             for (nm, pt), d in by.items():      # if a book lists more than one line, keep the one priced closest to even
                 ov, un = d.get("over", d.get("yes")), d.get("under", d.get("no"))
@@ -149,7 +157,7 @@ def pull_lines(lg):
         errors.append(f"{lg} events: {x}")
         return
     quota(h)
-    mk = (LITE if TIER == "lite" else MARKETS)[lg]
+    mk = (LITE if TIER == "lite" else MARKETS)[lg] + (ALT[lg] if TIER == "full" and KIND == "midday" else [])
     body, books, games = [], {}, 0
     picked = chosen(lg, evs)
     for e, t in picked:
