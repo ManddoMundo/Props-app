@@ -55,18 +55,60 @@
    "kind": "test",
    "et": "2026-11-16 23:09",
    "rows": 800
+  },
+  {
+   "path": "data/lines/NBA_2026-11-17.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-17",
+   "kind": "midday",
+   "et": "2026-11-17 12:25",
+   "rows": 2288,
+   "games": 5,
+   "books": {
+    "fanduel": 397,
+    "betrivers": 436,
+    "draftkings": 431,
+    "williamhill_us": 235,
+    "betmgm": 318,
+    "hardrockbet": 447,
+    "fanatics": 24
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/news/NBA_2026-11-17.txt.enc",
+   "what": "news",
+   "lg": "NBA",
+   "date": "2026-11-17",
+   "kind": "midday",
+   "et": "2026-11-17 12:25",
+   "rows": 106
+  },
+  {
+   "path": "data/news/NFL_2026-11-17.txt.enc",
+   "what": "news",
+   "lg": "NFL",
+   "date": "2026-11-17",
+   "kind": "midday",
+   "et": "2026-11-17 12:25",
+   "rows": 800
   }
  ],
- "done": {},
- "quota": {
-  "remaining": 19983,
-  "used": 17
+ "done": {
+  "midday": "2026-11-17"
  },
- "updated_utc": "2026-11-17 04:09",
- "et": "2026-11-16 23:09",
- "kind": "test",
+ "quota": {
+  "remaining": 19943,
+  "used": 57
+ },
+ "updated_utc": "2026-11-17 17:25",
+ "et": "2026-11-17 12:25",
+ "kind": "midday",
  "tier": "full",
- "spent": 17,
+ "spent": 40,
  "errors": [],
- "notes": []
+ "notes": [
+  "NFL: no lines to save (0 games in the window)"
+ ]
 }
