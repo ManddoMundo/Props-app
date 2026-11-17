@@ -1,5 +1,67 @@
 # Changelog
 
+## 2026-11-17 v3.2 research picker and coaches (asked for by Armanddo)
+- The ten-tile grid took too much room. The research sheets now sit in one row: back and forward arrows either side of a picker that reads "Sheet 03 of 10" with the sheet's name. Tapping it opens a sheet listing all ten, grouped Players and Teams, each with a line on what it covers. A strip under the row shows where you are; tap a segment to jump. The name slides in from the side you moved toward.
+- NBA: the one-button picker is gone, since hit rates is the only NBA sheet for now. A single line says matchup sheets are coming in a later build.
+- The drifting balls are gone from the Board and Research headers.
+- The Research header has a coach working the play, drawn like the desk anchors: on the NFL side a coach in a headset and cap with his call sheet, pointing at the X's and O's; on the NBA side a coach in a suit with a marker at the clipboard. He points, nods and talks on a loop. The header is the same size as before.
+
+## 2026-11-17 v3.1.1 research fixes (reported by Armanddo)
+- The film room tool picker was one long pill that cut off "Touchdowns" on the phone. It is now a numbered grid of tiles, two across on the phone and five across on wide screens, and the pill glides across rows and columns.
+- The drifting balls in the NFL research and board headers were round and read as basketballs. They are now footballs: a long brown oval at an angle with white laces.
+
+## 2026-11-17 v3.1 research: face-off, fixture tickets, role cards (asked for by Armanddo)
+- The fixture panel is a face-off: away and home halves in club colours with a slanted seam, big club codes and nicknames, each side's implied points rolling up, an @ medallion with the kickoff, and a tug of war bar that splits the total by implied points (when both clubs wear the same colour, the home side takes its second colour). Favourite, total, week and stats-through sit underneath. The halves slide in from their own sides.
+- The game dropdown is now a strip of fixture tickets grouped by week, each with both clubs' colour swatches; the chosen ticket lifts and the strip glides it to the middle.
+- Role matchups are player cards, not a table: jersey with number, role tag, games and snap share, and a matchup gauge (Soft spot, Leans soft, Even, Leans tough, Locked down) showing how far this defense is from the league for his role. Under that, one tile per stat with his average large and what the defense allows with its rank. Each side has a band in its club colours.
+- Every player named in the other research sheets now wears his jersey, as on the Board.
+- All research switches (lens, period, side, columns) are sliding pills.
+
+## 2026-11-17 v3.0 spotlight, flip cards, watch list, drifting balls (from a reference video Armanddo sent)
+- Spotlight on the Board: the top seven picks of the current filters as a fan of jersey cards. The chosen one stands upright in the middle, its neighbours shrink and tilt away; tap a card or swipe to bring another forward, and the panel floods to his club's colours in a ripple from the card. His name sets large with the line and grade, and his pick number sits behind as a giant outlined numeral. Tapping the centre card opens his memo. It refans when a filter changes.
+- Flip: every pick card has a flip control. The card turns over to its label: projection, fair line, book line, edge, rating, the reason in a sentence and the last ten games as marks. Flip again to turn it back.
+- Watch list: a + on every pick card (and a Watch button in the Spotlight) drops the player's jersey into one of three slots in a tray at the bottom of the screen; the tray glows in the last player's colours. Tap a slot to open his memo, the x to take him off. A fourth is refused with a shake. Saved on the device only. Tracking only: no combined odds. Shown on the Board and Research. To remove the feature, set WATCH_ON to false in the page source.
+- A few basketballs or footballs drift in the Board and Research mastheads at different speeds as the page scrolls.
+- The pre-3.0 page source is kept as a fallback should any of this need reverting.
+
+## 2026-11-17 v2.9 the film room console on Research (asked for by Armanddo after 2.8)
+- Research opens with the Film room panel, in the same build as the Board's War room: a live dot, one line on what the room is for, and the sheets as a sliding pill rail (Role matchups, Hit rates, Touchdowns... on the NFL side). The NBA side says plainly that its matchup sheets are next on the build list.
+- Hit rates get their own console: four scoreboard counters (On the tape, Running hot: over in 7+ of the last 10, Ice cold: 3 or fewer, Desk agrees: the streak and the desk lean the same way), a market pill rail, a Hottest first / Coldest first pill, and the game picker. Counters roll from what they last showed to the new count on every change, and the pills slide from where they were even though the sheet repaints.
+- On a change the list deals in from the top and each row's hit marks punch in left to right.
+- The NFL game picker on the matchup sheets matches the pill style.
+
+## 2026-11-17 v2.8 the war room console on the Board (Armanddo's note: the counts and filters looked messy)
+- The loose stats line and the four boxy filters are one panel now, the War room. Four scoreboard counters (On the slate, Scouted, Lines in, On the board) roll up from zero on arrival, and On the board rolls to its new count whenever a filter changes.
+- Market is a pill rail (All, PTS, REB, AST...) and sort is a three-way pill (Best grade, Biggest number, A to Z). The dark pill slides between choices and stretches toward the new one before pulling its back edge in. The game picker and search sit on one line; the search box types out names from the top of the board until you tap it.
+- A filter change no longer rebuilds the page. Only the list repaints, dealing the new order in from the top, and the draft board in the masthead refills with the new top picks.
+- Plainer, fuller wording: the "none is rated yet" hint is now a "Mock board" note that says when grades arrive and how to grade a prop yourself; an empty search says what to try.
+
+## 2026-11-17 v2.7 smooth pick to memo (from Armanddo's screen recording of 2.6)
+- His recording showed the 2.6 morph stuttering on the Duo, with the header and side rail vanishing while it ran. It used view transitions, which make Safari snapshot the whole page. Replaced with a hand-built container transform: one stand-in card in the club's colours grows from the row to the memo (bottom sheet on a phone) while the jersey flies and spins into the memo header, then the memo fades in under it. Nothing else on the page is touched, so the header and rail stay put. Closing runs it in reverse into the row. About 0.44 seconds open and 0.36 closing.
+- The header no longer tucks away while a memo is open.
+
+## 2026-11-17 v2.6 tighter mastheads, rail gap, a pick that grows into its memo (Armanddo's notes on 2.5)
+- Draft boards made smaller: tighter cells and header on the NBA board (15 picks wide, 8 on a phone), a slimmer On the clock panel and 6 strips on the NFL board (4 on a phone).
+- Desk masthead on a phone: the anchors now sit in front of the video wall instead of below it, which removes the dead space.
+- On a phone with a side status strip, the page now keeps a 16 pixel gap from the rail instead of running into it.
+- Tapping a pick on the Board: the card itself grows into the credit memo (a container transform). The row's card, jersey and name travel into place, the jersey spins as it flies, and the memo's contents fade in crisp, never stretched. Closing shrinks the memo back into its row when that row is on screen. Falls back to the old slide where the browser has no view transitions, and with reduced motion.
+
+## 2026-11-17 v2.5 anchors at the desk, real draft night boards (Armanddo's notes on 2.4)
+- The desk now has its two anchors in suits behind a curved desk with PLAY BY PLAY and ANALYST nameplates. They take turns talking: the play by play man gestures while he talks, then the analyst (glasses, cue card) answers, each turning toward the other. ON AIR light kept.
+- NBA board rebuilt after the arena video board on draft night: a red and blue header bar (Fair Line, Draft night, the year, Round 1), then columns of picks, each a white pick number, a club-coloured team tag and the player's surname, filled in column by column like the board lighting up. It shows the actual top 15 on the board right now (10 on a phone).
+- NFL board rebuilt after draft night: an On the clock panel in the top pick's club colours with a 10 minute pick timer counting down (the real round 1 clock), beside the Round 1 list of strips: pick number, club stripe, name, position and market.
+- Before lines arrive the boards say "Mock board" or "Mock draft, by projection"; once rated, "Round 1" and "The pick is in".
+- The lottery cards and the flipping NBA rows from 2.4 are gone.
+
+## 2026-11-17 v2.4 broadcast desk, draft night board, NBA clipboard (asked for by Armanddo; display only)
+- The desk is a broadcast set: a video wall that powers on panel by panel, an ON AIR light that flickers on and keeps breathing, and the curved anchor desk rising in front. Ticket titles slide in like lower thirds, and the results crawl has a blinking LIVE light.
+- The big board is draft night. NFL: a wall of club-coloured name strips slotting in, with empty slots left for later picks. NBA: lottery cards flip from 5 down to 1. Rows read "Pick 1, Pick 2..." and, sorted by rating, are grouped into rounds by rating. NFL rows slide in like strips; NBA rows flip in, and the top three reveal last, lottery style.
+- Research on the NBA side is a coach's dry-erase clipboard: half court in marker, a pick and roll that draws itself (dribble off the screen, the roll to the rim, the pass). The NFL side keeps the blueprint.
+- No league logos or network branding.
+
+## 2026-11-17 v2.3.1 side rail fix (reported by Armanddo on the Duo, unfolded)
+- On his phone the side rail and the paper grain stopped about a screen down and the rail broke apart. Both were pinned to the screen, a kind of layer Safari can leave stranded after a fold. Both are now drawn along the whole page instead, and the ball sticks in view as it rides down. Could not be reproduced in the test browser (not Safari), so this is a fix for the most likely cause.
+
 ## 2026-11-17 v2.3 data strip, side rail, slower fold (asked for by Armanddo; display only)
 - The data line under the letterhead is now a ticket strip with labelled parts: Slate, Stats through, Updated (and a red Stale part when the page has missed its refresh). No more cut-off text. It re-deals on a league change.
 - On a phone with a status strip down the side (iPhone Duo), that strip is now a rail of hardwood or turf, faded out behind the clock, with a ball that travels down as you scroll. It takes its width from the phone's own side inset, so other phones never see it.
