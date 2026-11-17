@@ -27,7 +27,8 @@ case "$KIND" in
     if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; T=$P/out/lines/${LG}_${D}_today.txt
       if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG; python3 daily.py confident $D $LG "$T" || echo "CONFIDENT LANE FAILED for $LG"
       else NOTE="$NOTE $LG: no Hard Rock lines for games today."; fi; done
-      python3 daily.py fill $D || echo "FILL STEP FAILED"; fi ;;
+      python3 daily.py fill $D || echo "FILL STEP FAILED"
+      python3 games.py && python3 daily.py gpicks $D log || echo "GAME PICKS STEP FAILED"; fi ;;
   close)
     for LG in NBA NFL; do for F in $P/out/lines/${LG}_${D}_close*.txt; do
       if [ -f "$F" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), relay" "$F" || true; fi; done; done ;;
@@ -37,6 +38,6 @@ python3 build.py; python3 site.py
 mkdir -p "$R/docs" "$R/state"; cp -r $P/site/docs/. "$R/docs/"
 python3 daily.py report > "$R/state/report.txt" 2>/dev/null || true
 python3 daily.py summary "$D" "$KIND" "$NOTE" > "$R/state/summary.json"
-find $P/out/priced -name '*.json' -mtime +21 -delete; find $P/out/lines $P/out/news -name '*.txt' -mtime +6 -delete
+find $P/out/priced -name '*.json' -mtime +21 -delete; find $P/out/lines $P/out/news -name '*.txt' -mtime +6 -delete; find $P/out/games -name '*.txt' -mtime +30 -delete 2>/dev/null || true
 tar -C $P --exclude='out/index.html' -czf - out | $OSSL -salt -out "$ENC"
 echo "built $KIND for $D:"; cat "$R/state/summary.json"

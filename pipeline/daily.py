@@ -17,6 +17,7 @@ from scipy import stats
 from common import nb_k, norm
 
 O = "/home/claude/props/out/"
+D = "/home/claude/props/data/"
 # Pick policy. The weekly review may tune these, one change at a time, and must log why in CHANGELOG.md.
 CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and confident plays each), one unit $25. Bets before v3.7 used $0.50 units and keep them.
            max_units=2.0, day_units=10.0,  # most on one bet, and on one day across both lanes and leagues
@@ -1014,6 +1015,55 @@ def cmd_fill(date):
         save_history(h)
     print(f"fill {date}: needed {need}, added {len(added)} leans")
 
+
+def cmd_gpicks(date, mode="grade"):
+    """Game picks record (not staked). mode "log": write today's NBA picks and the NFL week's picks that have a spread and
+    are not yet on file, each once, at the numbers of that moment. Every call grades what has finished:
+    NFL from the nflverse schedule, NBA from the box scores."""
+    gp = O + "gpicks.json"; P = json.load(open(gp)) if os.path.exists(gp) else []
+    have = {(x["lg"], x["id"]) for x in P}
+    G = json.load(open(O + "games.json")) if os.path.exists(O + "games.json") else {}
+    if mode == "log":
+        end = (datetime.date.fromisoformat(date) + datetime.timedelta(days=7)).isoformat()
+        for lg in ("NBA", "NFL"):
+            for g in (G.get(lg) or {}).get("games", []):
+                if (lg, g["id"]) in have or g.get("spread") is None: continue
+                if (lg == "NBA" and g["day"] != date) or (lg == "NFL" and not (date <= g["day"] < end)): continue
+                P.append(dict(lg=lg, id=g["id"], date=date, day=g["day"], away=g["away"], home=g["home"], winner=g["winner"], p_win=g["p_win"], pm=g["pm"],
+                              spread=g["spread"], ats=g["ats"], gap=g["gap"], tier=g.get("tier"), p_mkt=g.get("p_mkt"), status="open",
+                              pt=g.get("pt"), total=g.get("total"), ou=g.get("ou"), tgap=g.get("tgap"),
+                              ml_px=(g.get("ml") or {}).get("px"), ml_bk=(g.get("ml") or {}).get("bk"), s_px=(g.get("sbest") or {}).get("px"),
+                              open=(g.get("mv") or {}).get("open"), nf=(g.get("nf") or {}).get("side"), wind=(g.get("venue") or {}).get("wind")))
+                have.add((lg, g["id"]))
+    res = {}
+    try:
+        import pandas as pd
+        s = pd.read_csv(D + "nfl_games.csv", low_memory=False); s = s[s.result.notna()]
+        res.update({("NFL", r.game_id): (float(r.result), float(r.home_score + r.away_score)) for r in s.itertuples()})
+        b = pd.read_parquet(D + "nba_pb_2027.parquet", columns=["game_id", "home_away", "team_score", "opponent_team_score"]).drop_duplicates(["game_id", "home_away"])
+        b = b[b.home_away == "home"]
+        res.update({("NBA", str(r.game_id)): (float(r.team_score - r.opponent_team_score), float(r.team_score + r.opponent_team_score)) for r in b.itertuples() if not pd.isna(r.team_score)})
+    except Exception as e:
+        print("gpicks: results not read:", e)
+    n = 0
+    for x in P:
+        if x["status"] != "open" or (x["lg"], x["id"]) not in res: continue
+        m, tot = res[(x["lg"], x["id"])]; x["margin"] = m; x["tot"] = tot
+        x["su"] = None if m == 0 else int((m > 0) == (x["winner"] == x["home"]))
+        c = m - x["spread"]
+        x["cover"] = None if c == 0 else int((c > 0) == (x["ats"] == x["home"]))
+        if x.get("ou") and x.get("total") is not None and tot != x["total"]:
+            x["ou_hit"] = int((tot > x["total"]) == (x["ou"] == "Over"))
+        if x.get("nf") and c != 0:
+            x["nf_cover"] = int((c > 0) == (x["nf"] == x["home"]))          # nfelo's side, graded at the line we logged
+        if x.get("wind") is not None and x["wind"] >= 10 and x.get("total") is not None and tot != x["total"]:
+            x["wind_under"] = int(tot < x["total"])
+        x["status"] = "done"; n += 1
+    json.dump(P, open(gp, "w"))
+    done = [x for x in P if x["status"] == "done"]
+    w = sum(x["su"] == 1 for x in done); l = sum(x["su"] == 0 for x in done); cw = sum(x["cover"] == 1 for x in done); cl = sum(x["cover"] == 0 for x in done)
+    print(f"game picks: {len(P)} on file, {n} graded now; straight up {w}-{l}, against the spread {cw}-{cl}")
+
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[0] == "lines": cmd_lines(a[1], a[2], a[3:])
@@ -1023,6 +1073,7 @@ if __name__ == "__main__":
     elif a[0] == "pick": cmd_pick(a[1], a[2])
     elif a[0] == "confident": cmd_confident(a[1], a[2], a[3:])
     elif a[0] == "fill": cmd_fill(a[1])
+    elif a[0] == "gpicks": cmd_gpicks(a[1], a[2] if len(a) > 2 else "grade")
     elif a[0] == "relay": sys.exit(cmd_relay(a[1]))
     elif a[0] == "today": sys.exit(cmd_today(a[1], a[2], a[3]))
     elif a[0] == "mirror": sys.exit(cmd_mirror())

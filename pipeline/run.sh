@@ -21,6 +21,8 @@ soft nfl_players.parquet $B/players/players.parquet
 soft nfl_roster_weekly_2026.parquet $B/weekly_rosters/roster_weekly_2026.parquet
 soft nfl_injuries_2026.parquet $B/injuries/injuries_2026.parquet
 soft nfl_depth_charts_2026.parquet $B/depth_charts/depth_charts_2026.parquet
+# nfelo (open-source NFL model): opening and closing lines since 2009 and its own line, for the Games tab. Not fatal.
+soft nfelo_games.csv https://raw.githubusercontent.com/greerreNFL/nfelo/main/output_data/nfelo_games.csv
 for y in 2025 2026 2027; do get nba_pb_$y.parquet $S/espn_nba_player_boxscores/player_box_$y.parquet; done
 get nba_sched_2027.parquet $S/espn_nba_schedules/nba_schedule_2027.parquet
 fi
@@ -39,6 +41,11 @@ python3 ww.py || echo "WITH/WITHOUT STEP FAILED: the stress test shows no histor
 python3 splits.py || echo "SPLITS STEP FAILED: the Splits sheet keeps its last file"
 # NBA matchup sheets for the Research room. Not fatal.
 python3 nba_match.py || echo "NBA MATCHUP STEP FAILED: the sheet keeps its last file"
+# game picks: team ratings, win chances and spread picks for both leagues, then grade any finished picks. Not fatal.
+python3 nba_lines.py || echo "NBA LINES STEP FAILED: the NBA track record uses the lines already on file"
+python3 weather.py || echo "WEATHER STEP FAILED: no wind notes on the Games tab"
+python3 games.py || echo "GAME MODEL STEP FAILED: the Games tab keeps its last file"
+python3 daily.py gpicks "$(TZ=America/New_York date +%F)" grade || true
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
 python3 - <<'PY'
 import json; D=json.load(open('/home/claude/props/out/data.json'))

@@ -199,6 +199,38 @@ def pull_lines(lg):
          body, rows=sum(books.values()), games=games, books=books, markets=len(mk))
 
 
+def pull_games(lg):
+    """Moneylines, spreads and totals for the game picks: one call a league for every game, 3 credits."""
+    global spent
+    try:
+        evs, h = get(API + SPORT[lg] + "/odds", {"apiKey": KEY, "bookmakers": ",".join(BOOKS), "markets": "h2h,spreads,totals", "oddsFormat": "american", "dateFormat": "iso"})
+    except RuntimeError as x:
+        errors.append(f"{lg} game odds: {x}"); return
+    quota(h)
+    try:
+        spent += int(float(h.get("x-requests-last")))
+    except Exception:
+        spent += 3
+    body, n = [], 0
+    for e in sorted(evs, key=lambda e: e.get("commence_time", "")):
+        t = datetime.datetime.fromisoformat(e["commence_time"].replace("Z", "+00:00")).astimezone(ET)
+        mins = (t - NOW).total_seconds() / 60
+        if mins < 10 or mins > (8 * 1440 if lg == "NFL" else 3 * 1440):
+            continue
+        rows = []
+        for bk in e.get("bookmakers") or []:
+            for m in bk.get("markets") or []:
+                for o in m.get("outcomes") or []:
+                    nm = o.get("name") or ""; team = code(lg, nm) if m.get("key") != "totals" else nm
+                    rows.append("|".join([bk.get("key", ""), m.get("key", ""), team, fmt(o.get("point")), fmt(o.get("price"), True)]))
+        if rows:
+            n += 1; body += [f"# game: {code(lg, e.get('away_team'))} @ {code(lg, e.get('home_team'))}", f"# tip: {t:%Y-%m-%d %H:%M} ET"] + rows
+    if not body:
+        notes.append(f"{lg}: no game odds to save"); return
+    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}"
+    save("games", lg, name, f"# relay pulled {NOW:%Y-%m-%d %H:%M} ET, {KIND}, game odds\nbookmaker_key|market_key|team|point|price", body, rows=len(body), games=n)
+
+
 def pull_news(lg):
     try:
         j, _ = get(f"https://site.api.espn.com/apis/site/v2/sports/{ESPN[lg]}/injuries", {})
@@ -266,6 +298,8 @@ elif KIND == "close" and TIER == "lite":
 else:
     for lg in ("NBA", "NFL"):
         pull_lines(lg)
+        if KIND in ("midday", "test") and TIER == "full":
+            pull_games(lg)
 if KIND in ("early", "midday", "test"):
     for lg in ("NBA", "NFL"):
         pull_news(lg)
