@@ -1,15 +1,16 @@
-bets 27, open 0
-  all            11-10  hit 52.4%  units +0.12  avg model prob 60.7%
-  best bets      4-4  hit 50.0%  units -0.39  avg model prob 58.6%
-  NBA            8-8  hit 50.0%  units -0.48  avg model prob 60.2%
-  NFL            3-2  hit 60.0%  units +0.61  avg model prob 62.1%
-  ast            0-3  hit 0.0%  units -3.00  avg model prob 54.7%
-  pass_yds       0-1  hit 0.0%  units -1.00  avg model prob 62.8%
-  pts            3-3  hit 50.0%  units -0.27  avg model prob 63.9%
-  reb            5-2  hit 71.4%  units +2.78  avg model prob 59.4%
-  rec_yds        2-0  hit 100.0%  units +1.74  avg model prob 61.8%
-  rush_yds       1-1  hit 50.0%  units -0.13  avg model prob 62.1%
-  AAA            10-9  hit 52.6%  units +0.50  avg model prob 60.8%
-  AA             0-1  hit 0.0%  units -1.00  avg model prob 53.0%
-  A              1-0  hit 100.0%  units +0.62  avg model prob 65.2%
+bets 29, open 2
+  all            11-10  hit 52.4%  units +0.12  dollars +0.06  avg model prob 60.7%
+  best bets      4-4  hit 50.0%  units -0.39  dollars -0.20  avg model prob 58.6%
+  edge lane      11-10  hit 52.4%  units +0.12  dollars +0.06  avg model prob 60.7%
+  NBA            8-8  hit 50.0%  units -0.48  dollars -0.24  avg model prob 60.2%
+  NFL            3-2  hit 60.0%  units +0.61  dollars +0.30  avg model prob 62.1%
+  ast            0-3  hit 0.0%  units -3.00  dollars -1.50  avg model prob 54.7%
+  pass_yds       0-1  hit 0.0%  units -1.00  dollars -0.50  avg model prob 62.8%
+  pts            3-3  hit 50.0%  units -0.27  dollars -0.13  avg model prob 63.9%
+  reb            5-2  hit 71.4%  units +2.78  dollars +1.39  avg model prob 59.4%
+  rec_yds        2-0  hit 100.0%  units +1.74  dollars +0.87  avg model prob 61.8%
+  rush_yds       1-1  hit 50.0%  units -0.13  dollars -0.07  avg model prob 62.1%
+  AAA            10-9  hit 52.6%  units +0.50  dollars +0.25  avg model prob 60.8%
+  AA             0-1  hit 0.0%  units -1.00  dollars -0.50  avg model prob 53.0%
+  A              1-0  hit 100.0%  units +0.62  dollars +0.31  avg model prob 65.2%
   closing line value: 2 bets tracked, average -7.4%, beat the close on 0
