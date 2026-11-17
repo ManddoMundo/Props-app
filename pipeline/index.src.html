@@ -1050,6 +1050,37 @@ body.has-tray main{padding-bottom:120px}
 .mvs.in .mvr-d{animation:dotin .6s var(--ease) backwards} @keyframes dotin{from{left:36.8%}}
 .mvr-v{text-align:right;min-width:92px} .mvr-v b{font:700 15px var(--mono)}
 @media(max-width:520px){.mvr{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.mvr-g{grid-column:1/-1;order:3}}
+/* ---------- v3.13 team badges ---------- */
+.bdg{display:inline-block;flex:none;line-height:0;vertical-align:middle}
+.bdg svg{width:100%;height:100%;overflow:visible}
+.bdg .bo{fill:var(--t2);stroke:rgba(0,0,0,.35);stroke-width:1}
+.bdg .bi{fill:var(--t1)}
+.bdg .bs{fill:none;stroke:var(--t2);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bdg.nba .bs{stroke-width:1.4}
+.bdg text{fill:var(--tn);font-family:var(--cond);font-weight:700;letter-spacing:.02em;text-anchor:middle;paint-order:stroke;stroke:var(--t1);stroke-width:2.2px}
+.bdg.nfl{width:26px;height:30px} .bdg.nba{width:28px;height:28px}
+.bdg.z-m.nfl{width:28px;height:32px} .bdg.z-m.nba{width:30px;height:30px}
+.bdg.z-s.nfl{width:17px;height:20px} .bdg.z-s.nba{width:19px;height:19px}
+.bdg.z-xs.nfl{width:13px;height:15px} .bdg.z-xs.nba{width:14px;height:14px}
+.jb .jb-t .bdg.z-sb{display:block;align-self:center} .jb .jb-t .bdg.z-sb.nfl{width:24px;height:28px} .jb .jb-t .bdg.z-sb.nba{width:26px;height:26px}
+.bdg.z-s text,.bdg.z-xs text{display:none}
+.bdg.z-s .bs,.bdg.z-xs .bs{stroke-width:3}
+.bdg.z-wm{position:absolute;z-index:0;top:50%;width:120px;height:138px;margin-top:-69px;opacity:.42;pointer-events:none}
+.bdg.z-wm .bi{fill:color-mix(in srgb,var(--t1) 70%,#fff)}
+.bdg.z-wm.nba{width:130px;height:130px;margin-top:-65px}
+.bdg.z-wm text{display:none}
+.fx-t.a .bdg.z-wm{right:-14px;transform:rotate(-10deg)} .fx-t.h .bdg.z-wm{left:-14px;transform:rotate(10deg)}
+.fx-t>*:not(.bdg){position:relative;z-index:1}
+.nm-fx .fx-t{position:relative;overflow:hidden}
+@media(max-width:620px){.bdg.z-wm{width:92px;height:106px;margin-top:-53px}.bdg.z-wm.nba{width:98px;height:98px;margin-top:-49px}}
+.gp-tm{gap:8px} .gp-tm.lo .bdg{opacity:.8}
+.gp-pk b .bdg{margin-right:1px}
+.jb .jb-t{grid-template-columns:26px minmax(0,1fr) auto;gap:8px}
+.tg{display:inline-flex;align-items:center;gap:3px;vertical-align:1px}
+.tg .bdg{margin-left:-2px} .tg{margin-right:6px}
+.gp.in .gp-tm .bdg,.m-games.in .jb-t .bdg{animation:bdgin .5s var(--thunk) backwards;animation-delay:calc(var(--i,0)*35ms + 220ms)}
+@keyframes bdgin{from{transform:scale(.3) rotate(-14deg);opacity:0}}
+@media(prefers-reduced-motion:reduce){.gp.in .gp-tm .bdg,.m-games.in .jb-t .bdg{animation:none}}
 /* ---------- v3.11 games masthead: a night game under the lights, the jumbotron and the referee ---------- */
 .m-games{color:var(--chalk);padding:22px 24px 20px;min-height:168px;background:radial-gradient(40% 70% at 12% -8%,rgba(255,244,214,.22),transparent 70%),radial-gradient(40% 70% at 88% -8%,rgba(255,244,214,.18),transparent 70%),linear-gradient(180deg,#0b1220,#101a2c 62%,#0d1626)}
 .m-games.lg-nba{background:radial-gradient(55% 80% at 50% -20%,rgba(255,214,150,.22),transparent 70%),linear-gradient(180deg,#160f1c,#1d1426 62%,#140e1b)}
@@ -1812,7 +1843,7 @@ const ARTX = {
     const tk = [f.spread != null ? `BOOKS ${f.spread >= 0 ? f.home : f.away} ${lineTxt(-Math.abs(f.spread))}` : '', `RATINGS ${f.pm >= 0 ? f.home : f.away} ${lt(-Math.abs(f.pm))}`,
       f.ats && f.tier ? `${f.tier === 'Strong' ? 'EDGE' : f.tier.toUpperCase()} ${f.ats} ${lineTxt(f.ats === f.home ? -f.spread : f.spread)}` : '', f.total != null ? `O/U ${f.total}` : '',
       `${f.winner} ${Math.round(f.p_win * 100)}% TO WIN`].filter(Boolean).join('  ·  ');
-    const row = (t, v, k, j) => `<div class="jb-t${(k === 0) === fa ? ' fav' : ''}" style="${(TC[lg] || {})[t] ? tcol(lg, t) : ''};--j:${j}"><i></i><b>${esc(t)}${(f.rk || [])[k] ? `<small>#${f.rk[k]}</small>` : ''}</b><span class="jb-n" data-to="${Math.round(v)}">${n(v)}</span></div>`;
+    const row = (t, v, k, j) => `<div class="jb-t${(k === 0) === fa ? ' fav' : ''}" style="${(TC[lg] || {})[t] ? tcol(lg, t) : ''};--j:${j}">${badge(lg, t, 'sb')}<b>${esc(t)}${(f.rk || [])[k] ? `<small>#${f.rk[k]}</small>` : ''}</b><span class="jb-n" data-to="${Math.round(v)}">${n(v)}</span></div>`;
     return `<i class="gm-beam b1"></i><i class="gm-beam b2"></i><div class="gm-scene"><div class="jb"><div class="jb-hd"><span>${nfl ? 'Week ' + G.week : new Date(f.day + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }).toUpperCase()} · Projected</span><span class="jb-clk">FINAL</span></div>
       ${row(f.away, sc[0], 0, 0)}${row(f.home, sc[1], 1, 1)}<div class="jb-tk"><span>${esc(tk)}  ·  ${esc(tk)}</span></div></div>${ref}</div>`;
   },
@@ -1854,7 +1885,14 @@ const lum = h => { const n = parseInt(h.slice(1), 16), f = v => { v /= 255; retu
 const tcol = (lg, t) => { const c = (TC[lg] || {})[t] || ['#566559', '#e6eddb']; return `--t1:${c[0]};--t2:${c[1]};--tn:${lum(c[0]) < .3 ? '#ffffff' : '#111111'}`; };
 const JSHAPE = { NFL: 'M9 3h8c1 3 5 3 6 0h8l8 6-4 8-5-2v25H10V15l-5 2-4-8z', NBA: 'M12 2h5c0 6 6 6 6 0h5c0 6 2 9 6 11v27H6V13c4-2 6-5 6-11z' };
 const jersey = (lg, p, big) => { const has = p.num != null && p.num !== ''; return `<span class="jy${big ? ' big' : ''}" style="${tcol(lg, p.team)}" aria-hidden="true"><svg viewBox="0 0 40 42"><path d="${JSHAPE[lg]}"/></svg><b${has ? '' : ' class="s"'}>${esc(has ? p.num : p.pos)}</b></span>`; };
-const teamTag = (lg, t) => `<i class="tg" style="${tcol(lg, t)}">${esc(t)}</i>`;
+const teamTag = (lg, t) => `<i class="tg" style="${tcol(lg, t)}">${badge(lg, t, 'xs')}${esc(t)}</i>`;
+/* team badges: an original crest in the club's two colours with its letters. NFL a shield, NBA a roundel. Not the clubs' marks. */
+const badge = (lg, t, k) => { if (!t || !(TC[lg] || {})[t]) return ''; const n = String(t), fs = n.length > 2 ? 12.5 : 15.5;
+  const art = lg === 'NFL'
+    ? `<path class="bo" d="M20 1.5L38 6.6V22.5C38 34 30.5 40.8 20 44.5C9.5 40.8 2 34 2 22.5V6.6Z"/><path class="bi" d="M20 5L34.6 9.2V22.5C34.6 31.8 28.6 37.6 20 40.9C11.4 37.6 5.4 31.8 5.4 22.5V9.2Z"/><path class="bs" d="M9 32.5L20 37.6L31 32.5"/><path class="bs" d="M9.5 11.2H30.5"/><text x="20" y="27.4" font-size="${fs}">${esc(n)}</text>`
+    : `<circle class="bo" cx="20" cy="20" r="19"/><circle class="bi" cx="20" cy="20" r="15.6"/><path class="bs" d="M6.5 13.5Q20 19 33.5 13.5M6.5 26.5Q20 21 33.5 26.5" opacity=".55"/><text x="20" y="25.4" font-size="${fs}">${esc(n)}</text>`;
+  return `<span class="bdg ${lg === 'NFL' ? 'nfl' : 'nba'}${k ? ' z-' + k : ''}" style="${tcol(lg, t)}" aria-hidden="true"><svg viewBox="0 0 40 ${lg === 'NFL' ? 46 : 40}">${art}</svg></span>`; };
+
 const whoHtml = (pr, tail, pick) => { const p = pr.e.p; return `${jersey(pr.lg, p)}<span class="who"><b>${esc(p.name)}</b><span>${pick ? `<span class="pk">Pick ${pick}</span>` : ''}${teamTag(pr.lg, p.team)}${esc(p.pos)}${p.num != null && p.num !== '' ? ' · #' + esc(p.num) : ''} · ${pr.e.side.home ? 'vs' : '@'} ${esc(pr.e.side.opp)} · ${tail}</span></span>`; };
 
 const gameLabel = (lg, g) => lg === 'NFL' ? `${g.away} @ ${g.home} · ${g.wd.slice(0, 3)} ${g.time}` : `${g.away} @ ${g.home} · ${g.day.slice(5)} ${g.time}`;
@@ -2309,7 +2347,7 @@ function fixtureHtml(R, g) {
   const fav = sp == null ? 'No line yet' : sp > 0 ? `${g.home} by ${sp}` : sp < 0 ? `${g.away} by ${-sp}` : 'Pick em', share = has ? Math.max(8, Math.min(92, ia / tot * 100)) : 50;
   const hx = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), far = (x, y) => { const p = hx(x), q = hx(y); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) > 110; };
   const TA = TC.NFL[g.away] || ['#2b3442', '#888888'], TH = TC.NFL[g.home] || ['#2b3442', '#888888'], ca = TA[0], ch = far(TA[0], TH[0]) ? TH[0] : TH[1];      // two navy clubs: the home side of the bar takes its second colour
-  const side = (t, ip, lbl, c) => `<div class="fx-t ${c}" style="${tcol('NFL', t)}"><small>${lbl}</small><b>${t}</b><em>${esc(R.teams[t].n)}</em>${ip != null ? `<span class="fx-ip"><b class="tick" data-k="fx-${c}" data-to="${ip.toFixed(1)}" data-dp="1">${ip.toFixed(1)}</b><small>implied points</small></span>` : ''}</div>`;
+  const side = (t, ip, lbl, c) => `<div class="fx-t ${c}" style="${tcol('NFL', t)}">${badge('NFL', t, 'wm')}<small>${lbl}</small><b>${t}</b><em>${esc(R.teams[t].n)}</em>${ip != null ? `<span class="fx-ip"><b class="tick" data-k="fx-${c}" data-to="${ip.toFixed(1)}" data-dp="1">${ip.toFixed(1)}</b><small>implied points</small></span>` : ''}</div>`;
   return `<section class="fx2${S.fresh ? ' in' : ''}" style="--ca:${ca};--ch:${ch}" aria-label="${g.away} at ${g.home}">
     ${side(g.away, ia, 'Away', 'a')}
     <div class="fx-mid"><span class="fx-at">@</span><span class="fx-ko">${esc(g.wd.toUpperCase())} ${t12(g.time)}</span><small>${esc(g.day)} · ET</small></div>
@@ -2503,7 +2541,7 @@ function gamesHtml() {
   const nEdge = all.filter(g => cls(g) === 'edge').length, nLean = all.filter(g => cls(g) === 'lean').length;
   const big = all.filter(g => !fin && g.gap != null).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))[0];
   const BKS_ = b => b === 'consensus' ? 'Close' : bkn(b);
-  const side = (g, t) => `<i style="${tc(t)}"></i>${esc(t)}`;
+  const side = (g, t) => `${badge(lg, t, 's')}${esc(t)}`;
   const pxCell = (bst, hrOk) => bst ? `<span class="gp-px"><b>${odds(bst.px)}</b><small>${bst.bk === 'consensus' ? 'consensus' : 'best · ' + esc(BKS_(bst.bk))}</small>${hrOk && bst.hr && bst.bk !== 'hardrockbet' ? `<small>HR ${bst.hr[0] != null && hrOk === 'pt' ? lineTxt(bst.hr[0]) + ' ' : ''}${odds(bst.hr[1])}</small>` : ''}</span>` : '<span class="gp-px"><small>no price</small></span>';
   const head = (g, sc, scLab, i, extra) => {
     const hiH = sc[1] >= sc[0], rk = g.rk || [], rest = g.rest || [];
@@ -2511,8 +2549,8 @@ function gamesHtml() {
       const r = rest[k]; return r == null ? '' : r >= 13 ? '<span class="gp-bd c">Off bye</span>' : r <= 4 && !(rest[1 - k] <= 4) ? '<span class="gp-bd">Short week</span>' : ''; };
     const when = fin ? new Date(g.day + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : `${new Date(g.day + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} · ${t12(g.time)}`;
     return `<div class="gp-top"><div class="gp-tms">
-        <span class="gp-tm${hiH ? ' lo' : ''}" style="${tc(g.away)}"><i></i>${rk[0] ? `<small>#${rk[0]}</small>` : ''}<b>${esc(g.away)}</b>${fin ? '' : bd(0)}</span>
-        <span class="gp-tm${hiH ? '' : ' lo'}" style="${tc(g.home)}"><i></i>${rk[1] ? `<small>#${rk[1]}</small>` : ''}<b>${esc(g.home)}</b>${fin ? '' : bd(1)}</span></div>
+        <span class="gp-tm${hiH ? ' lo' : ''}" style="${tc(g.away)}">${badge(lg, g.away, 'm')}${rk[0] ? `<small>#${rk[0]}</small>` : ''}<b>${esc(g.away)}</b>${fin ? '' : bd(0)}</span>
+        <span class="gp-tm${hiH ? '' : ' lo'}" style="${tc(g.home)}">${badge(lg, g.home, 'm')}${rk[1] ? `<small>#${rk[1]}</small>` : ''}<b>${esc(g.home)}</b>${fin ? '' : bd(1)}</span></div>
       <div class="gp-sc"><small>${scLab}</small><b class="${hiH ? 'lo' : ''}">${Math.round(sc[0])}</b><b class="${hiH ? '' : 'lo'}">${Math.round(sc[1])}</b></div>
       <div class="gp-meta"><span>${esc(when)}${!fin && g.venue ? ` · ${({ dome: 'Dome', outdoors: 'Outdoors', retractable: 'Retractable roof', neutral: 'Neutral site' })[g.venue.roof] || ''}` : ''}</span><span>Total <b>${Math.round(sc[0] + sc[1])}</b>${extra || ''}</span></div></div>`; };
   const card = (g, i) => {
@@ -2604,7 +2642,7 @@ function nmuHtml() {
   const card = g => { const A = T(g.away), H = T(g.home), pace = (A.pace + H.pace) / 2, pd = pace - M.lg.pace, open = S.rs.ng === g.id;
     return `<article class="nm-g${open ? ' open' : ''}" id="nm-${g.id}">
       <button class="nm-gh" data-rs="ng:${g.id}" aria-expanded="${open}">
-        <span class="nm-tm" style="${tcol('NBA', g.away)}"><i></i><b>${esc(g.away)}</b></span><span class="nm-at">@</span><span class="nm-tm" style="${tcol('NBA', g.home)}"><i></i><b>${esc(g.home)}</b></span>
+        <span class="nm-tm" style="${tcol('NBA', g.away)}">${badge('NBA', g.away, 'm')}<b>${esc(g.away)}</b></span><span class="nm-at">@</span><span class="nm-tm" style="${tcol('NBA', g.home)}">${badge('NBA', g.home, 'm')}<b>${esc(g.home)}</b></span>
         <span class="nm-when">${esc(g.day.slice(5))} · ${t12(g.time)}</span>
         <span class="nm-pc"><small>Pace</small><b>${pace.toFixed(1)}</b><em class="${pd >= 0 ? 'pos' : 'neg'}">${pd >= 0 ? '+' : ''}${pd.toFixed(1)}</em></span>
         <span class="nm-hints">${soft(g.away, H)}${soft(g.home, A)}</span>
@@ -2612,7 +2650,7 @@ function nmuHtml() {
       </button>
       ${open ? `<div class="nm-det">${detail(g, A, H, pace, pd)}</div>` : ''}</article>`; };
   const detail = (g, A, H, pace, pd) => {
-    const half = (t, side, X) => `<div class="fx-t ${side}" style="${tcol('NBA', t)}"><small>${side === 'a' ? 'Away' : 'Home'}</small><b>${esc(t)}</b><span class="nm-p">Pace ${X.pace.toFixed(1)}</span><span class="nm-p">#${X.pace_rk} of ${n}</span></div>`;
+    const half = (t, side, X) => `<div class="fx-t ${side}" style="${tcol('NBA', t)}">${badge('NBA', t, 'wm')}<small>${side === 'a' ? 'Away' : 'Home'}</small><b>${esc(t)}</b><span class="nm-p">Pace ${X.pace.toFixed(1)}</span><span class="nm-p">#${X.pace_rk} of ${n}</span></div>`;
     const head = `<section class="nm-fx">${half(g.away, 'a', A)}<div class="nm-mid"><span>Pace tonight</span><b>${pace.toFixed(1)}</b><em class="${pd >= 0 ? 'pos' : 'neg'}">${pd >= 0 ? '+' : ''}${pd.toFixed(1)} vs league</em></div>${half(g.home, 'h', H)}</section>`;
     const cell = (D, pos, k) => { const z = D.dvp[pos] && D.dvp[pos][k]; if (!z) return '<td>·</td>'; const lg = M.lg.dvp[pos][k], pc = lg ? (z[0] / lg - 1) * 100 : 0, cls = z[1] <= 10 ? 'soft' : z[1] > n - 10 ? 'tough' : '';
       return `<td class="${cls}"><b>${z[0].toFixed(1)}</b><small><span class="pc">${pc >= 0 ? '+' : ''}${pc.toFixed(0)}% · </span>#${z[1]}</small></td>`; };

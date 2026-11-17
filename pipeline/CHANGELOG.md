@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-17 v3.13 team badges (asked for by Armanddo; display only)
+- Every club gets an original crest in its two colours with its letters: a shield for the NFL, a roundel for the NBA. These are not the clubs' logos, which are trademarks the app does not use.
+- Badges replace the plain colour bars on the game cards (with a pop-in), the scoreboard header, the pick rows, the team tags on the board, and the NBA matchups list; the face-offs in the Research room carry a large faint crest behind each club.
+
 ## 2026-11-17 v3.12 opening lines, line moves, a second model, venue and wind (asked for by Armanddo; tracked, not staked)
 - Scoreboard clock reads FINAL, since the number on it is the projected final score.
 - New data: nfelo's public game file (github.com/greerreNFL/nfelo), downloaded each run. It carries the opening and closing spread and total for every NFL game since 2009 and nfelo's own line and expected value. nba_lines.py now also keeps ESPN's opening numbers (1,255 NBA games with an open and a close).
