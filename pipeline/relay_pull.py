@@ -216,6 +216,8 @@ def pull_news(lg):
 
 def due():
     h = NOW.hour + NOW.minute / 60
+    if 6.5 <= h < 9.5 and ST["done"].get("early") != TODAY:      # morning refresh: grade last night, new projections, injuries. No credits.
+        return "early"
     if 11 <= h < 13 and ST["done"].get("midday") != TODAY:
         return "midday"
     slot = "close_early" if h < 15 else "close_late"
@@ -224,7 +226,7 @@ def due():
     return None
 
 
-KIND = MODE if MODE in ("midday", "close", "test") else None if MODE == "none" else due()
+KIND = MODE if MODE in ("early", "midday", "close", "test") else None if MODE == "none" else due()
 with open("/tmp/relay_kind", "w") as f:
     f.write(KIND or "none")
 TIER, CAP = "unknown", 0
@@ -247,16 +249,18 @@ if KIND == "test":
     CAP = min(CAP, 20)
 if TIER == "none":
     notes.append("Credits are nearly gone, so no lines were pulled")
+elif KIND == "early":
+    notes.append("Morning refresh: no lines pulled, they post later in the morning")
 elif KIND == "close" and TIER == "lite":
     notes.append("Closing lines are skipped on a small plan")
 else:
     for lg in ("NBA", "NFL"):
         pull_lines(lg)
-if KIND in ("midday", "test"):
+if KIND in ("early", "midday", "test"):
     for lg in ("NBA", "NFL"):
         pull_news(lg)
-if KIND == "midday":
-    ST["done"]["midday"] = TODAY
+if KIND in ("early", "midday"):
+    ST["done"][KIND] = TODAY
 elif KIND == "close":
     ST["done"]["close_early" if NOW.hour < 15 else "close_late"] = TODAY
 finish(0)

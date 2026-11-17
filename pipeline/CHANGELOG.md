@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-17 v2.3 data strip, side rail, slower fold (asked for by Armanddo; display only)
+- The data line under the letterhead is now a ticket strip with labelled parts: Slate, Stats through, Updated (and a red Stale part when the page has missed its refresh). No more cut-off text. It re-deals on a league change.
+- On a phone with a status strip down the side (iPhone Duo), that strip is now a rail of hardwood or turf, faded out behind the clock, with a ball that travels down as you scroll. It takes its width from the phone's own side inset, so other phones never see it.
+- Fold animation slowed so it reads: the covers now carry the awning, hold a beat, then swing open over about 1.35 seconds with a lit seam at the hinge. Closing takes about 0.8 seconds.
+
+## 2026-11-17 v2.2.1 morning refresh (asked for by Armanddo)
+- New run at about 7:10 AM Eastern: grades last night's bets, refreshes projections, research and injury reports, and rebuilds the app, so it is current when he wakes. It spends no credits.
+- Lines and picks stay with the late morning run (about 11:20 AM): most books post NBA player props mid morning, and the injury report firms up by then, so picking at 7 AM would mean fewer props and staler news.
+
 ## 2026-11-17 v2.2 Duo fixes and the market rail (asked for by Armanddo; display only)
 - iPhone Duo: the credit memo's Close button sat under the phone's side status strip. On phone sheets Close is now on the left, the memo head keeps clear of the right inset, and the picker sheets do the same.
 - League switch scene: on his recording the second scene opened already at the score and shut at once. The scene started on the tap while Safari was still holding the old screen. It now starts when the page change is ready (with a 1.5 second fallback).

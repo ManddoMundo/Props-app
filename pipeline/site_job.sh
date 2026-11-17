@@ -18,10 +18,11 @@ fi
 KIND=$(cat /tmp/relay_kind 2>/dev/null || echo none); [ -n "$FORCE" ] && KIND=$FORCE
 D=$(TZ=America/New_York date +%F); cd $P/src; NOTE=""
 case "$KIND" in
-  midday|build)
+  early|midday|build)
     if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; N=$P/out/news/${LG}_$D.txt
       if [ -f "$L" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" "$L"; fi; done; fi
     bash run.sh
+    [ "$KIND" = early ] && NOTE="Morning refresh. Lines and picks come with the late morning run."
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
     if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; T=$P/out/lines/${LG}_${D}_today.txt
       if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG

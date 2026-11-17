@@ -500,6 +500,16 @@ main.iris{animation:iris .7s cubic-bezier(.35,0,.3,1) both}
 .band{z-index:1}
 .hud{position:relative;flex:1 1 220px;min-width:0;display:flex;align-items:center;align-self:stretch;--px:3px;--ah:58px}
 .stamp{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .16s ease-out}
+/* the data line is a ticket strip: slate, how far the stats run, when it last refreshed */
+#stamp{display:inline-flex;align-items:stretch;max-width:100%;overflow-x:auto;scrollbar-width:none;text-overflow:clip;border:1.5px solid var(--rule);border-radius:7px;background:color-mix(in srgb,var(--paper) 70%,transparent)}
+#stamp::-webkit-scrollbar{display:none}
+#stamp .sc{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 11px 5px;border-left:1.5px dashed var(--rule);flex:0 0 auto}
+#stamp .sc:first-child{border-left:0}
+#stamp small{font:600 8.5px/1.2 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+#stamp b{font:700 12.5px/1.25 var(--mono);color:var(--ink)}
+#stamp .sc.bad{background:var(--bad-soft)} #stamp .sc.bad small,#stamp .sc.bad b{color:var(--bad)}
+#stamp.flip .sc{animation:tickin .36s var(--ease) backwards} #stamp.flip .sc:nth-child(2){animation-delay:50ms} #stamp.flip .sc:nth-child(3){animation-delay:100ms} #stamp.flip .sc:nth-child(4){animation-delay:150ms}
+@keyframes tickin{from{opacity:0;transform:translateY(6px)}}
 .hud.play .stamp{opacity:0}
 .arc{position:absolute;left:0;right:0;top:50%;height:var(--ah);margin-top:calc(var(--ah)/-2);pointer-events:none;visibility:hidden}
 .hud.play .arc{visibility:visible}
@@ -546,7 +556,7 @@ button.row:active{transform:scale(.996)}
 .px-layer.sheet .px-pan::before{display:none}
 .px-layer.sheet .px-h{position:relative;flex-direction:row-reverse;padding-top:22px;padding-right:max(14px,env(safe-area-inset-right,0px));touch-action:none;cursor:grab}
 .px-layer.sheet .px-h::before{content:"";position:absolute;left:50%;top:8px;width:44px;height:5px;margin-left:-22px;border-radius:3px;background:var(--rule)}
-@media(max-width:620px){.hud{flex:1 1 100%;align-self:auto;--px:2px;--ah:36px} .stamp{font-size:11.5px}}
+@media(max-width:620px){.hud{flex:1 1 100%;align-self:auto;--px:2px;--ah:36px} #stamp .sc{padding:3px 9px 4px} #stamp b{font-size:11.5px}}
 
 /* ---------- v1.9 jerseys: every player wears his club's colours and his number ---------- */
 .jy{position:relative;flex:0 0 auto;width:44px;height:46px;display:grid;place-items:center;transition:transform var(--t2) var(--thunk)}
@@ -581,9 +591,14 @@ button.row.pl:hover .jy{transform:rotate(-7deg) scale(1.08)}
 .fold i{display:flex;align-items:center;background:var(--panel);border:2px solid var(--ink);font:400 clamp(26px,5vw,54px)/1 var(--display);font-style:normal;color:var(--ink);overflow:hidden;white-space:nowrap;backface-visibility:hidden}
 .fold i:first-child{justify-content:flex-end;padding-right:.35em;transform-origin:0 50%;border-right-width:1px;box-shadow:inset -22px 0 30px -18px rgba(23,34,47,.5)}
 .fold i:last-child{padding-left:.35em;transform-origin:100% 50%;border-left-width:1px;box-shadow:inset 22px 0 30px -18px rgba(23,34,47,.5)}
-.fold.open i:first-child{animation:door-a .68s cubic-bezier(.5,0,.2,1) .08s both} .fold.open i:last-child{animation:door-b .68s cubic-bezier(.5,0,.2,1) .08s both}
-.fold.shut{animation:fold-out .22s ease-in .4s both}
-.fold.shut i:first-child{animation:door-a .4s var(--ease) reverse both} .fold.shut i:last-child{animation:door-b .4s var(--ease) reverse both}
+.fold.open i:first-child{animation:door-a 1.35s cubic-bezier(.55,0,.15,1) .35s both} .fold.open i:last-child{animation:door-b 1.35s cubic-bezier(.55,0,.15,1) .35s both}
+.fold i::before{content:"";position:absolute;left:0;right:0;top:0;height:min(14vh,90px);background:repeating-linear-gradient(90deg,var(--awn) 0 40px,var(--awn-2) 40px 80px);border-bottom:2px solid var(--ink)}
+.fold i{position:relative}
+.fold::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:var(--led);box-shadow:0 0 18px 4px var(--led);opacity:0}
+.fold.open::after{animation:seam 1.1s ease-out both} .fold.shut::after{animation:seam .9s ease-in .35s both}
+@keyframes seam{0%{opacity:0}25%,55%{opacity:.95}100%{opacity:0}}
+.fold.shut{animation:fold-out .3s ease-in .95s both}
+.fold.shut i:first-child{animation:door-a .8s cubic-bezier(.55,0,.15,1) reverse both} .fold.shut i:last-child{animation:door-b .8s cubic-bezier(.55,0,.15,1) reverse both}
 @keyframes door-a{to{transform:rotateY(-104deg)}} @keyframes door-b{to{transform:rotateY(104deg)}}
 @keyframes fold-out{to{opacity:0}}
 
@@ -602,7 +617,7 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 }}
 @keyframes row-view{from{opacity:.2;translate:0 24px;scale:.985}to{opacity:1;translate:none;scale:none}}
 @keyframes jy-view{from{scale:.45;rotate:-20deg}to{scale:none;rotate:none}}
-.stamp.old{color:var(--bad);font-weight:700}
+
 /* ---------- v2.2 market rail: a row of small tote tiles, each showing its own projection; the chosen one is lit ---------- */
 .mrail{position:relative;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:6px 2px 10px;margin:-6px -2px -6px;scrollbar-width:none}
 .mrail::-webkit-scrollbar{display:none}
@@ -617,6 +632,20 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 .mt[aria-pressed="true"]::before{content:"";position:absolute;left:9px;right:9px;bottom:0;height:3px;border-radius:2px 2px 0 0;background:var(--led)}
 .memo.swap .mt[aria-pressed="true"] b,.memo.swap .mt[aria-pressed="true"] small{animation:lit .34s steps(1,end)}
 @keyframes lit{0%{opacity:.25}30%{opacity:1}55%{opacity:.5}80%{opacity:1}}
+/* ---------- v2.3 side rail: on a phone with a status strip down one side (iPhone Duo), that strip becomes the court or field ---------- */
+.siderail{position:fixed;top:0;bottom:0;right:0;width:env(safe-area-inset-right,0px);z-index:4;pointer-events:none;overflow:hidden;border-left:2px solid var(--ink);
+  -webkit-mask:linear-gradient(transparent 0,#000 42vh);mask:linear-gradient(transparent 0,#000 42vh)}
+.siderail::before,.siderail::after{content:"";position:absolute;inset:0;transition:opacity .45s ease-out}
+.siderail::before{opacity:.42;background:repeating-linear-gradient(90deg,transparent 0 21px,rgba(42,22,8,.45) 21px 22px),repeating-linear-gradient(180deg,transparent 0 118px,rgba(42,22,8,.35) 118px 120px),linear-gradient(90deg,var(--wood-2),var(--wood))}
+.siderail::after{opacity:0;background:repeating-linear-gradient(180deg,transparent 0 58px,rgba(246,247,233,.7) 58px 61px),repeating-linear-gradient(180deg,var(--turf) 0 61px,var(--turf-2) 61px 122px)}
+:root[data-lg="NFL"] .siderail::before{opacity:0} :root[data-lg="NFL"] .siderail::after{opacity:.5}
+.siderail{background-position:0 calc(var(--sp,0)*-240px)}
+.siderail::before,.siderail::after{background-position:0 calc(var(--sp,0)*-360px)}
+.sr-ball{position:absolute;z-index:1;left:50%;width:30px;height:30px;margin-left:-15px;top:calc(42vh + var(--sp,0)*(58vh - 44px));border-radius:50%;border:2px solid var(--wood-ink);
+  background:radial-gradient(circle at 35% 30%,#ffb46a,var(--ball) 55%,#c8691b);box-shadow:0 6px 10px -4px rgba(0,0,0,.6);transition:top .18s linear,border-radius .4s var(--ease),transform .4s var(--ease)}
+.sr-ball::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 47%,var(--wood-ink) 47% 53%,transparent 53%),linear-gradient(transparent 47%,var(--wood-ink) 47% 53%,transparent 53%)}
+:root[data-lg="NFL"] .sr-ball{border-radius:50%/34%;background:radial-gradient(circle at 35% 30%,#b0693a,var(--pig) 60%);transform:rotate(90deg)}
+:root[data-lg="NFL"] .sr-ball::after{background:linear-gradient(90deg,transparent 30%,var(--turf-ink) 30% 70%,transparent 70%) 50% 50%/100% 2px no-repeat}
 /* page turn between tabs */
 main.enter{animation:sheet-in .3s var(--ease) both}
 @keyframes sheet-in{from{transform:translateX(26px) rotate(.25deg);opacity:.15}to{transform:none;opacity:1}}
@@ -639,12 +668,13 @@ main.enter{animation:sheet-in .3s var(--ease) both}
   <pattern id="hUnder" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="6" height="6" fill="var(--paper)"/><rect width="1.3" height="6" fill="var(--under)"/></pattern>
   <filter id="rough" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="4" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="3.2"/></filter>
 </defs></svg>
+<div class="siderail" id="siderail" aria-hidden="true"><i class="sr-ball"></i></div>
 <header class="top"><div class="arc-amb" id="arcAmb" aria-hidden="true"></div><div class="band" aria-hidden="true"></div><div class="top-in gut">
   <div class="brand"><i></i>Fair Line</div>
   <div class="lg" id="lg" role="group" aria-label="League" data-lg="NBA"><span class="lg-puck" aria-hidden="true"></span>
     <button id="lgNBA" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="var(--ball)" stroke="var(--wood-ink)" stroke-width="1.5"/><path d="M2 12h20M12 2v20M5 5c3.2 2.4 3.2 11.6 0 14M19 5c-3.2 2.4-3.2 11.6 0 14" fill="none" stroke="var(--wood-ink)" stroke-width="1.3"/></svg><span>NBA</span></button>
     <button id="lgNFL" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-32 12 12)"><path d="M1.5 12C5 5.5 19 5.5 22.5 12 19 18.5 5 18.5 1.5 12Z" fill="var(--pig)" stroke="var(--wood-ink)" stroke-width="1.5"/><path d="M8 12h8M9.5 10.4v3.2M12 10.4v3.2M14.5 10.4v3.2" fill="none" stroke="var(--turf-ink)" stroke-width="1.3" stroke-linecap="round"/></g></svg><span>NFL</span></button></div>
-  <div class="hud" id="hud"><span class="stamp" id="stamp"></span><div class="arc" id="arc" aria-hidden="true"></div></div>
+  <div class="hud" id="hud"><span class="stamp" id="stamp" role="status" aria-live="polite"></span><div class="arc" id="arc" aria-hidden="true"></div></div>
   <nav class="tabs" role="tablist" id="tabs"><span class="tab-ink" id="tabInk" aria-hidden="true"></span>
     <button role="tab" data-tab="desk" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14.5 8.5v7" stroke-dasharray="1.5 2.5"/></svg>The desk</button>
     <button role="tab" data-tab="board" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 9h10M7 13h6M8 21l1.2-4M16 21l-1.2-4"/></svg>Board</button>
@@ -1507,7 +1537,8 @@ function arcade(lg) {
   arcT.push(setTimeout(() => { hud.classList.remove('play', 'off', 'score'); amb.className = 'arc-amb'; el.innerHTML = ''; }, ts + 1080));
 }
 /* the letterhead tucks away on a phone while you read down, and returns on the first scroll up */
-let lastY = 0;
+let lastY = 0, srF = 0;
+addEventListener('scroll', () => { if (!srF) srF = requestAnimationFrame(() => { srF = 0; const h = document.documentElement.scrollHeight - innerHeight; document.documentElement.style.setProperty('--sp', h > 0 ? Math.min(1, scrollY / h).toFixed(4) : 0); }); }, { passive: true });
 addEventListener('scroll', () => { const top = $('.top'), y = scrollY, dy = y - lastY; if (Math.abs(dy) < 8) return; lastY = y;
   let small = false; try { small = matchMedia('(max-width: 820px)').matches; } catch (e) {}
   if (!small || PX || dy < 0 || y < 220 || $('#hud').classList.contains('play')) return top.classList.remove('tuck');
@@ -1532,7 +1563,7 @@ addEventListener('resize', () => { if (foldFrom == null) foldFrom = foldW; foldW
   foldTm = setTimeout(() => { const a = foldFrom, b = innerWidth; foldFrom = null; if (RM() || !a) return;
     const open = a < 640 && b >= 700 && b / a > 1.4, shut = a >= 700 && b < 640 && a / b > 1.4; if (!open && !shut) return;
     document.querySelectorAll('.fold').forEach(n => n.remove()); const el = document.createElement('div'); el.className = 'fold ' + (open ? 'open' : 'shut'); el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<i>Fair</i><i>Line</i>'; document.body.appendChild(el); placeInk(); setTimeout(() => el.remove(), 900); }, 140); });
+    el.innerHTML = '<i>Fair</i><i>Line</i>'; document.body.appendChild(el); placeInk(); setTimeout(() => el.remove(), 1900); }, 140); });
 
 /* ---------- motion ---------- */
 function flap(el, delay) {          // split-flap: each digit rolls through a few faces and lands
@@ -1568,8 +1599,14 @@ function render() {
   $('#lg').dataset.lg = S.lg; document.documentElement.dataset.lg = S.lg; $('#main').dataset.tab = S.tab;
   const bt = new Date(DATA.built.replace(' UTC', 'Z').replace(' ', 'T'));
   const ageH = isNaN(bt) ? 0 : (Date.now() - bt) / 36e5;      // a page that has missed its daily refresh says so, in red
-  $('#stamp').textContent = `${ageH > 40 ? 'Not refreshed for ' + Math.floor(ageH / 24) + ' day' + (ageH >= 48 ? 's' : '') + ' · ' : ''}${DATA[S.lg].label} · data through ${DATA[S.lg].data_through} · refreshed ${isNaN(bt) ? DATA.built : bt.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
-  $('#stamp').classList.toggle('old', ageH > 40);
+  const L = DATA[S.lg], dd = x => { const m = /(\d{4})-(\d\d)-(\d\d)/.exec(x); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }, md = d => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const days = String(L.label).split(' / ').map(x => /^\d\d-\d\d$/.test(x) ? new Date(bt.getFullYear ? (isNaN(bt) ? 2026 : bt.getFullYear()) : 2026, +x.slice(0, 2) - 1, +x.slice(3)) : null).filter(Boolean);
+  const slate = days.length > 1 ? `${md(days[0])} to ${days[days.length - 1].getDate()}` : days.length ? md(days[0]) : L.label;
+  const thru = dd(L.data_through) ? dd(L.data_through).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : String(L.data_through).replace(/^\d{4} /, '');
+  const today = !isNaN(bt) && bt.toDateString() === new Date().toDateString(), tm = isNaN(bt) ? DATA.built : (today ? 'Today ' : md(bt) + ', ') + bt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const seg = (k, v, c) => `<span class="sc${c ? ' ' + c : ''}"><small>${k}</small><b>${esc(v)}</b></span>`;
+  $('#stamp').innerHTML = (ageH > 40 ? seg('Stale', Math.floor(ageH / 24) + ' day' + (ageH >= 48 ? 's' : ''), 'bad') : '') + seg('Slate', slate) + seg('Stats through', thru) + seg('Updated', tm);
+  $('#stamp').setAttribute('aria-label', `${S.lg} slate ${slate}, stats through ${thru}, updated ${tm}${ageH > 40 ? ', stale' : ''}`);
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === S.tab)); placeInk();
   buildProps();
   if (S.memo && !PMAP[S.memo]) S.memo = null;
@@ -1582,7 +1619,7 @@ function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() 
 function setLeague(lg) { if (S.lg === lg) return;
   const r = $('#lg').getBoundingClientRect(), m = $('#main').getBoundingClientRect(), rs = document.documentElement.style;      // the new sheet opens out from the side of the switch the ball lands on
   rs.setProperty('--ix', Math.round(r.left + (lg === 'NFL' ? .75 : .25) * r.width - m.left) + 'px'); rs.setProperty('--iy', Math.round(r.top + r.height / 2 - m.top) + 'px');
-  const vt = go(() => { S.lg = lg; S.memo = null; S.game = 'all'; S.mkt = lg === 'NBA' ? 'pts' : 'rec_yds'; S.q = ''; S.limit = 80; S.stressSide = null; S.relMkt = null; render(); }, 'iris');
+  const vt = go(() => { S.lg = lg; S.memo = null; S.game = 'all'; S.mkt = lg === 'NBA' ? 'pts' : 'rec_yds'; S.q = ''; S.limit = 80; S.stressSide = null; S.relMkt = null; render(); const st = $('#stamp'); if (!RM()) { st.classList.remove('flip'); void st.offsetWidth; st.classList.add('flip'); } }, 'iris');
   // Safari can hold the screen still for a moment before a page change shows. Starting the scene only once the change is ready keeps the ball in view.
   if (vt && vt.ready) { let done = false; const play = () => { if (!done) { done = true; arcade(lg); } }; vt.ready.then(play, play); setTimeout(play, 1500); } else arcade(lg); }
 $('#lgNBA').onclick = () => setLeague('NBA'); $('#lgNFL').onclick = () => setLeague('NFL');

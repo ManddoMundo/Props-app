@@ -112,6 +112,7 @@ See the scheduled task prompt. Rules that always hold:
 
 ## GitHub runs the day (v2.1)
 - The repo `ManddoMundo/Props-app` holds a copy of `pipeline/`, the workflow `.github/workflows/lines.yml` (source: `pipeline/lines.yml`), the encrypted books `state/state.tar.gz.enc`, and the standalone app in `docs/` (GitHub Pages, https://manddomundo.github.io/Props-app/).
+- About 7:10 AM Eastern an `early` run grades, refreshes projections and injuries and rebuilds the app with no credits and no picks.
 - Each late morning the job unlocks the books, pulls lines and injuries, runs `run.sh`, prices only games that tip that day (`daily.py today`), picks, rebuilds the app with `site.py`, locks the books and commits. Evenings it records closing lines. `site_job.sh` is the whole script.
 - The artifact is the authoring copy of the pipeline. A session here cannot push to GitHub. When a pipeline file changes: bump `VERSION`, publish to the artifact, and give Armanddo a zip of the changed files to drag into the repo's upload page. Until he uploads, GitHub keeps running the old version, and the daily mirror reports the mismatch.
 - Weekly review: unchanged, with one addition. If it changes a pipeline file it must end its report with the list of files to upload and send them as a zip.
