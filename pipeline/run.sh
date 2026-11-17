@@ -35,6 +35,8 @@ python3 daily.py grade
 { [ -f research_nfl.py ] && python3 research_nfl.py; } || echo "RESEARCH STEP FAILED: the Research tab keeps its last file"
 # stress test history: teammates with and without each regular. Not fatal: the page then shows no history.
 python3 ww.py || echo "WITH/WITHOUT STEP FAILED: the stress test shows no history"
+# trends by split for the Research room. Not fatal: the Splits sheet keeps its last file.
+python3 splits.py || echo "SPLITS STEP FAILED: the Splits sheet keeps its last file"
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
 python3 - <<'PY'
 import json; D=json.load(open('/home/claude/props/out/data.json'))

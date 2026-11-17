@@ -124,3 +124,9 @@ run.sh runs `python3 ww.py` after the research step. It reads out/data.json and 
 
 ## Market grades (books.py, v3.4)
 build.py calls books.build(D) for the newest out/lines/{LG}_YYYY-MM-DD.txt under 36 hours old (not the _first or _close snapshots) and embeds the result as DATA.books. FL_LINES="NBA=path,NFL=path" overrides the file for a local test. Grades: A edge >= +2% against the other books' consensus, B >= 0, C >= -2.5%, D >= -5%, F below. If it fails, the build carries on and the Market grades sheet says no lines are on file.
+
+## Trends by split (splits.py, v3.5)
+run.sh runs `python3 splits.py` after ww.py. It writes out/research/splits_nba.json (each slate player's last 30 games across this season and last) and splits_nfl.json (last 17), with home, rest, start, season and the stats, plus each defense's rank in what it allows a game per stat and each club's last game date. site.py copies both into docs/research; the page fetches them when the sheet opens. Display only and never fatal.
+
+## Lines pull windows (relay_pull.py, v3.5)
+Scheduled GitHub runs can start late. due() now treats 6:30 to 10:45 AM Eastern as the morning refresh, and 11:00 AM to 3:30 PM (weekends to 12:45 PM) as the midday pull. If the midday pull still has not happened, run Fair Line daily by hand with mode midday.

@@ -216,9 +216,11 @@ def pull_news(lg):
 
 def due():
     h = NOW.hour + NOW.minute / 60
-    if 6.5 <= h < 9.5 and ST["done"].get("early") != TODAY:      # morning refresh: grade last night, new projections, injuries. No credits.
+    # GitHub starts scheduled runs late on busy days, sometimes by an hour or more, so each window is wide enough to catch
+    # a late start. The midday pull must still land before the first game: weekends have 1 PM kickoffs, so it closes earlier then.
+    if 6.5 <= h < 10.75 and ST["done"].get("early") != TODAY:      # morning refresh: grade last night, new projections, injuries. No credits.
         return "early"
-    if 11 <= h < 13 and ST["done"].get("midday") != TODAY:
+    if 11 <= h < (12.75 if NOW.weekday() >= 5 else 15.5) and ST["done"].get("midday") != TODAY:
         return "midday"
     slot = "close_early" if h < 15 else "close_late"
     if ((18 <= h < 19.75) or (NOW.weekday() == 6 and 12 <= h < 13.75)) and ST["done"].get(slot) != TODAY:
