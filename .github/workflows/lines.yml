@@ -3,13 +3,14 @@
 name: Fair Line daily
 on:
   schedule:
+    - cron: "10 11,12 * * *"   # about 7:10 AM Eastern: grade last night, refresh projections and injuries, rebuild the app (no credits)
     - cron: "20 15,16 * * *"   # late morning Eastern: lines, injuries, model, picks, rebuild
     - cron: "25 22,23 * * *"   # early evening Eastern: closing lines
     - cron: "30 16,17 * * 0"   # Sunday midday Eastern: NFL closing lines for the afternoon games
   workflow_dispatch:
     inputs:
       mode:
-        description: "build (rebuild the app, no credits, no picks), midday, close, test or auto"
+        description: "build (rebuild the app, no credits, no picks), early, midday, close, test or auto"
         required: false
         default: "build"
 permissions:
