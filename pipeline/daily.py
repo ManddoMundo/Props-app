@@ -1,0 +1,827 @@
+#!/usr/bin/env python3
+"""The desk: price book lines against the model, log daily best bets, grade them, report.
+
+  python3 daily.py news  <YYYY-MM-DD> <NBA|NFL> <injuries.txt|-> [lines.txt ...]   lineup news -> out/news.json (run BEFORE the models)
+  python3 daily.py lines <YYYY-MM-DD> <NBA|NFL> <lines.txt> [...]   price pasted odds tables, write out/feed.json
+  python3 daily.py pick  <YYYY-MM-DD> <NBA|NFL>                     log the day's best bets to out/history.json
+  python3 daily.py explain <YYYY-MM-DD> <NBA|NFL>                   (re)write the case file on each bet and the day's pass list
+  python3 daily.py close <YYYY-MM-DD> <NBA|NFL> "<label>" <late_lines.txt>   closing line check on the open bets
+  python3 daily.py relay <YYYY-MM-DD>                              fetch and decrypt the day's lines and injury files from the GitHub relay
+  python3 daily.py grade                                           settle open bets from the latest box scores
+  python3 daily.py report                                          print the record
+  python3 daily.py audit                                           grade every priced side (model vs book), update out/audit.json
+Run after nfl.py / nba.py / build_data.py so out/data.json and the *_check.json files are current."""
+import json, math, os, re, sys, unicodedata, datetime
+import numpy as np
+from scipy import stats
+from common import nb_k, norm
+
+O = "/home/claude/props/out/"
+# Pick policy. The weekly review may tune these, one change at a time, and must log why in CHANGELOG.md.
+CFG = dict(bankroll=25.0, unit_pct=0.02, max_picks=3, max_per_game=2, min_edge=0.03, max_edge=0.12, min_adj_ev=0.025,
+           min_odds=-160, max_odds=150, min_games=8, nba_min_minutes=20.0, book="hardrockbet",
+           min_books=2,                      # other books that must quote the same player and market before a side can be picked
+           cal_w0=0.25, cal_w_n0=150,        # prior weight on the model vs the market, and how many graded lines that prior is worth
+           cal_c_n0=5, cal_w_max=0.7)        # cal_c_n0: lines of "no lean" prior in the per-slate centring
+VER = "1.4"
+BOOKN = {"hardrockbet": "Hard Rock", "draftkings": "DraftKings", "fanduel": "FanDuel", "betmgm": "BetMGM", "williamhill_us": "Caesars",
+         "espnbet": "ESPN Bet", "pinnacle": "Pinnacle", "betrivers": "BetRivers", "fanatics": "Fanatics", "bovada": "Bovada"}
+# injury tables name the club; the model uses box score codes
+TEAM = {"NBA": {"hawks": "ATL", "celtics": "BOS", "nets": "BKN", "hornets": "CHA", "bulls": "CHI", "cavaliers": "CLE", "mavericks": "DAL", "nuggets": "DEN",
+                "pistons": "DET", "warriors": "GS", "rockets": "HOU", "pacers": "IND", "clippers": "LAC", "lakers": "LAL", "grizzlies": "MEM", "heat": "MIA",
+                "bucks": "MIL", "timberwolves": "MIN", "pelicans": "NO", "knicks": "NY", "thunder": "OKC", "magic": "ORL", "76ers": "PHI", "suns": "PHX",
+                "blazers": "POR", "kings": "SAC", "spurs": "SA", "raptors": "TOR", "jazz": "UTAH", "wizards": "WSH"},
+        "NFL": {"cardinals": "ARI", "falcons": "ATL", "ravens": "BAL", "bills": "BUF", "panthers": "CAR", "bears": "CHI", "bengals": "CIN", "browns": "CLE",
+                "cowboys": "DAL", "broncos": "DEN", "lions": "DET", "packers": "GB", "texans": "HOU", "colts": "IND", "jaguars": "JAX", "chiefs": "KC",
+                "rams": "LA", "chargers": "LAC", "raiders": "LV", "dolphins": "MIA", "vikings": "MIN", "patriots": "NE", "saints": "NO", "giants": "NYG",
+                "jets": "NYJ", "eagles": "PHI", "steelers": "PIT", "seahawks": "SEA", "49ers": "SF", "buccaneers": "TB", "titans": "TEN", "commanders": "WAS"}}
+UNIT = {"pts": "points", "reb": "rebounds", "ast": "assists", "fg3": "threes", "pra": "points, rebounds and assists", "pr": "points and rebounds",
+        "pa": "points and assists", "ra": "rebounds and assists", "pass_yds": "passing yards", "pass_att": "pass attempts", "pass_cmp": "completions",
+        "pass_td": "passing touchdowns", "rush_yds": "rushing yards", "rush_att": "carries", "rec": "catches", "rec_yds": "receiving yards", "any_td": "touchdowns"}
+NEWS = "/home/claude/props/out/news.json"
+TIERS = [(.08, "AAA"), (.06, "AA"), (.04, "A"), (.025, "BBB"), (.01, "BB"), (0, "B"), (-9, "C")]
+MK = {"NBA": {"player_points": "pts", "player_rebounds": "reb", "player_assists": "ast", "player_threes": "fg3",
+              "player_points_rebounds_assists": "pra", "player_points_rebounds": "pr", "player_points_assists": "pa",
+              "player_rebounds_assists": "ra"},
+      "NFL": {"player_pass_yds": "pass_yds", "player_pass_attempts": "pass_att", "player_pass_completions": "pass_cmp",
+              "player_pass_tds": "pass_td", "player_rush_yds": "rush_yds", "player_rush_attempts": "rush_att",
+              "player_receptions": "rec", "player_reception_yds": "rec_yds", "player_anytime_td": "any_td"}}
+COMBO = {"pra": ["pts", "reb", "ast"], "pr": ["pts", "reb"], "pa": ["pts", "ast"], "ra": ["reb", "ast"]}
+INV = {lg: {v: k for k, v in MK[lg].items()} for lg in MK}
+NFL_LOG = {"pass_yds": "pyd", "pass_att": "att", "pass_cmp": "cmp", "pass_td": "ptd", "rush_yds": "ryd", "rush_att": "car",
+           "rec": "rec", "rec_yds": "recyd"}
+DATA = "/home/claude/props/data/"
+NFL_RAW = {"pass_yds": "passing_yards", "pass_att": "attempts", "pass_cmp": "completions", "pass_td": "passing_tds",
+           "rush_yds": "rushing_yards", "rush_att": "carries", "rec": "receptions", "rec_yds": "receiving_yards"}
+_NFL_BOX = {}
+
+
+def dec(a):
+    return 1 + a / 100 if a > 0 else 1 + 100 / -a
+
+
+def load():
+    D = json.load(open(O + "data.json"))
+    chk = {"NBA": json.load(open(O + "nba_check.json")), "NFL": json.load(open(O + "nfl_check.json"))}
+    return D, chk
+
+
+def history():
+    p = O + "history.json"
+    if os.path.exists(p):
+        return json.load(open(p))
+    return {"bankroll": CFG["bankroll"], "unit": round(CFG["bankroll"] * CFG["unit_pct"], 2), "bets": [], "days": [], "updated": ""}
+
+
+def save_history(h):
+    h["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+    json.dump(h, open(O + "history.json", "w"), indent=1)
+
+
+def probs(L, lg, mkt, mu, line):
+    if mkt == "any_td":
+        p = 1 - math.exp(-mu)
+        return p, 1 - p, 0.0
+    a, b = L["model"]["disp"][mkt]
+    k = float(nb_k(mu, a, b)); pr = k / (k + mu)
+    under = float(stats.nbinom.cdf(math.ceil(line) - 1, k, pr))
+    push = float(stats.nbinom.pmf(int(line), k, pr)) if float(line).is_integer() else 0.0
+    return 1 - under - push, under, push
+
+
+def implied_mean(L, lg, mkt, line, p_over):
+    """The projection a book's line and prices imply: the mean at which our own curve gives the book's no-vig over chance."""
+    lo, hi = 0.02, max(6 * line + 20, 10)
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        ov, un, _ = probs(L, lg, mkt, mid, line)
+        if ov / (ov + un) < p_over: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+
+_CAL, _CEN = {}, {}
+
+
+def centre(pairs):
+    """Per-slate centring: the factor that puts the model's average projection on the market's average for one market.
+    pairs = [(model mean, market mean)]. Pulled toward 1 on thin slates and capped, so it only removes a general lean."""
+    n = len(pairs)
+    if not n or sum(p[0] for p in pairs) <= 0:
+        return 1.0
+    r = sum(p[1] for p in pairs) / sum(p[0] for p in pairs)
+    return float(np.clip((n * r + CFG["cal_c_n0"]) / (n + CFG["cal_c_n0"]), 0.85, 1.15))
+
+
+def calib(D):
+    """w per market: how far to move off the market toward the model. 0 trusts the market, 1 trusts the model.
+    Relearned every run from every graded side in out/audit.json and pulled toward a neutral prior.
+    Final mean used for pricing = market + w * (c * model - market), with c the per-slate centring above."""
+    if _CAL:
+        return _CAL
+    A = json.load(open(O + "audit.json")) if os.path.exists(O + "audit.json") else {}
+    pairs, acc = {}, {}
+    for k, r in A.items():
+        pairs.setdefault(k.rsplit("|", 1)[0], {})[r["side"]] = r
+    for pr in pairs.values():
+        o, u = pr.get("Over"), pr.get("Under")
+        if not o or not u or o["mkt"] not in D[o["lg"]]["model"]["disp"]:
+            continue
+        mm = o.get("mm")
+        if mm is None:      # graded before v1.3: the only market view is the book's own line
+            po, pu = 1 / dec(o["odds"]), 1 / dec(u["odds"])
+            mm = implied_mean(D[o["lg"]], o["lg"], o["mkt"], o["line"], po / (po + pu))
+        acc.setdefault((o["lg"] + "|" + o["mkt"], o["date"]), []).append((o["mu"], mm, o["result"]))
+    for lg in MK:
+        for mkt in sorted(set(MK[lg].values())):
+            d, e = [], []
+            for (key, date), rows in acc.items():
+                if key != lg + "|" + mkt:
+                    continue
+                c = centre([(r[0], r[1]) for r in rows])      # each past day centred the same way a live slate is
+                d += [r[0] * c - r[1] for r in rows]; e += [r[2] - r[1] for r in rows]
+            d, e, n = np.array(d), np.array(e), len(d)
+            wh = float((d * e).sum() / (d * d).sum()) if n >= 5 and (d * d).sum() > 0 else CFG["cal_w0"]
+            w = float(np.clip((n * wh + CFG["cal_w_n0"] * CFG["cal_w0"]) / (n + CFG["cal_w_n0"]), 0, CFG["cal_w_max"]))
+            _CAL[lg + "|" + mkt] = dict(w=round(w, 4), n=n)
+    json.dump(_CAL, open(O + "calib.json", "w"))
+    return _CAL
+
+
+def cv5(a):
+    x = a[-5:]
+    if len(x) < 3 or not np.mean(x):
+        return 0.0
+    return float(np.std(x) / np.mean(x))
+
+
+def confidence(lg, p, mkt, mu, edge, game, side=None):
+    c, flags = 1.0, []
+    if p["n"] < 5: c *= .7; flags.append("thin history")
+    elif p["n"] < 10: c *= .85; flags.append("short history")
+    if lg == "NBA" and cv5(p["logs"]["min"]) > .22: c *= .88; flags.append("minutes swing")
+    if lg == "NFL" and mkt.startswith("rec") and cv5(p["logs"]["tgt"]) > .5: c *= .9; flags.append("uneven targets")
+    if lg == "NFL" and mkt.startswith("rush") and cv5(p["logs"]["car"]) > .5: c *= .9; flags.append("uneven carries")
+    if p.get("missed"): c *= .8; flags.append("missed last game")
+    if p.get("q"): c *= .8; flags.append("questionable")
+    if lg == "NFL" and side and side.get("qbnew") and mkt.startswith(("pass", "rec")): c *= .85; flags.append("QB change")
+    if lg == "NFL" and game.get("spread") is not None and abs(game["spread"]) >= 9.5: c *= .92; flags.append("blowout risk")
+    if mkt != "any_td" and mu < 2: c *= .92; flags.append("low count")
+    if edge >= .10: c *= .85; flags.append("large edge, check news")
+    return c, flags
+
+
+def parse(path):
+    rows = []
+    for ln in open(path):
+        t = ln.strip()
+        c = [x.strip() for x in (t.strip("|") if t.startswith("|") else t).split("|")]      # only a markdown row has outer pipes to drop
+        if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
+            continue
+        num = lambda s: (float(s.replace("+", "")) if re.fullmatch(r"[+-]?\d+(\.\d+)?", s) else None)
+        rows.append(dict(book=c[0], market=c[1], player=c[2], line=num(c[3]), o=num(c[4]), u=num(c[5])))
+    return rows
+
+
+def cmd_news(date, lg, files):
+    """Lineup news for one league. files[0] is an injury table (team | player | pos | est_return | status | comment) or "-",
+    the rest are book lines files. A player the books are quoting is expected to play; in NFL files a `# game: AWAY @ HOME`
+    line before each game's table lets the passing yards market name each team's starting QB."""
+    out, q, inn, qb_game, by_team = set(), set(), set(), {}, {}
+    if files and files[0] != "-":
+        for ln in open(files[0]):
+            c = [x.strip() for x in ln.strip().strip("|").split("|")]
+            if len(c) < 5 or c[0].lower() in ("team", "") or set(c[0]) <= set("-: "):
+                continue
+            st = c[4].lower(); code = TEAM[lg].get(c[0].lower().split()[-1]) if c[0].split() else None
+            if any(k in st for k in ("out", "injured reserve", "doubtful", "suspen", "unable to perform", "non-football")):
+                out.add(norm(c[1]))
+                if code: by_team.setdefault(code, []).append([c[1], c[2]])      # who is out, by club, for the write-ups
+            elif any(k in st for k in ("day-to-day", "questionable", "game-time", "gtd")): q.add(norm(c[1]))
+    for f in files[1:]:
+        game = None
+        for ln in open(f):
+            if ln.startswith("# game:"):
+                game = ln.split(":", 1)[1].strip().replace(" ", ""); continue
+            c = [x.strip() for x in ln.strip().strip("|").split("|")]
+            if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
+                continue
+            inn.add(norm(c[2]))
+            if lg == "NFL" and c[1] == "player_pass_yds" and game and norm(c[2]) not in qb_game.setdefault(game, []):
+                qb_game[game].append(norm(c[2]))
+    cur = json.load(open(NEWS)) if os.path.exists(NEWS) else {}
+    # Books pull a prop the moment a player is ruled out, so a live quote beats a stale or coarse status (for example
+    # "injured reserve" on a player who has been designated to return).
+    quoted_out = sorted(out & inn); out -= inn
+    by_team = {t: [x for x in v if norm(x[0]) in out] for t, v in by_team.items()}
+    cur[lg] = {"date": date, "out": sorted(out), "q": sorted(q), "in": sorted(inn), "qb_game": qb_game, "listed_out_but_quoted": quoted_out, "out_team": by_team}
+    json.dump(cur, open(NEWS, "w"), indent=1)
+    print(f"{lg} {date} news: {len(out)} out, {len(q)} questionable, {len(inn)} quoted by a book" + (f", book QBs {qb_game}" if qb_game else "") + (f", listed out but quoted (treated as playing): {quoted_out}" if quoted_out else ""))
+
+
+def price_all(date, lg, files):
+    D, chk = load(); L = D[lg]; CAL = calib(D)
+    games = {g["id"]: g for g in L["games"]}
+    byname = {}
+    for p in L["players"]:
+        byname.setdefault(norm(p["name"]), []).append(p)
+    side_of = {}
+    for s in L["sides"]:
+        g = games[s["game"]]
+        if lg == "NBA" and g["day"] != date:
+            continue
+        side_of[s["team"]] = s
+    quotes = {}     # (player, market) -> {book: row}. The desk bets at CFG book; every other book is the market check.
+    for f in files:
+        for r in parse(f):
+            quotes.setdefault((norm(r["player"]), r["market"]), {})[r["book"]] = r
+    out, feed, miss, rows = [], {}, [], []
+    for (nm, market), books in quotes.items():
+        r = books.get(CFG["book"])
+        if r is None:
+            continue
+        mkt = MK[lg].get(market)
+        cands = [p for p in byname.get(nm, []) if p["team"] in side_of]
+        if not mkt or len(cands) != 1:
+            miss.append(f'{r["player"]} ({r["market"]})'); continue
+        p = cands[0]; s = side_of[p["team"]]; g = games[s["game"]]
+        m = chk[lg].get(f'{s["game"]}|{p["id"]}' if lg == "NBA" else p["id"])
+        if not m or not p["active"]:
+            miss.append(f'{r["player"]} not in projected lineup'); continue
+        mu = m["td"] if mkt == "any_td" else m[mkt]
+        line = .5 if mkt == "any_td" else r["line"]
+        if line is None or mu <= 0:
+            continue
+
+        # What the market thinks: each book's line and prices turned into the projection they imply.
+        def imp(x):
+            if mkt == "any_td" or x["line"] is None or x["o"] is None or x["u"] is None:
+                return None
+            po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
+            return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
+        others = [v for v in (imp(x) for bk, x in books.items() if bk != CFG["book"]) if v is not None]
+        mm = float(np.median(others)) if others else imp(r)      # no other book: fall back to this book's own line (never pickable)
+        rows.append(dict(r=r, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, line=line, mm=mm, nb=len(others)))
+    # Centre the model on the market for this slate, market by market, so a general lean (it used to run low: the Under
+    # lean) cannot create bets. What is left is where the model disagrees about one player more than about the rest.
+    cen = {}
+    for mkt in {x["mkt"] for x in rows}:
+        z = [x for x in rows if x["mkt"] == mkt and x["mm"] is not None]
+        good = [x for x in z if x["nb"] >= CFG["min_books"]]
+        cen[mkt] = centre([(x["mu"], x["mm"]) for x in (good or z)])
+    for x in rows:
+        r, mkt, p, s, g, m, mu, line, mm, nb = (x[k] for k in ("r", "mkt", "p", "s", "g", "m", "mu", "line", "mm", "nb"))
+        o = int(r["o"]) if r["o"] is not None else None
+        u = int(r["u"]) if (r["u"] is not None and mkt != "any_td") else None
+        w = CAL.get(lg + "|" + mkt, {}).get("w", CFG["cal_w0"]); c0 = cen[mkt]
+        muf = mu if mm is None else mm + w * (c0 * mu - mm)
+        feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}'] = {"line": line, "o": o, "u": u, "book": r["book"], "nb": nb,
+                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)})}
+        pov, pun, _ = probs(L, lg, mkt, muf, line)
+        pov0, pun0, _ = probs(L, lg, mkt, mu, line)
+        povc, punc, _ = probs(L, lg, mkt, c0 * mu, line)      # the model on its own, after centring
+        hold = None
+        for side, pw, pl, pw0, pl0, pwc, plc, odds in (("Over" if mkt != "any_td" else "Yes", pov, pun, pov0, pun0, povc, punc, o), ("Under", pun, pov, pun0, pov0, punc, povc, u)):
+            if odds is None:
+                continue
+            pn = pw / (pw + pl); be = 1 / dec(odds); edge = pn - be; ev = pw * (dec(odds) - 1) - pl
+            c, flags = confidence(lg, p, mkt, mu, edge, g, s)
+            if nb < CFG["min_books"]: flags.append("no market check")
+            edgec = pwc / (pwc + plc) - be
+            # the long-standing max_edge rule, applied to the model's own view: a gap this wide is usually news it lacks
+            if edgec > CFG["max_edge"]: flags.append("model far from market, check news"); hold = side
+            adj = ev * (c if ev > 0 else 1)
+            out.append(dict(id=f"{date}|{lg}|{p['id']}|{mkt}", date=date, lg=lg, game=s["game"], gl=f'{g["away"]} @ {g["home"]}',
+                            pid=p["id"], name=p["name"], team=p["team"], opp=s["opp"], mkt=mkt, side=side, line=line, odds=odds,
+                            book=r["book"], mu=round(mu, 2), p=round(pn, 4), be=round(be, 4), edge=round(edge, 4), ev=round(ev, 4),
+                            conf=round(c, 3), adj=round(adj, 4), rating=next(t[1] for t in TIERS if adj >= t[0]), flags=flags,
+                            n=p["n"], mn=m.get("mn"), tag=(date[5:] if lg == "NBA" else "26W" + re.sub(r"\D", "", L["label"])),
+                            ver=VER, nb=nb, muf=round(muf, 2), mm=(None if mm is None else round(mm, 2)), cen=round(c0, 3),
+                            p0=round(pw0 / (pw0 + pl0), 4), edge0=round(pw0 / (pw0 + pl0) - be, 4), edgec=round(edgec, 4)))
+        if hold: feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}']["hold"] = hold
+    _CEN[lg] = cen
+    return out, feed, miss
+
+
+RELAY = "https://raw.githubusercontent.com/ManddoMundo/Props-app/main/"
+
+
+def cmd_relay(date):
+    """Fetch what the GitHub lines relay saved for this date: book lines and injury reports, stored encrypted in the repo.
+    The passphrase is read from the RELAY_PASS environment variable and is never written anywhere.
+    Returns 0 when a midday lines file for the date was saved, 3 when there is nothing usable (then use the WebFetch route)."""
+    import subprocess
+    base = os.environ.get("RELAY_BASE", RELAY)
+
+    def fetch(path):
+        r = subprocess.run(["curl", "-sfL", "-m", "60", base + path], capture_output=True)
+        return r.stdout if r.returncode == 0 and r.stdout else None
+    raw = fetch("status.json")
+    if raw is None:
+        print("RELAY: no status file. The job has not run yet, or the repository is not public."); return 3
+    st = json.loads(raw); q = st.get("quota") or {}
+    print(f"RELAY: last run {st.get('et')} ET ({st.get('kind')}, plan tier {st.get('tier')}), spent {st.get('spent')} credits, {q.get('remaining')} left, {q.get('used')} used this month")
+    for e in st.get("errors") or []: print("  relay error:", e)
+    for e in st.get("notes") or []: print("  relay note:", e)
+    files = [f for f in st.get("files") or [] if f.get("date") == date]
+    if not files:
+        print(f"RELAY: nothing saved for {date}"); return 3
+    if not os.environ.get("RELAY_PASS"):
+        print("RELAY: RELAY_PASS is not set, cannot decrypt"); return 3
+    got = 0
+    for f in files:
+        d = O + f["what"] + "/"; name = os.path.basename(f["path"])[:-4]; os.makedirs(d, exist_ok=True)
+        blob = fetch(f["path"])
+        if blob is None:
+            print("  missing in the repo:", f["path"]); continue
+        open(d + name + ".enc", "wb").write(blob)
+        r = subprocess.run(["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-iter", "200000", "-md", "sha256", "-pass", "env:RELAY_PASS",
+                            "-in", d + name + ".enc", "-out", d + name + ".tmp"], capture_output=True)
+        os.remove(d + name + ".enc")
+        ok = r.returncode == 0 and open(d + name + ".tmp", errors="replace").readline().startswith(("# relay", "Source: ESPN"))
+        if not ok:
+            print("  could not decrypt (wrong RELAY_PASS?):", f["path"])
+            if os.path.exists(d + name + ".tmp"): os.remove(d + name + ".tmp")
+            continue
+        os.replace(d + name + ".tmp", d + name)
+        if f["what"] == "lines":
+            hr = (f.get("books") or {}).get(CFG["book"], 0)
+            print(f"  saved {d + name}: {f.get('kind')} pull {f.get('et')} ET, {f.get('games')} games, {f.get('rows')} rows from {len(f.get('books') or {})} books, "
+                  f"{f.get('markets')} markets, Hard Rock rows {hr}" + ("" if hr else "  <-- Hard Rock had not posted: pull Hard Rock by WebFetch for this league"))
+            got += f.get("kind") == "midday" and hr > 0
+        else:
+            print(f"  saved {d + name}: injury report pulled {f.get('et')} ET, {f.get('rows')} players")
+    return 0 if got else 3
+
+
+def cmd_today(date, src, dst):
+    """Keep only the games that tip on this US Eastern date (the relay marks each game with a '# tip:' line). Returns 3 if none."""
+    out, keep, hold, n = [], True, None, 0
+    for ln in open(src):
+        if ln.startswith("# game:"):
+            hold, keep = ln, None; continue
+        if keep is None:
+            if ln.startswith("# tip:"):
+                keep = ln.split(":", 1)[1].strip().startswith(date)
+                if keep: out += [hold, ln]
+                continue
+            keep = True; out.append(hold)        # a game with no tip line (a hand-typed file) is kept
+        if keep:
+            out.append(ln); n += ("|" in ln and not ln.startswith(("#", "bookmaker_key")))
+    open(dst, "w").writelines(out)
+    print(f"today: {n} quotes for games on {date}")
+    return 0 if n else 3
+
+
+def cmd_mirror():
+    """GitHub now runs the day. Copy its books here: download the encrypted state and unpack it into out/."""
+    import subprocess
+    r = subprocess.run(f"curl -sfL -m 120 {RELAY}state/state.tar.gz.enc | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass env:RELAY_PASS | tar -C /home/claude/props -xzf -",
+                       shell=True, capture_output=True, text=True, executable="/bin/bash")
+    print("MIRROR:", "books unpacked into /home/claude/props/out" if r.returncode == 0 else "FAILED " + r.stderr[-200:])
+    return 0 if r.returncode == 0 else 3
+
+
+def cmd_summary(date, kind, note):
+    h = history(); B = h["bets"]
+    print(json.dumps({"date": date, "kind": kind, "ok": True, "version": open(os.path.dirname(os.path.abspath(__file__)) + "/VERSION").read().strip(), "note": note.strip(),
+                      "bets": len(B), "open": sum(b["status"] == "open" for b in B), "picks_today": sum(b["date"] == date and not b.get("superseded") for b in B)}))
+
+
+def cmd_lines(date, lg, files):
+    priced, feed, miss = price_all(date, lg, files)
+    fp = O + "feed.json"
+    cur = json.load(open(fp)) if os.path.exists(fp) else {}
+    cur = {k: v for k, v in cur.items() if not k.startswith(lg + "|")} if not any(k in cur for k in feed) else cur
+    cur.update(feed)
+    json.dump(cur, open(fp, "w"))
+    os.makedirs(O + "priced", exist_ok=True)
+    json.dump(priced, open(O + f"priced/{lg}_{date}.json", "w"))
+    chk2 = sum(1 for v in feed.values() if v["nb"] >= CFG["min_books"])
+    print(f"{lg} {date}: {len(feed)} lines matched, {chk2} with a market check from {CFG['min_books']}+ other books, {len(priced)} sides priced, {len(miss)} unmatched")
+    cal = calib(None)
+    print("  model weight vs market (w, graded lines behind it):", {k.split("|")[1]: (v["w"], v["n"]) for k, v in cal.items() if k.startswith(lg) and v["n"]})
+    print("  slate centring (market average / model average):", {k: round(v, 3) for k, v in _CEN.get(lg, {}).items()})
+    if miss:
+        print("  unmatched:", "; ".join(sorted(set(miss))[:25]))
+
+
+def eligible(b):
+    if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]): return False
+    if b["n"] < CFG["min_games"]: return False
+    if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
+    if "missed last game" in b["flags"] or "questionable" in b["flags"]: return False
+    if b.get("nb", 0) < CFG["min_books"]: return False      # no bet without the market check
+    if b.get("edgec", 0) > CFG["max_edge"]: return False     # model alone is too far from the market: likely news
+    return CFG["min_edge"] <= b["edge"] <= CFG["max_edge"] and b["adj"] >= CFG["min_adj_ev"]
+
+
+def cmd_pick(date, lg):
+    h = history()
+    if any(b["date"] == date and b["lg"] == lg and not b.get("superseded") for b in h["bets"]):
+        print("already picked for", lg, date); return
+    priced = json.load(open(O + f"priced/{lg}_{date}.json"))
+    pool = sorted([b for b in priced if eligible(b)], key=lambda b: -b["adj"])
+    big = sum(1 for b in priced if max(b["edge"], b.get("edgec", 0)) > CFG["max_edge"])
+    picks, per_game, seen = [], {}, set()
+    for b in pool:
+        if b["pid"] in seen or per_game.get(b["game"], 0) >= CFG["max_per_game"]:
+            continue
+        seen.add(b["pid"]); per_game[b["game"]] = per_game.get(b["game"], 0) + 1
+        picks.append(b)
+        if len(picks) == CFG["max_picks"]:
+            break
+    for i, b in enumerate(picks):
+        b = dict(b); b.update(best=(i == 0), units=1.0, status="open", result=None)
+        for k in ("be", "conf", "adj", "n"):
+            b.pop(k, None)
+        h["bets"].append(b)
+        print(f'  {"BEST" if i == 0 else "pick"}: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} ({b["nb"]} books) blended {b["muf"]}  {b["flags"]}')
+    h["days"] = [d for d in h["days"] if not (d["date"] == date and d["lg"] == lg)]
+    h["days"].append(dict(date=date, lg=lg, sides_priced=len(priced), cleared_bar=len(pool), picks=len(picks), skipped_large_edge=big))
+    save_history(h)
+    print(f"{lg} {date}: {len(priced)} sides priced, {len(pool)} cleared the bar, {len(picks)} logged, {big} skipped for an edge too large to trust")
+    cmd_explain(date, lg)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The case file: why the desk made each bet, and why it passed on the near misses. Built only from numbers the pricing
+# already produced, so it explains the decision and cannot change it.
+def _last(name):
+    t = [x for x in name.split() if x.strip(".").lower() not in ("jr", "sr", "ii", "iii", "iv", "v")]
+    return t[-1] if t else name
+
+
+def _logs(lg, p, mkt):
+    l = p["logs"]
+    if lg == "NBA":
+        v = [sum(l[k][i] for k in COMBO.get(mkt, [mkt])) for i in range(len(l["d"]))]
+        return v, list(l["d"]), list(l["opp"]), list(l["min"])
+    key = NFL_LOG.get(mkt)
+    v = [1 if (l["rtd"][i] + l["rectd"][i]) > 0 else 0 for i in range(len(l["wk"]))] if mkt == "any_td" else list(l[key])
+    return v, [w.split("W")[-1] and "W" + w.split("W")[-1] for w in l["wk"]], list(l["opp"]), None
+
+
+def _quotes(files):
+    q = {}
+    for f in files:
+        if os.path.exists(f):
+            for r in parse(f):
+                q.setdefault((norm(r["player"]), r["market"]), {})[r["book"]] = r
+    return q
+
+
+def explain(b, D, quotes, news, mn=None):
+    lg, mkt = b["lg"], b["mkt"]; L = D[lg]
+    p = next((x for x in L["players"] if x["id"] == b["pid"]), None)
+    s = next((x for x in L["sides"] if x["game"] == b["game"] and x["team"] == b["team"]), {})
+    g = next((x for x in L["games"] if x["id"] == b["game"]), {})
+    over = b["side"] in ("Over", "Yes"); line, odds = b["line"], b["odds"]; be = 1 / dec(odds)
+    unit, last, sw = UNIT.get(mkt, mkt), _last(b["name"]), ("Over" if b["side"] in ("Over", "Yes") else "Under")
+    pc = lambda x: f"{x * 100:.1f}%"
+
+    def sidep(mean):
+        ov, un, _ = probs(L, lg, mkt, mean, line)
+        return (ov if over else un) / (ov + un)
+    # --- the books
+    books = []
+    for bk, r in quotes.get((norm(b["name"]), INV[lg].get(mkt)), {}).items():
+        imp = None
+        if mkt != "any_td" and r["line"] is not None and r["o"] is not None and r["u"] is not None:
+            po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imp = implied_mean(L, lg, mkt, r["line"], po / (po + pu))
+        books.append(dict(k=bk, n=BOOKN.get(bk, bk), line=r["line"], o=None if r["o"] is None else int(r["o"]), u=None if r["u"] is None else int(r["u"]),
+                          imp=None if imp is None else round(imp, 2), fair=None if imp is None else round(sidep(imp), 4)))
+    books.sort(key=lambda x: (x["k"] != CFG["book"], x["n"]))
+    others = [x for x in books if x["k"] != CFG["book"] and x["imp"] is not None]
+    hr = next((x for x in books if x["k"] == CFG["book"]), None)
+    mm, cen, mu, muf = b.get("mm"), b.get("cen", 1.0), b["mu"], b.get("muf", b["mu"])
+    p_desk = b["p"]; p_mkt = sidep(mm) if mm else None; p_model = sidep(cen * mu)
+    hr_nv = hr["fair"] if hr and hr["fair"] is not None else None
+    gap = (p_mkt - hr_nv) if (p_mkt is not None and hr_nv is not None) else 0.0
+    tilt = (p_desk - p_mkt) if p_mkt is not None else 0.0
+    kind = "both" if (gap >= .02 and tilt >= .015) else "price" if gap >= .02 else "model" if tilt >= .015 else "thin"
+    head = {"price": f"A price play. Hard Rock's number on {last} is out of line with the other {len(others)} books, and the {sw} is the side they lean to.",
+            "model": f"A model play. Hard Rock is priced like the other books. The edge is the model seeing {'more' if over else 'fewer'} {unit} for {last} than any of them.",
+            "both": f"Price and model agree. Hard Rock is softer than the other books on the {sw}, and the model leans the same way.",
+            "thin": "A thin one. A small price gap and a small model lean add up to just enough."}[kind]
+    pts = []
+    # --- price
+    oq = "; ".join(f"{x['n']} {x['line']:g} ({x['o']:+d}/{x['u']:+d})" for x in others)
+    t = f"Hard Rock has the {sw} {line:g} at {odds:+d}, which needs {pc(be)} to break even."
+    if others and p_mkt is not None:
+        t += f" The others: {oq}. With the house cut taken out, those books make the {sw} {line:g} a {pc(p_mkt)} shot."
+        if hr_nv is not None:
+            t += f" Hard Rock's own prices say {pc(hr_nv)}."
+            t += (f" That {gap * 100:.1f} point gap is the price edge." if gap >= .02 else " Hard Rock is the worst of the prices on this side, so the model has to carry the bet." if gap <= -.02
+                  else " No real gap: Hard Rock is in line with the market.")
+    pts.append(["Price", t])
+    # --- model
+    t = f"The model projects {mu:.1f} {unit}" + (f" on {mn:.0f} minutes" if (lg == "NBA" and mn) else "") + "."
+    if lg == "NBA" and p and mkt in p.get("r", {}):
+        t += f" That is {p['r'][mkt] * 36:.1f} per 36 minutes by its blend of this season and last."
+    if lg == "NFL" and p:
+        if mkt.startswith("rec"): t += f" He has drawn about {p['ts'] * 100:.0f}% of the team's targets."
+        if mkt.startswith("rush"): t += f" He has taken about {p['cs'] * 100:.0f}% of the carries."
+    if mm:
+        if abs(cen - 1) >= .01:
+            t += (f" Across tonight's slate the model ran {abs(cen - 1) * 100:.0f}% {'under' if cen > 1 else 'over'} the books, so its number is "
+                  f"{'lifted' if cen > 1 else 'trimmed'} to {cen * mu:.1f} before the two are compared.")
+        den = cen * mu - mm
+        w = (muf - mm) / den if abs(den) > 1e-6 else 0
+        t += f" The other books imply {mm:.1f}. The desk number is {muf:.1f}: the market, moved {max(0, min(1, w)) * 100:.0f}% of the way toward the model."
+    pts.append(["Model", t])
+    # --- form
+    l10 = None
+    if p:
+        v, tags, opp, mins = _logs(lg, p, mkt); n = len(v)
+        if n:
+            hit = sum(1 for z in v if (z > line if over else z < line)); push = sum(1 for z in v if z == line)
+            a5 = float(np.mean(v[-5:]))
+            t = f"Last {n}: {', '.join(str(z) for z in v)}. " + (f"{'Cleared' if over else 'Stayed under'} {line:g} in {hit} of {n}" + (f" with {push} landing on the number" if push else "") + ".")
+            t += f" Last five average {a5:.1f}" + (f" on {np.mean(mins[-5:]):.0f} minutes a night." if mins else ".")
+            r = hit / n
+            t += (" Recent form backs the bet." if r >= .6 else " Recent form argues against it. This bet rests on the price and the projection, not on a streak." if r <= .4 else " Recent form is close to a coin flip.")
+            pts.append(["Form", t]); l10 = dict(v=v, t=tags, o=opp, hit=hit, n=n)
+    # --- lineup
+    def outs(team):
+        inm = {norm(x["name"]): x for x in L["players"] if x["team"] == team}
+        z = [x for x in news.get("out_team", {}).get(team, []) if lg == "NBA" or x[1] in ("QB", "RB", "WR", "TE", "FB")]
+        z.sort(key=lambda x: -(inm.get(norm(x[0]), {}).get("m", 0) if lg == "NBA" else 0))
+        return [x[0] + (f" ({inm[norm(x[0])]['m']:.0f} min)" if lg == "NBA" and norm(x[0]) in inm else f" ({x[1]})" if lg == "NFL" else "") for x in z[:5]]
+    if news.get("date") == b["date"]:
+        a, o2 = outs(b["team"]), outs(b["opp"])
+        t = (f"Out for {b['team']}: {', '.join(a)}. " if a else f"Nobody is listed out for {b['team']}. ") + (f"Out for {b['opp']}: {', '.join(o2)}." if o2 else f"Nobody is listed out for {b['opp']}.")
+        qs = [x["name"] for x in L["players"] if x["team"] in (b["team"], b["opp"]) and x.get("q") and x.get("active")]
+        if qs: t += f" Questionable: {', '.join(qs[:4])}."
+        if lg == "NBA" and p and mn: t += f" The model has {last} at {mn:.0f} minutes against a recent average of {p['m']:.0f}."
+        if lg == "NFL" and s.get("qbnew"): t += f" {b['team']} start a quarterback who did not play their last game."
+        pts.append(["Lineup", t])
+    # --- matchup
+    t = ""
+    if lg == "NBA":
+        ks = COMBO.get(mkt, [mkt]); f = float(np.mean([s.get("oppf", {}).get(k, 1.0) for k in ks])) if s.get("oppf") else None
+        if f is not None:
+            t = (f"{b['opp']} allow {abs(f - 1) * 100:.0f}% {'more' if f > 1 else 'fewer'} {unit} than the league average." if abs(f - 1) >= .015 else f"{b['opp']} are a league average matchup for {unit}.")
+        t += f" {b['team']} are {'at home' if s.get('home') else 'on the road'}."
+    else:
+        adj = s.get("padj") if mkt.startswith(("rec", "pass")) else s.get("radj") if mkt.startswith("rush") else None
+        if adj: t = f"{b['opp']} have allowed {abs(adj - 1) * 100:.0f}% {'more' if adj > 1 else 'less'} {'through the air' if mkt.startswith(('rec', 'pass')) else 'on the ground'} than an average defense."
+        if g.get("spread") is not None: t += f" The {'home' if g['spread'] > 0 else 'road'} side is favored by {abs(g['spread']):g} with a total of {g.get('total', 0):g}."
+    if t.strip(): pts.append(["Matchup", t.strip()])
+    # --- math
+    pts.append(["Math", f"At {odds:+d} the bet needs {pc(be)}. The desk makes it {pc(p_desk)}. Edge {b['edge'] * 100:+.1f} points, worth {b['ev'] * 100:+.1f} cents per dollar staked. Rated {b['rating']}."])
+    # --- what beats it
+    risks = []
+    ec = b.get("edgec", 0)
+    if ec >= .08: risks.append(f"The model on its own is {ec * 100:.0f} points from the book. The hold starts at {CFG['max_edge'] * 100:.0f}. If something changed today that box scores do not show, this is the kind of bet it burns.")
+    if odds <= -140: risks.append(f"You lay {abs(odds) / 100:.2f} to win 1. A loss costs more than a win pays.")
+    if mkt != "any_td" and line <= 3.5: risks.append("A low line. One play either way decides it.")
+    if l10 and l10["n"] >= 5 and l10["hit"] / l10["n"] <= .4: risks.append(f"He has {'cleared' if over else 'stayed under'} this number in only {l10['hit']} of his last {l10['n']}.")
+    if lg == "NBA" and over and mn and mn < 26: risks.append(f"An Over needs minutes and he is projected for {mn:.0f}.")
+    FL = {"minutes swing": "His minutes have swung a lot over the last five games.", "uneven targets": "His targets have been uneven.", "uneven carries": "His carries have been uneven.",
+          "short history": "Short history on file.", "thin history": "Very little history on file.", "blowout risk": "A lopsided spread can cut or pad volume.",
+          "QB change": "New quarterback: the passing game is harder to read.", "low count": "A low count stat. One play swings it."}
+    risks += [FL[f] for f in b.get("flags", []) if f in FL and FL[f] not in risks]
+    risks.append("Anything that broke after the lines were pulled is not in this number.")
+    return dict(kind=kind, head=head, pts=pts, risks=risks, books=books, l10=l10, mn=mn,
+                ruler=dict(be=round(be, 4), hr=hr_nv, mkt=None if p_mkt is None else round(p_mkt, 4), model=round(p_model, 4), desk=round(p_desk, 4)))
+
+
+def pass_reason(b):
+    """Why a side that looked interesting was not bet. Same tests as eligible(), in the order a person would ask them."""
+    if b.get("nb", 0) < CFG["min_books"]:
+        return "NO SECOND BOOK", f"Only {b.get('nb', 0)} other book{'s' if b.get('nb', 0) != 1 else ''} quoting it. No market check, no bet."
+    if "questionable" in b["flags"]:
+        return "QUESTIONABLE", "Listed questionable. The desk does not bet a player whose status is open."
+    if "missed last game" in b["flags"]:
+        return "ROLE UNKNOWN", "He has been out. His role on return is a guess."
+    if b.get("edgec", 0) > CFG["max_edge"]:
+        return "HOLD: NEWS?", f"The model alone is {b['edgec'] * 100:.0f} points from the book. A gap that wide is usually news the model has not seen, so it is held."
+    if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]):
+        return "PRICE", f"{b['odds']:+d} is outside the prices the desk plays ({CFG['min_odds']} to +{CFG['max_odds']})."
+    if b["n"] < CFG["min_games"]:
+        return "THIN FILE", f"Only {b['n']} games on file. The desk wants {CFG['min_games']}."
+    if b["lg"] == "NBA" and (b.get("mn") or 0) < CFG["nba_min_minutes"]:
+        return "MINUTES", f"Projected for {b.get('mn') or 0:.0f} minutes. The desk wants {CFG['nba_min_minutes']:.0f}."
+    if b["edge"] < CFG["min_edge"]:
+        return "THIN EDGE", f"Edge {b['edge'] * 100:+.1f} points. The bar is {CFG['min_edge'] * 100:.0f}."
+    if b["adj"] < CFG["min_adj_ev"]:
+        return "HAIRCUT", "The edge clears, but after the confidence haircut the expected value falls short."
+    return "CAP", "It cleared every test. The desk already had this player, two bets in this game, or three for the day."
+
+
+def cmd_explain(date, lg):
+    """Write the case file onto each of the day's bets and the pass list onto the day record. Safe to rerun."""
+    fp = O + f"priced/{lg}_{date}.json"
+    if not os.path.exists(fp):
+        return
+    D, _ = load(); h = history(); priced = json.load(open(fp))
+    quotes = _quotes([O + f"lines/{lg}_{date}.txt"])
+    news = (json.load(open(NEWS)) if os.path.exists(NEWS) else {}).get(lg, {})
+    row = {(x["id"], x["side"]): x for x in priced}
+    mine = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded")]
+    for b in mine:
+        mn = b.get("mn") or (row.get((b["id"], b["side"])) or {}).get("mn")
+        b["why"] = explain(b, D, quotes, news, mn)
+    took = {(b["id"], b["side"]) for b in mine}; seen, passed = set(), []
+    for x in sorted(priced, key=lambda x: -x["adj"]):
+        if (x["id"], x["side"]) in took or x["id"] in seen or not (x["edge"] >= .015 or x.get("edgec", 0) > CFG["max_edge"]) or x["edge"] < 0:
+            continue
+        seen.add(x["id"]); stamp, why = pass_reason(x)
+        passed.append(dict(name=x["name"], team=x["team"], opp=x["opp"], side=x["side"], line=x["line"], mkt=x["mkt"], odds=x["odds"], p=x["p"], edge=x["edge"],
+                           mu=x["mu"], mm=x.get("mm"), muf=x.get("muf"), stamp=stamp, why=why))
+        if len(passed) == 6:
+            break
+    for d in h["days"]:
+        if d["date"] == date and d["lg"] == lg:
+            d["passed"] = passed
+            if _CEN.get(lg): d["cen"] = {k: round(v, 3) for k, v in _CEN[lg].items()}
+            elif priced and "cen" not in d: d["cen"] = {m: x["cen"] for x in priced for m in [x["mkt"]] if x.get("cen")}
+    save_history(h)
+    print(f"{lg} {date}: case files written for {len(mine)} bets, {len(passed)} on the pass list")
+
+
+def cmd_close(date, lg, label, files):
+    """Closing line check. Feed it a late odds pull (same row format) for the games with open bets. For each open bet it
+    records where Hard Rock closed, the market's fair chance of the bet at the close, and closing line value:
+    clv = what a dollar at the price we took is worth at the closing fair price, minus one. Above zero means we beat the close."""
+    D, _ = load(); L = D[lg]; h = history(); quotes = _quotes(files); n = 0
+    for b in h["bets"]:
+        if b["date"] != date or b["lg"] != lg or b["status"] != "open" or b["mkt"] == "any_td":
+            continue
+        books = quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}); imps = []
+        for r in books.values():
+            if r["line"] is not None and r["o"] is not None and r["u"] is not None:
+                po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imps.append(implied_mean(L, lg, b["mkt"], r["line"], po / (po + pu)))
+        if not imps:
+            continue
+        over = b["side"] == "Over"
+        def sidep(mean):
+            ov, un, _ = probs(L, lg, b["mkt"], mean, b["line"]); return (ov if over else un) / (ov + un)
+        mc = float(np.median(imps)); fair = sidep(mc); hr = books.get(CFG["book"]) or {}
+        opened = sidep(b["mm"]) if b.get("mm") else None
+        b["close"] = dict(t=label, line=hr.get("line"), o=None if hr.get("o") is None else int(hr["o"]), u=None if hr.get("u") is None else int(hr["u"]),
+                          nb=len(imps), mm=round(mc, 2), fair=round(fair, 4), clv=round(dec(b["odds"]) * fair - 1, 4),
+                          move=None if opened is None else round(fair - opened, 4))
+        n += 1
+        print(f"  {b['name']} {b['side']} {b['line']} {b['mkt']} {b['odds']:+d}: closed {hr.get('line')} {hr.get('o')}/{hr.get('u')}, fair {fair:.1%}, CLV {b['close']['clv'] * 100:+.1f}%, market moved {0 if opened is None else (fair - opened) * 100:+.1f} pts")
+    save_history(h); print(f"{lg} {date}: closing lines recorded for {n} bets")
+
+
+def actual(lg, p, mkt, tag):
+    l = p["logs"]; tags = l["d"] if lg == "NBA" else l["wk"]
+    if tag not in tags:
+        return None
+    i = len(tags) - 1 - tags[::-1].index(tag)
+    if lg == "NBA":
+        return sum(l[k][i] for k in COMBO.get(mkt, [mkt]))
+    if mkt == "any_td":
+        return 1 if (l["rtd"][i] + l["rectd"][i]) > 0 else 0
+    return l[NFL_LOG[mkt]][i]
+
+
+def nfl_box():
+    """NFL box scores straight from the weekly stats file. The page data only carries players whose team still has a game
+    left this week, so a Thursday bet could not be graded until the week rolled over, and a bye the week after would have
+    voided it. Returns None if the file cannot be read (callers then fall back to the page logs)."""
+    if not _NFL_BOX:
+        rows, games = {}, set()
+        try:
+            import pandas as pd
+            cols = ["player_id", "season", "week", "game_id", "rushing_tds", "receiving_tds"] + list(NFL_RAW.values())
+            d = pd.read_csv(DATA + "nfl_pw_2026.csv", usecols=cols, low_memory=False)
+            games = set(d.game_id.dropna().astype(str))
+            num = [c for c in cols if c not in ("player_id", "season", "week", "game_id")]
+            for (pid, se, wk), r in d.groupby(["player_id", "season", "week"])[num].sum().iterrows():
+                rows[(pid, f"{int(se) % 100}W{int(wk)}")] = r
+            _NFL_BOX.update(ok=True, rows=rows, games=games, snaps=None, snap_games=set())
+            try:      # snap counts say who actually played: the stats file drops a player who played and recorded nothing
+                sc = pd.read_csv(DATA + "nfl_snaps_2026.csv", usecols=["game_id", "player", "offense_snaps", "defense_snaps", "st_snaps"])
+                on = sc[(sc.offense_snaps.fillna(0) + sc.defense_snaps.fillna(0) + sc.st_snaps.fillna(0)) > 0]
+                _NFL_BOX.update(snaps={(g, norm(n)) for g, n in zip(on.game_id.astype(str), on.player.astype(str))},
+                                snap_games=set(sc.game_id.dropna().astype(str)))
+            except Exception as e:
+                print("NFL snap counts not readable, a player with no stat line is treated as did not play:", e)
+        except Exception as e:
+            print("NFL stats file not readable, grading NFL from page logs:", e)
+            _NFL_BOX.update(ok=False)
+    return _NFL_BOX if _NFL_BOX["ok"] else None
+
+
+def nfl_actual(box, b):
+    pid, mkt, tag = b["pid"], b["mkt"], b["tag"]
+    r = box["rows"].get((pid, tag))
+    if r is None:
+        # no stat line. If the snap counts show he played, every counting stat is a real zero and the bet stands.
+        if box["snaps"] is not None and (b["game"], norm(b["name"])) in box["snaps"]:
+            return 0
+        return None
+    if mkt == "any_td":
+        return 1 if (r["rushing_tds"] + r["receiving_tds"]) > 0 else 0
+    return int(r[NFL_RAW[mkt]])
+
+
+def cmd_grade():
+    D, _ = load(); h = history(); n = 0
+    by = {lg: {p["id"]: p for p in D[lg]["players"]} for lg in ("NBA", "NFL")}
+    for b in h["bets"]:
+        if b["status"] != "open":
+            continue
+        p = by[b["lg"]].get(b["pid"])
+        box = nfl_box() if b["lg"] == "NFL" else None
+        v = nfl_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
+        if v is None:
+            thru = D[b["lg"]]["data_through"]
+            if box:
+                # void only once we know he did not play: the game is in the snap counts and he has no snaps.
+                # Without snap counts, fall back to "stats have landed and the player has no line in them".
+                past = (b["game"] in box["snap_games"]) if box["snaps"] is not None else (b["game"] in box["games"])
+            else:
+                past = (thru > b["date"]) if b["lg"] == "NBA" else (int(re.sub(r"\D", "", thru.split("Week")[-1])) >= int(b["tag"].split("W")[1]))
+            if past:
+                b["status"] = "void"; n += 1      # player did not play: books void the prop
+            continue
+        b["result"] = v
+        if b["mkt"] == "any_td": win = (v > 0) == (b["side"] == "Yes")
+        elif v == b["line"]: win = None
+        else: win = (v > b["line"]) == (b["side"] == "Over")
+        b["status"] = "push" if win is None else ("won" if win else "lost"); n += 1
+    save_history(h)
+    print("graded", n); cmd_report(h)
+
+
+def cmd_report(h=None):
+    h = h or history()
+    def line(bs, label):
+        w = sum(b["status"] == "won" for b in bs); l = sum(b["status"] == "lost" for b in bs)
+        u = sum((dec(b["odds"]) - 1) * b["units"] if b["status"] == "won" else -b["units"] if b["status"] == "lost" else 0 for b in bs)
+        if w + l:
+            print(f"  {label:<14} {w}-{l}  hit {w/(w+l):.1%}  units {u:+.2f}  avg model prob {np.mean([b['p'] for b in bs if b['status'] in ('won','lost')]):.1%}")
+    done = [b for b in h["bets"] if b["status"] != "open"]
+    print(f"bets {len(h['bets'])}, open {len(h['bets']) - len(done)}")
+    line(done, "all"); line([b for b in done if b.get("best")], "best bets")
+    for lg in ("NBA", "NFL"): line([b for b in done if b["lg"] == lg], lg)
+    for m in sorted({b["mkt"] for b in done}): line([b for b in done if b["mkt"] == m], m)
+    for r in ("AAA", "AA", "A", "BBB"): line([b for b in done if b["rating"] == r], r)
+    cl = [b["close"]["clv"] for b in h["bets"] if b.get("close") and not b.get("superseded")]
+    if cl:
+        print(f"  closing line value: {len(cl)} bets tracked, average {np.mean(cl) * 100:+.1f}%, beat the close on {sum(c > 0 for c in cl)}")
+
+
+def cmd_audit():
+    """Grade EVERY side priced against a book line, not just the picks. This is the sample that says whether the model
+    beats the book, and where. Box-score logs only reach back 10 games, so run it at least weekly."""
+    import glob
+    D, _ = load(); by = {lg: {p["id"]: p for p in D[lg]["players"]} for lg in ("NBA", "NFL")}
+    ap = O + "audit.json"; A = json.load(open(ap)) if os.path.exists(ap) else {}
+    for f in sorted(glob.glob(O + "priced/*.json")):
+        for b in json.load(open(f)):
+            k = b["id"] + "|" + b["side"]
+            if k in A:
+                continue
+            p = by[b["lg"]].get(b["pid"]); box = nfl_box() if b["lg"] == "NFL" else None
+            v = nfl_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
+            if v is None:
+                continue
+            if b["mkt"] == "any_td": win = (v > 0) == (b["side"] == "Yes")
+            elif v == b["line"]: continue
+            else: win = (v > b["line"]) == (b["side"] == "Over")
+            A[k] = dict(lg=b["lg"], mkt=b["mkt"], side=b["side"], date=b["date"], odds=b["odds"], p=b["p"], edge=b["edge"], mu=b["mu"], line=b["line"], result=v, win=int(win),
+                        **{f: b[f] for f in ("ver", "nb", "mm", "muf", "cen", "p0", "edge0", "edgec") if b.get(f) is not None})
+    json.dump(A, open(ap, "w"))
+    rows = list(A.values()); print("audited sides:", len(rows))
+    def tab(title, keyf):
+        print(title)
+        for k in sorted({keyf(r) for r in rows}, key=str):
+            z = [r for r in rows if keyf(r) == k]
+            u = sum((dec(r["odds"]) - 1) if r["win"] else -1 for r in z)
+            print(f"  {str(k):<16} n {len(z):<5} hit {np.mean([r['win'] for r in z]):.1%}  model said {np.mean([r['p'] for r in z]):.1%}  break-even {np.mean([1/dec(r['odds']) for r in z]):.1%}  roi {u/len(z):+.1%}")
+    if rows:
+        eb = lambda r: "edge <0" if r["edge"] < 0 else "edge 0-3" if r["edge"] < .03 else "edge 3-6" if r["edge"] < .06 else "edge 6-12" if r["edge"] < .12 else "edge 12+"
+        tab("by model edge (the key table: hit rate should climb with edge)", eb)
+        tab("by market", lambda r: r["lg"] + " " + r["mkt"]); tab("by side", lambda r: r["side"])
+        tab("by version (1.3 on: probabilities anchored to the market)", lambda r: "v" + str(r.get("ver", "1.2")))
+        v13 = [r for r in rows if r.get("ver") and r.get("nb", 0) >= CFG["min_books"]]
+        if v13:
+            rows = v13; print("v1.3 sides with a market check only:"); tab("  by edge", eb); tab("  by side", lambda r: r["side"])
+            rows = list(A.values())
+        ov = [r for r in rows if r["side"] in ("Over", "Yes") and r["mkt"] != "any_td"]
+        for m in sorted({r["lg"] + " " + r["mkt"] for r in ov}):
+            z = [r for r in ov if r["lg"] + " " + r["mkt"] == m]
+            print(f"  {m:<14} mean(proj - line) {np.mean([r['mu'] - r['line'] for r in z]):+.2f}   mean(actual - line) {np.mean([r['result'] - r['line'] for r in z]):+.2f}   MAE proj {np.mean([abs(r['result'] - r['mu']) for r in z]):.2f}  MAE line {np.mean([abs(r['result'] - r['line']) for r in z]):.2f}")
+
+
+if __name__ == "__main__":
+    a = sys.argv[1:]
+    if a[0] == "lines": cmd_lines(a[1], a[2], a[3:])
+    elif a[0] == "news": cmd_news(a[1], a[2], a[3:])
+    elif a[0] == "explain": cmd_explain(a[1], a[2])
+    elif a[0] == "close": cmd_close(a[1], a[2], a[3], a[4:])
+    elif a[0] == "pick": cmd_pick(a[1], a[2])
+    elif a[0] == "relay": sys.exit(cmd_relay(a[1]))
+    elif a[0] == "today": sys.exit(cmd_today(a[1], a[2], a[3]))
+    elif a[0] == "mirror": sys.exit(cmd_mirror())
+    elif a[0] == "summary": cmd_summary(a[1], a[2], a[3] if len(a) > 3 else "")
+    elif a[0] == "grade": cmd_grade()
+    elif a[0] == "report": cmd_report()
+    elif a[0] == "audit": cmd_audit()
