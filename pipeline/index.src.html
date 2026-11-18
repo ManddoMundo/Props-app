@@ -85,7 +85,7 @@ h1.pg{font:400 31px/1.1 var(--display);letter-spacing:.005em;margin:2px 0 10px;p
 .tc small{display:block;font:600 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--led-mute)}
 .tc b{display:block;font:800 clamp(27px,4.4vw,46px)/1.05 var(--dot);letter-spacing:.02em;white-space:nowrap;text-shadow:0 0 14px rgba(255,184,51,.38);perspective:300px}
 .tc b.gd{color:var(--led-good);text-shadow:0 0 14px rgba(134,227,154,.32)} .tc b.bd{color:var(--led-bad);text-shadow:0 0 14px rgba(255,128,114,.32)}
-.tc em{display:block;font:500 11px/1.3 var(--mono);font-style:normal;color:var(--led-mute);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc em{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font:500 11px/1.3 var(--mono);font-style:normal;color:var(--led-mute);margin-top:3px;overflow:hidden}
 .tc::after{content:"\21C5";position:absolute;top:6px;right:9px;font:12px var(--mono);color:var(--led-dim)}
  .tc:active{transform:translateY(1px)}
 .tc:focus-visible{outline-color:var(--led)}
@@ -486,6 +486,7 @@ main.iris{animation:iris .7s cubic-bezier(.35,0,.3,1) both}
 .hud{position:relative;flex:1 1 220px;min-width:0;display:flex;align-items:center;align-self:stretch;--px:3px;--ah:58px}
 .stamp{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .16s ease-out}
 /* the data line is a ticket strip: slate, how far the stats run, when it last refreshed */
+#stamp.fade-r,.tabs.fade-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
 #stamp{display:inline-flex;align-items:stretch;max-width:100%;overflow-x:auto;scrollbar-width:none;text-overflow:clip;border:1.5px solid var(--rule);border-radius:7px;background:color-mix(in srgb,var(--paper) 70%,transparent)}
 #stamp::-webkit-scrollbar{display:none}
 #stamp .sc{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 11px 5px;border-left:1.5px dashed var(--rule);flex:0 0 auto}
@@ -2320,6 +2321,9 @@ function watchTop() {
   set(); try { new ResizeObserver(set).observe(document.querySelector('.top')); } catch (e) { addEventListener('resize', set); }
   const t = $('#tabs'); if (t) t.addEventListener('scroll', tabHints, { passive: true });
 }
+function edgeFade() {      // v3.36: say "there is more this way" where the stamp or the tabs run off the edge
+  ['#stamp', '#tabs'].forEach(q => { const el = $(q); if (el) el.classList.toggle('fade-r', el.scrollWidth - el.clientWidth - el.scrollLeft > 4); }); }
+document.addEventListener('scroll', e => { const t = e.target; if (t && (t.id === 'stamp' || t.id === 'tabs')) edgeFade(); }, true);
 function placeInk() {             // the raised divider slides to the chosen tab and takes its colour
   const b = document.querySelector('#tabs [aria-selected="true"]'), k = $('#tabInk'), t = $('#tabs'); if (!b || !k) return;
   k.style.width = b.offsetWidth + 'px'; k.style.transform = `translateX(${b.offsetLeft}px)`; k.style.background = `var(--c-${b.dataset.tab})`;
@@ -2366,7 +2370,7 @@ function rowHtml(pr, i) {
   const d = dk ? dist({ key: pr.key + '#m', mu: am, lg: pr.lg, mkt: pr.mkt, binary: false }) : dist(pr), proj = dk ? am : pr.mu;
   const fair = pr.binary ? odds(E.amer(d[1])) : E.fairLine(d);
   const ln = a ? a.ln : null, sp = a ? a.sp : pr.binary ? { over: d[1] } : E.split(d, fair);
-  const say = `Pick ${(i || 0) + 1}: ${p.name}, ${p.team}, ${M.n}. ${a ? `${a.hold ? 'On hold' : 'Rated ' + a.rating}: ${a.best.side}${pr.binary ? '' : ' ' + a.ln.line} at ${odds(a.best.odds)}` : `Fair line ${fair}, no book line yet`}. Projection ${pr.binary ? pct(1 - Math.exp(-pr.mu)) : f1(proj)}. Open the memo.`;
+  const say = `Pick ${(i || 0) + 1}: ${p.name}, ${p.team}, ${M.n}. ${a ? `${a.hold ? 'On hold' : 'Rated ' + a.rating}: ${a.best.side}${pr.binary ? '' : ' ' + a.ln.line} at ${odds(a.best.odds)}` : `Fair line ${fair}, no book line yet`}. ${dk ? 'Desk' : 'Model'} projection ${pr.binary ? pct(1 - Math.exp(-pr.mu)) : f1(proj)}. Open the memo.`;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const when = !g ? '' : lg === 'NFL' ? `${g.wd ? g.wd.slice(0, 3) + ' ' : ''}${t12(g.time)}` : `${g.day === today ? 'Tonight' : new Date(g.day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })} ${t12(g.time)}`;
   const b = a && a.best, mk = esc(M.n.toLowerCase()), book = ln && ln.book && !ln.mine ? bkn(ln.book) : ln && ln.mine ? 'your book' : '';
@@ -2376,10 +2380,10 @@ function rowHtml(pr, i) {
   const grade = a ? `<span class="rate ${a.cls}">${a.rating}</span>` : '<span class="rate n">NR</span>';
   const meter = !a ? '' : (() => { const pc = Math.max(0, Math.min(1, b.pn)), be = Math.max(0, Math.min(1, b.be)), gl = Math.min(pc, be), gw = Math.abs(pc - be);
     return `<span class="brc-m" role="img" aria-label="Desk chance ${pct(b.pn)}, break even ${pct(b.be)}"><span class="brc-mt"><i class="f${b.edge >= 0 ? '' : ' neg'}" style="width:${(pc * 100).toFixed(1)}%"></i><i class="g${b.edge >= 0 ? '' : ' neg'}" style="left:${(gl * 100).toFixed(1)}%;width:${(gw * 100).toFixed(1)}%"></i><i class="be" style="left:${(be * 100).toFixed(1)}%"><em>needs ${pct(b.be)}</em></i></span></span>`; })();
-  const head = !a ? `<span class="brc-hl"><span>Projection <b class="num">${pr.binary ? pct(d[1]) : f1(proj)}</b> · enter your book's line to grade it</span></span>`
+  const head = !a ? `<span class="brc-hl"><span>${dk ? 'Desk' : 'Model'} projection <b class="num">${pr.binary ? pct(d[1]) : f1(proj)}</b> · enter your book's line to grade it</span></span>`
     : a.hold ? `<span class="brc-hl hold"><span>The model is far from the books here, which usually means news it has not seen. Check before betting.</span></span>`
     : `<span class="brc-hl${b.edge >= 0 ? ' pos' : ' neg'}"><b class="num">${pct(b.pn)}</b><span>desk's chance it ${pr.binary ? (b.side === 'Yes' ? 'happens' : 'does not happen') : 'goes ' + b.side.toLowerCase()}</span></span>`;
-  const facts = `<span class="hrc-f brc-f"><span><small>${dk ? 'Projection' : 'Model'}</small><b>${pr.binary ? pct(d[1]) : f1(proj)}</b></span><span><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><b>${fair}</b></span>`
+  const facts = `<span class="hrc-f brc-f"><span><small>${dk ? 'Desk proj.' : 'Model proj.'}</small><b>${pr.binary ? pct(d[1]) : f1(proj)}</b></span><span><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><b>${fair}</b></span>`
     + `<span><small>Edge</small><b class="${a ? (b.edge >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? sgn(b.edge * 100) + '%' : 'none'}</b></span><span><small>Per $100</small><b class="${a ? (b.ev >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? (b.ev >= 0 ? '+$' : '−$') + Math.abs(b.ev * 100).toFixed(2) : 'none'}</b></span></span>`;
   return `<button class="row pl brc${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}${i < 3 ? ' top3' : ''}" style="--i:${i || 0};${tcol(pr.lg, p.team)}" data-open="${esc(pr.key)}" aria-label="${esc(say)}">
     ${ctlHtml(pr.key)}<span class="hrc-h">${jersey(lg, p)}<span class="hrc-who"><b>${esc(p.name)}</b><small><span class="brc-rk">#${(i || 0) + 1}</span>${teamTag(lg, p.team)}${side.home ? 'vs' : '@'} ${esc(side.opp)}${when ? ' · ' + when : ''}</small></span></span>
@@ -2633,7 +2637,7 @@ function bookHtml() {
       <div class="entry"><div class="fld"><label for="sBank">Bankroll $</label><input id="sBank" inputmode="decimal" value="${st.bank}"></div>
       <div class="fld"><label for="sKf">Kelly fraction</label><select id="sKf">${[.1, .25, .5].map(k => `<option value="${k}"${st.kf === k ? ' selected' : ''}>${k === .1 ? 'Tenth' : k === .25 ? 'Quarter' : 'Half'}</option>`).join('')}</select></div>
       <div class="fld"><label for="sOdds">Default odds</label><input id="sOdds" value="${odds(st.odds)}"></div></div>
-      <p class="prose" style="margin:10px 0 0">Stakes are sized by fractional Kelly, cut by the confidence haircut, and capped at 2% of bankroll per prop.</p></div>
+      <p class="prose" style="margin:10px 0 0">Stakes are sized by fractional Kelly, cut by the confidence haircut, and capped at 2% of bankroll per prop.</p>${/^This device/.test(S.sync) ? `<p class="prose mut" style="margin:8px 0 0">Your book is saved in this browser on this device. It stays until you clear this site's data, and it does not follow you to another phone or browser.</p>` : ''}</div>
       <div class="card prose"><b>How grading works.</b> Open tickets settle on their own when the next data refresh brings in the box score. You can also settle one by hand with the buttons on its row.</div></div>
     <div class="card scroll">${B.length ? `<table><thead><tr><th>Ticket</th><th>Rating</th><th>Odds</th><th>Stake</th><th>Model</th><th>Result</th><th>P/L</th><th></th></tr></thead><tbody>
       ${B.slice().reverse().map(b => `<tr><td><b style="font-weight:700">${esc(b.name)}</b> ${esc(b.side)}${b.binary ? ' TD' : ' ' + b.line + ' ' + esc(MK[b.lg][b.mkt].s)}<br><span class="mut num" style="font-size:12px">${esc(b.gl)}</span></td>
@@ -2694,15 +2698,19 @@ function deskHtml() {
   const lr = lg => { const r = rec(ALL.filter(b => !b.superseded && b.lg === lg)); return `${lg} ${r.w}-${r.l}`; };
   // v3.16.1: the scoreboard always counts both leagues (the full desk record). The cards, ledger and splits below follow the league switch.
   const TB = ALL.filter(b => !b.superseded), tW = TB.filter(b => st(b) === 'won'), tL = TB.filter(b => st(b) === 'lost'), tG = tW.concat(tL), tn = tG.length;
-  const tUnits = sum(tG.map(u)), tUsd = sum(tG.map(b => u(b) * unitOf(b))), tStaked = sum(tG.map(b => b.units * unitOf(b)));
+  const tUnits = sum(tG.map(u)), tUsd = sum(tG.map(b => u(b) * unitOf(b))), tStaked = sum(tG.map(b => b.units * unitOf(b))), tUStk = sum(tG.map(b => b.units));
+  // v3.36: ROI on the front was dollars over dollars while the big number was units, so a $25 loss could turn ROI red beside green units
+  // (bets before Nov 17 were $0.50 a unit). Now the front is units over units staked, the same measure on both lines; dollars sit on the back.
+  const tNew = tG.filter(b => b.unit), tNewUsd = sum(tNew.map(b => u(b) * unitOf(b)));
   const tBest = rec(TB.filter(b => b.best)), tConf = rec(TB.filter(b => b.lane === 'confident'));
   const tBe = tn ? sum(tG.map(b => 1 / E.dec(b.odds))) / tn : (TB.length ? sum(TB.map(b => 1 / E.dec(b.odds))) / TB.length : .524);
   const tCl = TB.filter(b => b.close), tClv = tCl.length ? sum(tCl.map(b => b.close.clv)) / tCl.length : null, tBeat = tCl.filter(b => b.close.clv > 0).length, tMv = tCl.filter(b => b.close.move != null);
   const F = {
     rec: [['Record', `${tW.length}-${tL.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Confident plays', `${tConf.w}-${tConf.l}`, tConf.w + tConf.l ? `units ${sgn(tConf.u, 2)} · best bets ${tBest.w}-${tBest.l}` : `none graded yet · best bets ${tBest.w}-${tBest.l}`, '']],
     hit: [['Hit rate', tn ? pct(tW.length / tn) : 'n/a', `needs ${pct(tBe)} to break even`, tn && tW.length / tn >= tBe ? 'gd' : ''], ['Break even', pct(tBe), 'at the average price paid', '']],
-    units: [['Units', sgn(tUnits, 2), tn ? `ROI ${sgn(tStaked ? tUsd / tStaked * 100 : 0)}% on ${tn} bets` : 'no graded bets yet', tUnits >= 0 ? 'gd' : 'bd'], ['On paper', money(tUsd), `${money(tStaked)} staked · $0.50 units before 11-17, $25 since`, tUsd >= 0 ? 'gd' : 'bd']],
-    clv: [['Line value', tClv == null ? 'n/a' : sgn(tClv * 100) + '%', tClv == null ? 'tracking starts with the next card' : `${tBeat} of ${tCl.length} beat the later line · ${tCl.length} of ${tn} graded tickets tracked`, tClv == null ? '' : tClv >= 0 ? 'gd' : 'bd'],
+    units: [['Units', sgn(tUnits, 2), tn ? `${sgn(tUStk ? tUnits / tUStk * 100 : 0)}% a unit staked, ${tn} bets` : 'no graded bets yet', tUnits >= 0 ? 'gd' : 'bd'],
+            ['On paper', money(tUsd), tNew.length && tNew.length < tn ? `${money(tNewUsd)} on ${tNew.length} bets at $25 a unit` : `${money(tStaked)} staked`, tUsd >= 0 ? 'gd' : 'bd']],
+    clv: [['Line value', tClv == null ? 'n/a' : sgn(tClv * 100) + '%', tClv == null ? 'tracking starts with the next card' : `${tBeat} of ${tCl.length} tracked beat the later line`, tClv == null ? '' : tClv >= 0 ? 'gd' : 'bd'],
           ['Market move', tMv.length ? sgn(sum(tMv.map(b => b.close.move)) / tMv.length * 100) : 'n/a', 'points toward the bet, on average', '']],
   };
   const tc = k => { const f = F[k][S.tote[k] ? 1 : 0]; return `<button class="tc" data-flip="${k}" aria-label="${esc(f[0])}: ${esc(f[1])}. ${esc(f[2])}. Press to flip."><small>${esc(f[0])}</small><b class="${f[3]}" data-v="${esc(f[1])}">${esc(f[1])}</b><em>${esc(f[2])}</em></button>`; };
@@ -3570,7 +3578,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = os[Math.max(0, Math.min(os.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))]; if (n) n.focus(); }
   else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); const n = e.key === 'Home' ? os[0] : os[os.length - 1]; if (n) n.focus(); }
 }, true);
-addEventListener('resize', () => { pxClose(true); placeInk(); document.querySelectorAll('.seg').forEach(sg => placeSeg(sg, false)); });
+addEventListener('resize', () => { pxClose(true); placeInk(); edgeFade(); document.querySelectorAll('.seg').forEach(sg => placeSeg(sg, false)); });
 addEventListener('scroll', () => { if (PX && PX.el.classList.contains('pop') && performance.now() - PX.t > 400) pxClose(); }, { passive: true });      // a scroll still settling when it opened does not count
 new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
 
@@ -3768,7 +3776,7 @@ function spotInfo(pr, i) {
   const p = pr.e.p, M = MK[pr.lg][pr.mkt], a = assess(pr), d = dist(pr), fair = pr.binary ? odds(E.amer(d[1])) : E.fairLine(d);
   const line = a ? `${a.best.side} ${pr.binary ? '' : a.ln.line + ' '}${M.s} at ${odds(a.best.odds)} · rated ${a.rating}` : `No book line yet · fair line ${fair} ${M.s}`;
   const w = watchOn(pr.key);
-  return `<small>Pick ${i + 1} · ${esc(p.team)} ${pr.e.side.home ? 'vs' : '@'} ${esc(pr.e.side.opp)}</small><h3>${esc(p.name)}</h3><p>Projects ${pr.binary ? pct(d[1]) : f1(pr.mu)} ${esc(M.s)} · ${esc(line)}</p>
+  return `<small>Pick ${i + 1} · ${esc(p.team)} ${pr.e.side.home ? 'vs' : '@'} ${esc(pr.e.side.opp)}</small><h3>${esc(p.name)}</h3><p>${(() => { const am = pr.binary ? null : anchMu(pr, getLine(pr.key)); return am != null && Math.abs(am - pr.mu) >= .05 ? `Desk projection ${f1(am)} ${esc(M.s)} (model ${f1(pr.mu)})` : `Model projection ${pr.binary ? pct(d[1]) : f1(pr.mu)} ${esc(M.s)}`; })()} · ${esc(line)}</p>
     <span class="sp-go"><button data-open="${esc(pr.key)}">Open the memo</button>${WATCH_ON ? `<button data-watch="${esc(pr.key)}" aria-pressed="${w}">${w ? 'On your list' : '+ Watch'}</button>` : ''}</span>`;
 }
 function spotHtml(list) {
@@ -3808,7 +3816,7 @@ function backHtml(pr) {
   const a = assess(pr), d = dist(pr), M = MK[pr.lg][pr.mkt], fair = pr.binary ? odds(E.amer(d[1])) : E.fairLine(d), ln = a ? a.ln.line : fair, v = logVals(pr).slice(-10), h = v.filter(x => x > ln).length;
   const r = (k, x) => `<div><span>${k}</span><b>${x}</b></div>`;
   const why = a ? (a.hold ? 'On hold: the model is far from the market here, which usually means news it has not seen.' : `${a.best.side} is the side: the desk gives it ${pct(a.best.pn)} against ${pct(a.best.be)} needed at ${odds(a.best.odds)}.`) : `No book price on file yet, so this is the model's own number. Enter your book's line in the memo to grade it.`;
-  return `<span class="back"><span class="lab"><h4>${esc(M.n)} label</h4>${r('Projection', pr.binary ? pct(d[1]) : f1(pr.mu))}${r('Fair line', fair)}${r('Book line', a ? (pr.binary ? odds(a.best.odds) : a.ln.line) : 'none')}${r('Edge', a ? sgn(a.best.edge * 100) + ' pts' : '·')}${r('Rating', a ? a.rating : 'NR')}</span>
+  return `<span class="back"><span class="lab"><h4>${esc(M.n)} label</h4>${r('Model projection', pr.binary ? pct(d[1]) : f1(pr.mu))}${r('Fair line', fair)}${r('Book line', a ? (pr.binary ? odds(a.best.odds) : a.ln.line) : 'none')}${r('Edge', a ? sgn(a.best.edge * 100) + ' pts' : '·')}${r('Rating', a ? a.rating : 'NR')}</span>
     <span class="why">${esc(why)}<br><span class="mut">Over ${pr.binary ? '0.5' : ln} in ${h} of his last ${v.length}.</span><br><span class="punch">${v.map(x => `<i class="${x > ln ? 'h' : ''}"></i>`).join('')}</span></span></span>`;
 }
 const FRONT = new WeakMap();
@@ -4081,7 +4089,7 @@ function render() {
   const seg = (k, v, c) => `<span class="sc${c ? ' ' + c : ''}"><small>${k}</small><b>${esc(v)}</b></span>`;
   $('#stamp').innerHTML = (ageH > 40 ? seg('Stale', Math.floor(ageH / 24) + ' day' + (ageH >= 48 ? 's' : ''), 'bad') : '') + seg('Slate', slate) + seg('Stats through', thru) + seg('Updated', tm);
   $('#stamp').setAttribute('aria-label', `${S.lg} slate ${slate}, stats through ${thru}, updated ${tm}${ageH > 40 ? ', stale' : ''}`);
-  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === S.tab)); placeInk();
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === S.tab)); placeInk(); requestAnimationFrame(edgeFade);
   buildProps();
   if (S.memo && !PMAP[S.memo]) S.memo = null;
   refreshMain();

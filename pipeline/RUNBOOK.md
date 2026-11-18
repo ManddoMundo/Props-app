@@ -192,3 +192,6 @@ site_job.sh writes lineup news (daily.py news) for each league on every early, m
 
 ## Parlay tab (v3.35)
 - The builder, slip and press live in simtab.js (search "v3.35"). The press prices with smSlipPrice, the same sum as the slip; nothing in it touches the model, the policy or history.json. It needs research/sim_nba.json and sim_nfl.json, like the Sim tab.
+
+## Standalone site extras (v3.36)
+- site.py writes docs/sw.js (network-first offline cache, versioned by VERSION) and copies og.png (the link-preview card, 1200x630) from the pipeline folder. Redraw og.png only if the brand changes. The worker registers only on github.io.

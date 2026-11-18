@@ -18,7 +18,7 @@ function loadSim(lg) {
 const smGame = lg => { const d = SMD[lg].d; if (!d || !d.games.length) return null; let g = d.games.find(x => x.id === S.sm.g[lg]); if (!g) { g = d.games[0]; S.sm.g[lg] = g.id; } return g; };
 const smName = (lg, pid) => { const p = IDX[lg].byId[pid]; return p ? p.name : ''; };
 const smLast = n => { const a = String(n).split(' '); return a.length > 1 ? a.slice(1).join(' ') : n; };
-const smOdds = p => { const a = E.amer(Math.min(.995, Math.max(.005, p))); return a == null ? '' : odds(a); };
+const smOdds = p => { const a = E.amer(Math.min(.9999, Math.max(.0001, p))); return a == null ? '' : odds(a); };      // v3.36: was held to 0.5%..99.5%, so a 0.1% parlay showed +19900 instead of +99900
 const SM_B64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
 const SM_POP = new Uint8Array(256).map((_, i) => { let c = 0, x = i; while (x) { c += x & 1; x >>= 1; } return c; });
 function smBits(lg, key, b64) { const m = SMD[lg].bits; if (!m.has(key)) m.set(key, SM_B64(b64)); return m.get(key); }
@@ -310,7 +310,7 @@ function smSlipNums(lg) {
   if (P.dec) { const ev = P.pj * P.dec - 1; set('smBk', odds(smAm(P.dec))); set('smBkf', `implied ${pct(1 / P.dec)}`); set('smEv', `${ev >= 0 ? '+' : ''}${(ev * 100).toFixed(0)}`, ev >= 0 ? 'pos' : 'neg'); set('smEvf', 'per $100, on the runs'); }
   else { set('smBk', '·'); set('smBkf', `${P.priced} of ${n} legs priced`); set('smEv', '·', ''); set('smEvf', 'needs every leg priced'); }
   const yp = parseFloat(S.sm.px), ye = $('#smYe');
-  if (ye) { if (isFinite(yp) && Math.abs(yp) >= 100) { const dec = E.dec(yp), ev = P.pj * dec - 1; ye.innerHTML = `At ${odds(yp)} the runs make it <b class="${ev >= 0 ? 'pos' : 'neg'}">${ev >= 0 ? '+' : ''}${(ev * 100).toFixed(1)}</b> per $100. Break-even is ${odds(smAm(1 / Math.max(P.pj, .001)))}.`; }
+  if (ye) { if (isFinite(yp) && Math.abs(yp) >= 100) { const dec = E.dec(yp), ev = P.pj * dec - 1; ye.innerHTML = `At ${odds(yp)} the runs make it <b class="${ev >= 0 ? 'pos' : 'neg'}">${ev >= 0 ? '+' : ''}${(ev * 100).toFixed(1)}</b> per $100. Break-even is ${odds(smAm(1 / Math.max(P.pj, .0001)))}.`; }
     else ye.textContent = `Type the price you are offered to see the edge. The runs make it fair at ${smOdds(P.pj)}.`; }
   const gp = $('#smGp'), G = SMD[lg].d.games;
   if (gp) gp.innerHTML = Object.entries(P.by).map(([gid, L]) => { const g = G.find(x => x.id === gid), pj = L.length > 1 ? smJoint(lg, L.map(l => ({ k: smUid(l.g, l.key), b: l.b, neg: l.neg }))) : L[0].p, pm = L.reduce((a, l) => a * l.p, 1);
@@ -1199,8 +1199,8 @@ function pkYours(lg) {
   const T = S.sm.pk[lg], el = $('#pkYp'), st = $('#pkStamp'); if (!T || !el) return; const yp = parseFloat(S.sm.px), P = T.P;
   const pin = $('#pkPx'); if (pin && document.activeElement !== pin && pin.value !== S.sm.px) pin.value = S.sm.px;
   let ev = P.dec ? P.pj * P.dec - 1 : null;
-  if (isFinite(yp) && Math.abs(yp) >= 100) { const e2 = P.pj * E.dec(yp) - 1; ev = e2; el.innerHTML = `At your ${odds(yp)}: <b class="${e2 >= 0 ? 'pos' : 'neg'}">${e2 >= 0 ? '+' : '−'}$${Math.abs(e2 * 100).toFixed(1)}</b> per $100. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .001)))}.`; }
-  else el.textContent = `Type the price you are offered under the slip to see the edge at it. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .001)))}.`;
+  if (isFinite(yp) && Math.abs(yp) >= 100) { const e2 = P.pj * E.dec(yp) - 1; ev = e2; el.innerHTML = `At your ${odds(yp)}: <b class="${e2 >= 0 ? 'pos' : 'neg'}">${e2 >= 0 ? '+' : '−'}$${Math.abs(e2 * 100).toFixed(1)}</b> per $100. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .0001)))}.`; }
+  else el.textContent = `Type the price you are offered under the slip to see the edge at it. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .0001)))}.`;
   if (st) { st.className = 'pk-stamp ' + (ev == null ? 'k' : ev >= 0 ? 'g' : 'b'); st.textContent = ev == null ? 'Packed' : ev >= 0 ? 'Good price' : 'Short price'; }
 }
 function pkOutPaint(lg, fresh) {
