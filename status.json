@@ -120,20 +120,20 @@
    "lg": "NBA",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
-   "rows": 42116,
+   "et": "2026-11-18 13:04",
+   "rows": 45498,
    "games": 12,
    "books": {
-    "fanduel": 4241,
-    "polymarket": 369,
-    "novig": 924,
-    "kalshi": 1918,
-    "betmgm": 2898,
-    "williamhill_us": 9435,
-    "betrivers": 4709,
-    "draftkings": 5932,
-    "hardrockbet": 5928,
-    "fanatics": 5762
+    "fanduel": 7230,
+    "polymarket": 375,
+    "novig": 961,
+    "kalshi": 2081,
+    "betmgm": 2925,
+    "williamhill_us": 9523,
+    "betrivers": 4710,
+    "draftkings": 5943,
+    "hardrockbet": 5933,
+    "fanatics": 5817
    },
    "markets": 13
   },
@@ -143,8 +143,8 @@
    "lg": "NBA",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
-   "rows": 740,
+   "et": "2026-11-18 13:04",
+   "rows": 744,
    "games": 12
   },
   {
@@ -153,20 +153,20 @@
    "lg": "NFL",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
-   "rows": 20022,
+   "et": "2026-11-18 13:04",
+   "rows": 20311,
    "games": 13,
    "books": {
-    "draftkings": 4155,
-    "williamhill_us": 2612,
-    "kalshi": 1654,
-    "fanduel": 2923,
-    "betrivers": 1646,
-    "novig": 716,
-    "polymarket": 477,
-    "fanatics": 2611,
-    "betmgm": 973,
-    "hardrockbet": 2255
+    "draftkings": 4149,
+    "williamhill_us": 2611,
+    "kalshi": 1672,
+    "fanduel": 2925,
+    "betrivers": 1847,
+    "novig": 717,
+    "polymarket": 553,
+    "fanatics": 2606,
+    "betmgm": 975,
+    "hardrockbet": 2256
    },
    "markets": 13
   },
@@ -176,9 +176,9 @@
    "lg": "NFL",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
-   "rows": 834,
-   "games": 14
+   "et": "2026-11-18 13:04",
+   "rows": 868,
+   "games": 15
   },
   {
    "path": "data/news/NBA_2026-11-18.txt.enc",
@@ -186,8 +186,8 @@
    "lg": "NBA",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
-   "rows": 107
+   "et": "2026-11-18 13:04",
+   "rows": 109
   },
   {
    "path": "data/news/NFL_2026-11-18.txt.enc",
@@ -195,7 +195,7 @@
    "lg": "NFL",
    "date": "2026-11-18",
    "kind": "midday",
-   "et": "2026-11-18 11:09",
+   "et": "2026-11-18 13:04",
    "rows": 800
   }
  ],
@@ -203,11 +203,11 @@
   "midday": "2026-11-18"
  },
  "quota": {
-  "remaining": 5828,
-  "used": 14172
+  "remaining": 5509,
+  "used": 14491
  },
- "updated_utc": "2026-11-18 16:09",
- "et": "2026-11-18 11:09",
+ "updated_utc": "2026-11-18 18:05",
+ "et": "2026-11-18 13:04",
  "kind": "midday",
  "tier": "full",
  "spent": 319,
