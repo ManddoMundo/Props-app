@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-18 v3.33 a fuller TV unfolded, LED bars on the player cards (asked for by Armanddo; display only)
+- Unfolded, the TV left green space under it on the iPhone Duo: v3.32 spanned it over 30 implicit grid rows, which Safari sized differently from Chrome. Now a counter panel's controls are moved into one side column (.wr-side, done by the page as the panel lands), the TV and that column sit side by side at the same height, and the TV stretches to it: the screen grows, the counters stay two by two with larger numbers (30 to 40px) and captions, and the knobs and grille scale up. Measured at 1148px wide: TV 257px, controls 257px, no gap below.
+- Player-card bars: no more orange-to-red gradient. The chart sits on the same tote black as THE BET box, as an LED bar graph: segmented bars, lit amber on a hot card and green otherwise for games that cleared the line, dim for games that missed; values and opponents in the board's LED colours; the line dashed in chalk. Same in light mode (the panel stays dark, like the bet box).
+- The bet box and chart now run the full width of the card (an older padding rule for the card buttons was squeezing them).
+
+## 2026-11-18 v3.32 the unfolded layout, new card type, flames behind the number (asked for by Armanddo; display only)
+- Unfolded (760px and up): Hit rates cards and Trends by split cards sit two across, each at the folded phone's proportions, instead of one card stretched across the screen. A counter panel puts its TV in the left column and its filters in the right (Board, Game picks, Hit rates, Trends by split, Market grades), instead of a small TV floating in an empty box. The v3.31 one-card two-column layout is gone.
+- Player-card type: numbers in Big Shoulders Display, words in Barlow Condensed (both Google Fonts, added to the page's font link), on the Hit rates card (the bet, the headline count, bar values, the facts) and the Trends by split card (subtitle, chips, Tonight's spots). Chosen from four renders of the same card (the dot matrix and Sometype Mono it replaced, Bebas Neue with Barlow, Oswald with Saira Condensed). The TV keeps its LED faces.
+- Lingering flames: redrawn as tongues of flame that tile behind the digits and rise from their foot, fading upward (screen blend), stepping through three frames; frost on cold numbers likewise sits behind the digits. Before they were a strip of blocks under the number.
+- Testing: the screenshots now load the real font files (local copies), so they match the phone.
+
 ## 2026-11-18 v3.31 sharper dragons, embers that stay, and a Hit rates card that says the bet first (asked for by Armanddo; display only)
 - Dragons redrawn (dragon_sprites.py): a 56 x 54 rig instead of 40 x 33, with horns, brow, teeth, claws, belly plates, back and neck spikes, a far wing for depth, finger bones in the membrane, and light from the upper left. Eleven frames: a six-frame wing beat (70ms a frame), landing, perched, an idle breath, rearing back, breathing out. The breath has four flicker frames and throws sparks (fire) or flecks (frost).
 - Crisp on any phone: the sprite scale (--ds) is set from the screen's pixel ratio so every sprite pixel is a whole number of screen pixels.

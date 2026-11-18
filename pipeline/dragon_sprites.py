@@ -240,29 +240,41 @@ def puff(kind, s=12):
     return img
 
 
-def linger(kind, frame, lw=30, lh=14):
-    """What stays on a lit number: a row of small licking flames (fire) or ice crystals that glint (frost). 3 frames."""
+def linger(kind, frame, lw=24, lh=24):
+    """What stays on a lit number, tiled behind its digits: tongues of flame rising from the foot (fire), or ice crystals and
+    a frosted foot (frost). 3 frames, stacked top to bottom so the page can tile them sideways and step through them."""
     img = Image.new("RGBA", (lw, lh), (0, 0, 0, 0)); P = img.load()
     if kind == "fire":
-        cols = [(255, 244, 190), (255, 204, 70), (250, 130, 40), (210, 66, 30)]
-        for i, x0 in enumerate(range(1, lw - 3, 5)):
-            hgt = 5 + ((i * 3 + frame * 2) % 5) + (2 if i % 2 else 0); sway = ((i + frame) % 3) - 1
+        cols = [(255, 250, 214), (255, 222, 104), (255, 168, 52), (246, 106, 34), (214, 66, 26)]
+        for i, x0 in enumerate((3, 9, 15, 21)):
+            hgt = (15, 21, 13, 19)[(i + frame) % 4] + (frame % 2) * 2; sway = (0, 1, -1)[(i + frame) % 3]
             for y in range(lh - hgt, lh):
-                t = (lh - y) / hgt; half = 2.2 * (1 - t) + .4
-                cx = x0 + 2 + sway * t
-                for x in range(lw):
-                    if abs(x + .5 - cx) <= half: P[x, y] = cols[min(3, int((1 - t) * 1.3 + abs(x + .5 - cx) / half * 1.6))] + (255,)
+                t = (lh - y) / hgt; half = 4.4 * (1 - t) ** .65 + .4
+                cx = x0 + sway * t * 2
+                for x in range(-3, lw + 3):
+                    d = abs(x + .5 - cx)
+                    if d <= half:
+                        k = min(4, int(t * 2.6 + d / half * 1.7))
+                        P[x % lw, y] = cols[k] + (255,)
     else:
-        cols = [(255, 255, 255), (200, 238, 255), (130, 196, 240)]
-        for i, x0 in enumerate(range(2, lw - 2, 6)):
-            y0 = lh - 3 - (i * 4 + 1) % 6; on = (i + frame) % 3 == 0
-            for dx, dy, k in ((0, 0, 0), (-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1)) + (((-2, 0, 2), (2, 0, 2), (0, -2, 2), (0, 2, 2)) if on else ()):
-                x, y = x0 + dx, y0 + dy
-                if 0 <= x < lw and 0 <= y < lh: P[x, y] = cols[k] + (255,)
-        for x in range(lw):      # a frosted rim along the bottom
-            if (x * 7 + frame) % 4: P[x, lh - 1] = cols[2] + (255,)
-            if (x * 5) % 3 == 0: P[x, lh - 2] = cols[1] + (255,)
+        cols = [(255, 255, 255), (206, 240, 255), (140, 204, 244), (90, 156, 220)]
+        for i, (x0, y0) in enumerate(((4, 16), (12, 9), (19, 18), (8, 4), (20, 6))):
+            on = (i + frame) % 3 == 0; r = 2 if on else 1
+            for d in range(-r, r + 1):
+                for (x, y) in ((x0 + d, y0), (x0, y0 + d)):
+                    if 0 <= y < lh: P[x % lw, y] = cols[0 if d == 0 else 1] + (255,)
+            if on:
+                for (x, y) in ((x0 - 1, y0 - 1), (x0 + 1, y0 + 1), (x0 - 1, y0 + 1), (x0 + 1, y0 - 1)):
+                    if 0 <= y < lh: P[x % lw, y] = cols[2] + (255,)
+        for x in range(lw):      # frost along the foot
+            for y in range(lh - 3 - (x * 7 + 3) % 3, lh): P[x, y] = cols[2 if y < lh - 1 else 3] + (255,)
     return img
+
+
+def vsheet(imgs):
+    w = max(i.width for i in imgs); h = sum(i.height for i in imgs); s = Image.new("RGBA", (w, h), (0, 0, 0, 0)); y = 0
+    for i in imgs: s.paste(i, (0, y)); y += i.height
+    return s
 
 
 def sheet(imgs):
@@ -281,7 +293,7 @@ def build():
         out[kind] = sheet([render(dragon(f), PAL[kind]) for f in range(11)])
         out[kind + "_b"] = sheet([breath(kind, f) for f in range(4)])
         out[kind + "_p"] = puff(kind)
-        out[kind + "_l"] = sheet([linger(kind, f) for f in range(3)])
+        out[kind + "_l"] = vsheet([linger(kind, f) for f in range(3)])
     return out
 
 
