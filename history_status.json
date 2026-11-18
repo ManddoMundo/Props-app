@@ -1,0 +1,446 @@
+{
+ "days": {
+  "NFL_2026-11-16": {
+   "games": 1,
+   "rows": 211,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-11-15": {
+   "games": 12,
+   "rows": 1961,
+   "credits": 480,
+   "listed": 12
+  },
+  "NFL_2026-11-14": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-11-13": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-11-12": {
+   "games": 1,
+   "rows": 183,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-11-09": {
+   "games": 1,
+   "rows": 169,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-11-08": {
+   "games": 13,
+   "rows": 2083,
+   "credits": 520,
+   "listed": 13
+  },
+  "NFL_2026-11-07": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-11-06": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-11-05": {
+   "games": 1,
+   "rows": 192,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-11-02": {
+   "games": 1,
+   "rows": 184,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-11-01": {
+   "games": 12,
+   "rows": 1935,
+   "credits": 480,
+   "listed": 12
+  },
+  "NFL_2026-10-31": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-30": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-29": {
+   "games": 1,
+   "rows": 190,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-26": {
+   "games": 1,
+   "rows": 163,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-25": {
+   "games": 12,
+   "rows": 1942,
+   "credits": 480,
+   "listed": 12
+  },
+  "NFL_2026-10-24": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-23": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-22": {
+   "games": 1,
+   "rows": 196,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-19": {
+   "games": 1,
+   "rows": 162,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-18": {
+   "games": 12,
+   "rows": 1985,
+   "credits": 480,
+   "listed": 12
+  },
+  "NFL_2026-10-17": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-16": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-15": {
+   "games": 1,
+   "rows": 197,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-12": {
+   "games": 1,
+   "rows": 206,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-11": {
+   "games": 13,
+   "rows": 1921,
+   "credits": 520,
+   "listed": 13
+  },
+  "NFL_2026-10-10": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-09": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-08": {
+   "games": 1,
+   "rows": 173,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-05": {
+   "games": 1,
+   "rows": 174,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-10-04": {
+   "games": 14,
+   "rows": 2248,
+   "credits": 560,
+   "listed": 14
+  },
+  "NFL_2026-10-03": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-02": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-10-01": {
+   "games": 1,
+   "rows": 183,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-28": {
+   "games": 1,
+   "rows": 179,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-27": {
+   "games": 14,
+   "rows": 2126,
+   "credits": 560,
+   "listed": 14
+  },
+  "NFL_2026-09-26": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-25": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-24": {
+   "games": 1,
+   "rows": 171,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-21": {
+   "games": 1,
+   "rows": 192,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-20": {
+   "games": 14,
+   "rows": 2135,
+   "credits": 560,
+   "listed": 14
+  },
+  "NFL_2026-09-19": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-18": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-17": {
+   "games": 1,
+   "rows": 165,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-14": {
+   "games": 1,
+   "rows": 190,
+   "credits": 40,
+   "listed": 1
+  },
+  "NFL_2026-09-13": {
+   "games": 13,
+   "rows": 1795,
+   "credits": 520,
+   "listed": 13
+  },
+  "NFL_2026-09-12": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-11": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NFL_2026-09-10": {
+   "games": 1,
+   "rows": 202,
+   "credits": 40,
+   "listed": 1
+  },
+  "NBA_2026-11-16": {
+   "games": 8,
+   "rows": 2227,
+   "credits": 320,
+   "listed": 8
+  },
+  "NBA_2026-11-15": {
+   "games": 9,
+   "rows": 2326,
+   "credits": 360,
+   "listed": 9
+  },
+  "NBA_2026-11-14": {
+   "games": 5,
+   "rows": 1279,
+   "credits": 200,
+   "listed": 5
+  },
+  "NBA_2026-11-13": {
+   "games": 9,
+   "rows": 2608,
+   "credits": 360,
+   "listed": 9
+  },
+  "NBA_2026-11-12": {
+   "games": 4,
+   "rows": 1159,
+   "credits": 160,
+   "listed": 4
+  },
+  "NBA_2026-11-11": {
+   "games": 10,
+   "rows": 2724,
+   "credits": 400,
+   "listed": 10
+  },
+  "NBA_2026-11-10": {
+   "games": 6,
+   "rows": 1698,
+   "credits": 240,
+   "listed": 6
+  },
+  "NBA_2026-11-09": {
+   "games": 8,
+   "rows": 2094,
+   "credits": 320,
+   "listed": 8
+  },
+  "NBA_2026-11-08": {
+   "games": 7,
+   "rows": 1851,
+   "credits": 280,
+   "listed": 7
+  },
+  "NBA_2026-11-07": {
+   "games": 7,
+   "rows": 1931,
+   "credits": 280,
+   "listed": 7
+  },
+  "NBA_2026-11-06": {
+   "games": 9,
+   "rows": 2506,
+   "credits": 360,
+   "listed": 9
+  },
+  "NBA_2026-11-05": {
+   "games": 2,
+   "rows": 564,
+   "credits": 80,
+   "listed": 2
+  },
+  "NBA_2026-11-04": {
+   "games": 14,
+   "rows": 3825,
+   "credits": 560,
+   "listed": 14
+  },
+  "NBA_2026-11-03": {
+   "games": 0,
+   "rows": 0,
+   "credits": 0
+  },
+  "NBA_2026-11-02": {
+   "games": 15,
+   "rows": 3967,
+   "credits": 600,
+   "listed": 15
+  },
+  "NBA_2026-11-01": {
+   "games": 4,
+   "rows": 983,
+   "credits": 160,
+   "listed": 4
+  },
+  "NBA_2026-10-31": {
+   "games": 7,
+   "rows": 1880,
+   "credits": 280,
+   "listed": 7
+  },
+  "NBA_2026-10-30": {
+   "games": 10,
+   "rows": 2831,
+   "credits": 400,
+   "listed": 10
+  },
+  "NBA_2026-10-29": {
+   "games": 3,
+   "rows": 848,
+   "credits": 120,
+   "listed": 3
+  },
+  "NBA_2026-10-28": {
+   "games": 12,
+   "rows": 3147,
+   "credits": 480,
+   "listed": 12
+  },
+  "NBA_2026-10-27": {
+   "games": 4,
+   "rows": 1111,
+   "credits": 160,
+   "listed": 4
+  },
+  "NBA_2026-10-26": {
+   "games": 9,
+   "rows": 2485,
+   "credits": 360,
+   "listed": 9
+  },
+  "NBA_2026-10-25": {
+   "games": 7,
+   "rows": 1764,
+   "credits": 280,
+   "listed": 7
+  },
+  "NBA_2026-10-24": {
+   "games": 8,
+   "rows": 2039,
+   "credits": 320,
+   "listed": 8
+  },
+  "NBA_2026-10-23": {
+   "games": 12,
+   "rows": 3195,
+   "credits": 480,
+   "listed": 12
+  },
+  "NBA_2026-10-22": {
+   "games": 2,
+   "rows": 577,
+   "credits": 80,
+   "listed": 2
+  }
+ },
+ "updated_utc": "2026-11-18 15:23",
+ "last_spent": 13656,
+ "remaining": 6151,
+ "errors": [],
+ "notes": [
+  "NBA 2026-10-21: stopped before this day, it needs about 440 credits and 344 are left under the cap and reserve"
+ ]
+}
