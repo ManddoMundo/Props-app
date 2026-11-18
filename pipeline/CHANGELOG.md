@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-17 v3.18 motion pass (after libraries.dev, MIT)
+- Reviewed libraries.dev: Distortion waves, Border beam, Gooey, Liquid metal, Thinking orbs, Image FX, Voice, Bots and Magnetic UI. All web builds are React components (Waves snapshots the page into WebGL 2), and Fair Line is one plain HTML page, so the ideas are rebuilt here in CSS and the Web Animations API, credited, without their code. Thinking orbs, Image FX, Voice, Bots and Magnetic UI have no place in a betting desk and were left out.
+- League switch: the plain disc is now a wave, a disc whose edge wobbles as it grows with a band of colour riding just outside it (orange, pink and blue for the NBA; green, teal and gold for the NFL). Transform and clip-path only, 460 ms.
+- Log to book: a small wave opens from the button across the stake row and leaves a receipt in its place ("Logged to your book · Over 4.5 assists · $10.00 at -110 · to win $9.09"). Fixed before release: the wave used the class rc, which the page already uses, and grew the row to 687 px; it is wvrc now.
+- Border beam: a short run of light travels the edge of the day's best open bet, nowhere else, and pauses when the ticket is off screen.
+- Metal sheen: one pass of light across an A, AA or AAA grade when its memo opens. Not on a held grade.
+- League switch puck: stretches as it travels and settles like jelly (after Gooey; scale only).
+- Sheets (memo and panels on a phone): the iOS sheet curve; the sheet follows the finger 1:1 going down and resists going up; a short flick closes it (reads the speed of the last moments of the drag); a sheet that stays springs back with a small overshoot (a CSS linear() spring, with a plain ease-out where linear() is not supported).
+- Reduced motion: no wave, no beam travel, no sheen, no jelly; the league change and the receipt are plain fades.
+
 ## 2026-11-17 v3.17 evening pass at 6 PM
 - Schedule: lines and picks at about 11:30 AM Eastern, then an evening pass at about 6 PM (a backup run catches a late start; the window closes 7:45 PM). The 7:10 AM refresh and the Sunday NFL 1 PM closing pull stay. The weekday 6:25 PM closing pull is folded into the evening pass.
 - Evening pass: the relay pulls fresh player lines, game odds and the ESPN injury report for games still to come (a separate _pm file, so the midday pull stays on file). The model reruns with the new injuries. Midday bets get their closing numbers from the evening lines (label "evening"). Then the same pick rules run on the evening lines (daily.py evening): never a second ticket on a player already bet that day, never past max_picks edge plays per league a day, max_per_game and the 10-unit day as always, and no midday ticket is changed. Evening tickets carry run=pm and an Evening tag on the Desk.

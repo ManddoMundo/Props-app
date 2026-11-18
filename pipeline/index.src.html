@@ -206,7 +206,7 @@ svg .rn{fill:var(--ink)} svg .vv{fill:var(--ink);font-weight:700}
 
 /* ---------- memo sheet ---------- */
 .memo{position:fixed;z-index:30;top:0;right:0;bottom:0;width:min(100%,500px);background:var(--panel);border-left:2px solid var(--ink);overflow-y:auto;box-shadow:-18px 0 36px -10px rgba(0,0,0,.4);
-  padding-top:env(safe-area-inset-top,0px);transform:translateX(104%);visibility:hidden;transition:transform .2s cubic-bezier(.3,0,1,1),visibility 0s .2s}
+  padding-top:env(safe-area-inset-top,0px);transform:translateX(104%);visibility:hidden;transition:transform .24s cubic-bezier(.32,.72,0,1),visibility 0s .24s}
 body.memo-open .memo{transform:none;visibility:visible;transition:transform .34s var(--ease),visibility 0s}
 .memo-h{position:sticky;top:0;background:var(--panel);z-index:2;padding:14px 16px 10px;border-bottom:3px double var(--ink)}
 .memo-h .x{float:right;border:2px solid var(--ink);background:transparent;border-radius:5px;padding:6px 12px;font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
@@ -566,7 +566,7 @@ button.row:active{transform:scale(.996)}
 @media(max-width:700px){
   body.memo-open .memo-back{opacity:1;visibility:visible;transition:opacity .25s ease-out,visibility 0s}
   .memo{top:auto;left:0;width:100%;height:92vh;height:92dvh;border-left:0;border-top:2px solid var(--ink);border-radius:18px 18px 0 0;padding-top:0;transform:translateY(104%);box-shadow:0 -18px 36px -10px rgba(0,0,0,.45)}
-  body.memo-open .memo{transition:transform .42s var(--ease),visibility 0s}
+  body.memo-open .memo{transition:transform .46s cubic-bezier(.32,.72,0,1),visibility 0s}      /* v3.18: the iOS sheet curve */
   .memo-h{padding:48px max(16px,env(safe-area-inset-right,0px)) 10px 16px;touch-action:none;border-radius:16px 16px 0 0}
   .memo-h .x{float:none;position:absolute;left:16px;top:11px;padding:5px 12px}
   .memo-h::before{content:"";position:absolute;left:50%;top:8px;width:44px;height:5px;margin-left:-22px;border-radius:3px;background:var(--rule)}
@@ -1018,6 +1018,34 @@ body.has-tray main{padding-bottom:120px}
 @media (prefers-reduced-motion:reduce){.st-glow{transform:none!important}}
 /* ---------- v3.7.1 league change disc (replaces the page snapshot transition) ---------- */
 .iris-w{position:fixed;left:0;right:0;bottom:0;z-index:30;overflow:hidden;pointer-events:none}
+/* v3.18 wave (after libraries.dev Distortion Waves, MIT): a disc with a wobbly edge and a band of colour riding just outside it.
+   Only transform and clip-path animate; the colour band is a masked conic gradient, so there is no blur filter on a big layer. */
+.wv{position:absolute;pointer-events:none}
+.wv>i{position:absolute;inset:0;border-radius:50%;will-change:transform;transform:scale(.02)}
+.wv-disc{background:var(--desk)}
+.wv-rim{--c1:#ffb547;--c2:#ff6a3d;--c3:#ff8fb1;--c4:#7ad7ff;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c1));
+  -webkit-mask:radial-gradient(closest-side,transparent 86%,#000 92%,#000 95%,transparent 100%);mask:radial-gradient(closest-side,transparent 86%,#000 92%,#000 95%,transparent 100%)}
+.wv.NBA .wv-disc{background:color-mix(in srgb,#c8743a 55%,var(--desk))}
+.wv.NFL .wv-disc{background:color-mix(in srgb,#2f6b45 60%,var(--desk))} .wv.NFL .wv-rim{--c1:#9be15d;--c2:#22c1c3;--c3:#f6f7e9;--c4:#ffd166}
+.wv.wvrc .wv-disc{background:color-mix(in srgb,var(--good) 22%,var(--panel))} .wv.wvrc .wv-rim{--c1:var(--good);--c2:#ffd166;--c3:#7ad7ff;--c4:#ff8fb1}
+.logrow.done{position:relative;overflow:hidden;border-radius:10px;isolation:isolate}
+.logrow.done>.fld,.logrow.done>.btn{pointer-events:none}
+.rcpt{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:10px 14px;font:13px/1.35 var(--mono);color:var(--ink)}
+.rcpt b{font:700 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--good)} .rcpt b::before{content:"\2713  "}
+/* v3.18 border beam (after libraries.dev Border beam, MIT): a short run of light travelling the edge of the best bet, nowhere else */
+@property --bb{syntax:'<angle>';inherits:false;initial-value:0deg}
+.tk.beam::after{content:"";position:absolute;inset:-2px;border-radius:12px;padding:2px;pointer-events:none;z-index:3;
+  background:conic-gradient(from var(--bb),transparent 0 68%,color-mix(in srgb,var(--led) 80%,transparent) 78%,#fff6d6 84%,#7ad7ff 89%,transparent 96%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:bb 5s linear infinite}
+.tk.beam.bb-off::after{animation-play-state:paused}
+@keyframes bb{to{--bb:360deg}}
+/* v3.18 metal sheen (after libraries.dev Metal, MIT, without the WebGL): one pass of light across an A grade when its memo opens */
+.verdict .seal.shine{position:relative;overflow:hidden}
+.verdict .seal.shine::after{content:"";position:absolute;inset:-30% -60%;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.55) 48%,rgba(255,240,200,.35) 52%,transparent 62%);transform:translateX(-70%);pointer-events:none}
+body.memo-open .verdict .seal.shine::after{animation:shine .9s cubic-bezier(.23,1,.32,1) .42s both}
+@keyframes shine{to{transform:translateX(70%)}}
+@media (prefers-reduced-motion:reduce){.tk.beam::after{animation:none;--bb:200deg} body.memo-open .verdict .seal.shine::after{animation:none;opacity:0}}
 .iris-fx{position:absolute;border-radius:50%;pointer-events:none;background:var(--desk);box-shadow:inset 0 0 0 6px color-mix(in srgb,var(--ink) 35%,transparent);will-change:transform,opacity;transform:scale(.02)}
 .iris-fx.NBA{background:color-mix(in srgb,#c8743a 55%,var(--desk))} .iris-fx.NFL{background:color-mix(in srgb,#2f6b45 60%,var(--desk))}
 /* ---------- v3.7 stakes on the ticket ---------- */
@@ -2077,7 +2105,7 @@ function verdictHtml(pr) {
   const probs = `<div class="kvs"><div class="kv"><small>${pr.binary ? 'Scores' : 'Over ' + ln.line}</small><span>${pct(sp.over)}</span></div><div class="kv"><small>${pr.binary ? 'Does not' : 'Under ' + ln.line}</small><span>${pct(sp.under)}</span></div><div class="kv"><small>${pr.binary ? 'Fair price' : 'Push'}</small><span>${pr.binary ? odds(E.amer(sp.over)) : pct(sp.push)}</span></div></div>` + (a ? `<p class="mut" style="font-size:12px;margin:2px 0 8px">${a.ln.m != null && !pr.binary ? `Desk chances: the model blended with what the other books imply (desk number ${(+anchMu(pr, a.ln)).toFixed(1)}, model alone ${f1(pr.mu)})${Object.keys(S.scen[pr.lg] || {}).length ? ', moved by your lineup change' : ''}${a.ln.mine ? ', at the line you set' : ''}. The outcome chart shows the model alone.` : `The model alone: no market number for this prop${a.ln.mine ? ' at the line you set' : ''}.`}</p>` : `<p class="mut" style="font-size:12px;margin:2px 0 8px">The model alone, until a book line is entered.</p>`);
   if (!a) return `<div class="verdict">${probs}<div class="mut" style="font-size:13.5px">${pr.binary ? 'Enter the book price for Yes to get a rating.' : 'Showing the model fair line. Enter the book line and odds, or drag the marker, to get a rating.'}</div></div>`;
   const b = a.best, cf = a.conf, tk = S.seal === pr.key + a.rating ? '' : ' thunk'; S.seal = pr.key + a.rating;
-  return `<div class="verdict ${a.cls}"><div class="vtop"><span class="seal${tk}">${a.rating}</span><div><b>${a.hold ? 'On hold: verify ' + b.side + (pr.binary ? '' : ' ' + a.ln.line) : a.decision + (a.decision === 'Decline' ? '' : ': ' + b.side + (pr.binary ? '' : ' ' + a.ln.line))}</b><span class="mut num">${odds(b.odds)} · ${cf.c >= .999 ? 'no data warnings' : `data trust ${Math.round(cf.c * 100)}%, see the notes below`}</span></div></div>
+  return `<div class="verdict ${a.cls}"><div class="vtop"><span class="seal${tk}${/^A/.test(a.rating) && !a.hold ? ' shine' : ''}">${a.rating}</span><div><b>${a.hold ? 'On hold: verify ' + b.side + (pr.binary ? '' : ' ' + a.ln.line) : a.decision + (a.decision === 'Decline' ? '' : ': ' + b.side + (pr.binary ? '' : ' ' + a.ln.line))}</b><span class="mut num">${odds(b.odds)} · ${cf.c >= .999 ? 'no data warnings' : `data trust ${Math.round(cf.c * 100)}%, see the notes below`}</span></div></div>
     ${probs}
     <div class="kvs"><div class="kv"><small>Desk ${esc(b.side)}${sp.push > .005 ? ', push removed' : ''}</small><span>${pct(b.pn)}</span></div><div class="kv"><small>Break even</small><span>${pct(b.be)}</span></div><div class="kv"><small>Edge</small><span class="${b.edge >= 0 ? 'pos' : 'neg'}">${sgn(b.edge * 100)} pts</span></div>
       <div class="kv"><small>EV per $100</small><span class="${b.ev >= 0 ? 'pos' : 'neg'}">${sgn(b.ev * 100, 2)}</span></div><div class="kv"><small>Fair odds</small><span>${odds(E.amer(b.pn))}</span></div><div class="kv"><small>Suggested stake</small><span>${a.stake > 0 ? money(a.stake) : 'none'}</span></div></div>
@@ -2302,7 +2330,7 @@ function ticketHtml(b, i) {
   const k = tkKey(b), op = S.open.has(k), w = b.why, g = IDX[b.lg].games[b.game], be = 1 / E.dec(b.odds);
   const serial = b.date.slice(5).replace('-', '') + '-' + String(DESK.bets.indexOf(b) + 1).padStart(3, '0');
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
-  return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}" style="--i:${i}">
+  return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}${b.best && b.status === 'open' ? ' beam' : ''}" style="--i:${i}">
     <button class="tk-main" data-tk="${esc(k)}" aria-expanded="${op}">
       <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
@@ -3116,11 +3144,22 @@ let sd = null;
 document.addEventListener('pointerdown', e => { if (!e.target.closest) return;
   if (PX && PX.el.classList.contains('sheet') && e.target.closest('.px-h') && !e.target.closest('.px-x')) sd = { y: e.clientY, t: performance.now(), d: 0, pan: PX.el.querySelector('.px-pan') };
   else if (!PX && S.memo && innerWidth <= 700 && e.target.closest('.memo-h') && !e.target.closest('button')) sd = { y: e.clientY, t: performance.now(), d: 0, pan: $('#memo'), memo: true };
-  else return; sd.pan.style.transition = 'none'; });
-document.addEventListener('pointermove', e => { if (!sd) return; sd.d = Math.max(0, e.clientY - sd.y); sd.pan.style.transform = `translateY(${sd.d}px)`; });
-const sdEnd = () => { if (!sd) return; const { pan, d, t, memo } = sd, v = d / Math.max(1, performance.now() - t), far = d > 110 || (d > 30 && v > .6); sd = null; pan.style.transition = '';
-  if (!far) { pan.style.transform = ''; return; }
-  if (memo) { S.memo = null; render(); } else pxBack(); requestAnimationFrame(() => { pan.style.transform = ''; }); };
+  else return; sd.pan.style.transition = 'none'; sd.ly = e.clientY; sd.lt = sd.t; sd.v = 0; });
+/* v3.18: the sheet follows the finger 1:1 going down and resists going up (rubber band); letting go reads the speed of the last
+   few moments, not the whole drag, so a short flick closes it; a sheet that stays springs back with a little life */
+document.addEventListener('pointermove', e => { if (!sd) return; const raw = e.clientY - sd.y, now = performance.now();
+  sd.d = raw >= 0 ? raw : -Math.pow(-raw, .62); sd.pan.style.transform = `translateY(${sd.d}px)`;
+  const dt = now - sd.lt; if (dt > 0) { sd.v = .7 * ((e.clientY - sd.ly) / dt) + .3 * sd.v; sd.ly = e.clientY; sd.lt = now; } });
+const SPRING = (() => { const z = .78, w = 2 * Math.PI / .42, wd = w * Math.sqrt(1 - z * z), T = 0.62, pts = [];      // a spring with a small overshoot, as CSS linear()
+  for (let i = 0; i <= 36; i++) { const t = i / 36 * T, x = 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t)); pts.push(+x.toFixed(4)); }
+  pts[pts.length - 1] = 1; let ok = false; try { ok = CSS.supports('transition-timing-function', 'linear(0, 1)'); } catch (e) {}
+  return ok ? { easing: `linear(${pts.join(',')})`, ms: T * 1000 } : { easing: 'cubic-bezier(.23,1,.32,1)', ms: 320 }; })();
+const sdEnd = () => { if (!sd) return; const { pan, d, memo } = sd, v = performance.now() - sd.lt > 80 ? 0 : sd.v, far = d > 110 || (d > 24 && v > .45); sd = null;
+  if (!far) { pan.style.transition = ''; pan.style.transform = '';
+    if (d && !RM() && pan.animate) pan.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: SPRING.ms, easing: SPRING.easing }); return; }
+  const rest = Math.max(0, (pan.getBoundingClientRect().height || innerHeight) - d), ms = Math.round(Math.max(160, Math.min(320, v > 0 ? rest / v : 300)));      // carry the flick's speed out
+  pan.style.transition = `transform ${ms}ms cubic-bezier(.32,.72,0,1),visibility 0s ${ms}ms`;
+  if (memo) { S.memo = null; render(); } else pxBack(); requestAnimationFrame(() => { pan.style.transform = ''; setTimeout(() => { pan.style.transition = ''; }, ms + 30); }); };
 document.addEventListener('pointerup', sdEnd); document.addEventListener('pointercancel', sdEnd);
 
 /* ---------- fold: a folding phone opening or closing changes the page width in one jump ---------- */
@@ -3358,16 +3397,43 @@ function sheetIn(dir) {             // only what is on screen slides in, a few p
   [...m.children].filter(el => { const r = el.getBoundingClientRect(); return r.height && r.bottom > 0 && r.top < H; }).slice(0, 5)
     .forEach((el, i) => el.animate([{ transform: `translateX(${18 * k}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: i * 45, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }));
 }
+/* v3.18: the wave. A disc whose edge wobbles as it grows, with a band of colour riding just outside it (after libraries.dev
+   Distortion Waves, MIT; their React build snapshots the page into WebGL, this keeps to transform and clip-path so it stays light). */
+function wavePoly(amp, ph, n = 40) { const pts = [];
+  for (let i = 0; i < n; i++) { const t = i / n * Math.PI * 2, r = 50 * (1 - amp * (.6 + .4 * Math.sin(5 * t + ph)) - amp * .35 * Math.sin(9 * t - ph * 1.7));
+    pts.push(`${(50 + r * Math.cos(t)).toFixed(2)}% ${(50 + r * Math.sin(t)).toFixed(2)}%`); }
+  return `polygon(${pts.join(',')})`; }
+const WV_CLIP = [wavePoly(.16, 0), wavePoly(.1, 2.2), wavePoly(.04, 4.1), wavePoly(0, 5.6)];
+function waveFx(host, x, y, R, cls, dur) {      // host is the clipping box; x, y in its coordinates
+  const g = document.createElement('div'); g.className = 'wv ' + cls; g.style.cssText = `left:${x - R}px;top:${y - R}px;width:${2 * R}px;height:${2 * R}px`;
+  g.innerHTML = '<i class="wv-rim"></i><i class="wv-disc"></i>'; host.appendChild(g);
+  const [rim, disc] = g.children, ease = 'cubic-bezier(.23,1,.32,1)', at = [0, .4, .75, 1], sc = [.02, .45, .8, 1];
+  rim.animate(at.map((o, i) => ({ offset: o, transform: `scale(${sc[i] * 1.07}) rotate(${i * 30}deg)`, clipPath: WV_CLIP[i], opacity: i === 3 ? 0 : 1 })), { duration: dur, easing: ease, fill: 'forwards' });
+  const a = disc.animate(at.map((o, i) => ({ offset: o, transform: `scale(${sc[i]})`, clipPath: WV_CLIP[i] })), { duration: dur, easing: ease, fill: 'forwards' });
+  return { g, a }; }
+function receiptWave(btn, pr, r, stake) {      // v3.18: logging a bet opens a wave from the button and leaves a receipt in place of the stake row
+  const row = btn.closest('.logrow'); if (!row || row.classList.contains('done')) return;
+  const rr = row.getBoundingClientRect(), br = btn.getBoundingClientRect(), mk = (MK[pr.lg] || {})[pr.mkt];
+  const what = pr.binary ? `${r.best.side} ${mk ? mk.n : pr.mkt}` : `${r.best.side} ${r.ln.line} ${mk ? mk.n.toLowerCase() : pr.mkt}`;
+  const rc = document.createElement('div'); rc.className = 'rcpt'; rc.setAttribute('role', 'status');
+  rc.innerHTML = `<b>Logged to your book</b><span>${esc(what)} · ${money(stake)} at ${odds(r.best.odds)} · to win ${money(stake * (E.dec(r.best.odds) - 1))}</span>`;
+  row.style.minHeight = rr.height + 'px'; row.classList.add('done');
+  [...row.children].forEach(c => c.animate([{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'scale(.98)', filter: 'blur(2px)' }], { duration: RM() ? 120 : 200, easing: 'ease-out', fill: 'forwards' }));
+  row.appendChild(rc);
+  if (RM()) { rc.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'backwards' }); return; }
+  const x = br.left - rr.left + br.width / 2, y = br.top - rr.top + br.height / 2, R = Math.hypot(Math.max(x, rr.width - x), Math.max(y, rr.height - y)) + 10;
+  const { g } = waveFx(row, x, y, R, 'wvrc', 560);      // class wvrc: .rc is taken g.style.zIndex = 1;
+  rc.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: 220, easing: 'cubic-bezier(.23,1,.32,1)', fill: 'backwards' });
+}
 function irisGo(fn) {               // league change: a disc in the new league's colour grows from the switch, the sheet changes under it, the disc fades
   const at = S.irisAt || { x: innerWidth / 2, y: 60 }, hd = document.querySelector('header.top'), top = Math.max(0, hd ? hd.getBoundingClientRect().bottom : 0);
   const R = Math.hypot(Math.max(at.x, innerWidth - at.x), Math.max(at.y, innerHeight - at.y)) + 8;
-  const w = document.createElement('div'), d = document.createElement('div'); w.className = 'iris-w'; w.style.top = top + 'px';      // the disc stays under the header, so the arcade scene stays in view
-  d.className = 'iris-fx ' + (at.lg || ''); d.style.cssText = `left:${at.x - R}px;top:${at.y - top - R}px;width:${2 * R}px;height:${2 * R}px`;
-  w.appendChild(d); document.body.appendChild(w); S.irisBusy = true; let swapped = false;
+  const w = document.createElement('div'); w.className = 'iris-w'; w.style.top = top + 'px';      // the disc stays under the header, so the arcade scene stays in view
+  document.body.appendChild(w); S.irisBusy = true; let swapped = false;
+  const { g: d, a } = waveFx(w, at.x, at.y - top, R, at.lg || '', 460);      // v3.18: the plain disc became the wave
   const swap = () => { if (swapped) return; swapped = true; fn(); window.scrollTo(0, 0); sheetIn('fwd');
     d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out', fill: 'forwards' }).onfinish = () => { w.remove(); S.irisBusy = false; }; setTimeout(() => { w.remove(); S.irisBusy = false; }, 900); };
-  const a = d.animate([{ transform: 'scale(.02)' }, { transform: 'scale(1)' }], { duration: 380, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
-  a.onfinish = swap; setTimeout(swap, 700);      // never leave the page waiting on the disc
+  a.onfinish = swap; setTimeout(swap, 760);      // never leave the page waiting on the disc
 }
 let memoT;
 function showMemo() {
@@ -3548,9 +3614,18 @@ function render() {
   if (S.tab === 'research') requestAnimationFrame(() => { const m = $('#main'); if (m) rsAfter(m, wasEnter); });
   if (S.tab === 'model') requestAnimationFrame(storyMount);
   if (S.tab === 'games') requestAnimationFrame(() => { document.querySelectorAll('#main .seg').forEach(sg => placeSeg(sg, false)); jbRun(); });
+  beamWatch();
+}
+let beamIO = null;
+function beamWatch() {      // the border beam only runs while the ticket is on screen
+  const els = document.querySelectorAll('.tk.beam'); if (!els.length || !('IntersectionObserver' in window)) return;
+  if (!beamIO) beamIO = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('bb-off', !e.isIntersecting)));
+  beamIO.disconnect(); els.forEach(el => { el.classList.add('bb-off'); beamIO.observe(el); });
 }
 function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'games' ? gamesHtml() : S.tab === 'research' ? researchHtml() : modelHtml(); }
 function setLeague(lg) { if (S.lg === lg || S.irisBusy) return;
+  const pk = document.querySelector('.lg-puck');      // v3.18: the puck stretches as it travels and settles like jelly (after libraries.dev Gooey, MIT; scale only, so it stays on the compositor)
+  if (pk && pk.animate && !RM()) pk.animate([{ scale: '1 1' }, { scale: '1.24 .86', offset: .32 }, { scale: '.95 1.05', offset: .64 }, { scale: '1.02 .98', offset: .84 }, { scale: '1 1' }], { duration: 560, easing: 'cubic-bezier(.33,0,.2,1)' });
   const r = $('#lg').getBoundingClientRect(); S.irisAt = { x: r.left + (lg === 'NFL' ? .75 : .25) * r.width, y: r.top + r.height / 2, lg };      // the change opens out from the side of the switch the ball lands on
   const vt = go(() => { S.lg = lg; S.memo = null; S.game = 'all'; S.mkt = lg === 'NBA' ? 'pts' : 'rec_yds'; S.q = ''; S.limit = 40; S.stressSide = null; S.relMkt = null; render(); const st = $('#stamp'); if (!RM()) { st.classList.remove('flip'); void st.offsetWidth; st.classList.add('flip'); } }, 'iris');
   // Safari can hold the screen still for a moment before a page change shows. Starting the scene only once the change is ready keeps the ball in view.
@@ -3597,7 +3672,7 @@ document.addEventListener('click', e => {
   else if (a === 'log' && pr) { const r = assess(pr); if (!r) return; const g = IDX[pr.lg].games[pr.e.side.game], stake = Math.max(0, parseFloat($('#mStake').value) || 0); if (!stake) return;
     S.store.book.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), lg: pr.lg, pid: pr.e.p.id, name: pr.e.p.name, mkt: pr.mkt, binary: pr.binary, side: r.best.side, line: r.ln.line,
       odds: r.best.odds, stake: Math.round(stake * 100) / 100, p: r.best.pn, rating: r.rating, cls: r.cls, gl: gameLabel(pr.lg, g), tag: pr.lg === 'NBA' ? g.day.slice(5) : '26W' + DATA.NFL.label.replace(/\D/g, ''), status: 'open', result: null });
-    persist(); t.textContent = 'Logged'; t.disabled = true; }
+    persist(); t.textContent = 'Logged'; t.disabled = true; receiptWave(t, pr, r, stake); }
 });
 document.addEventListener('change', e => {
   const t = e.target;
