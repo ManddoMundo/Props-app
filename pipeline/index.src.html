@@ -1123,6 +1123,7 @@ body.memo-open .verdict .seal.shine::after{animation:shine .9s cubic-bezier(.23,
 .jb{position:relative;flex:1 1 auto;max-width:340px;height:100%;min-height:100px;display:grid;grid-template-rows:auto 1fr 1fr auto;gap:3px;padding:6px 8px 5px;border-radius:9px;background:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1.4px) 0 0/4px 4px,#06090f;border:3px solid #2b3446;box-shadow:0 0 0 2px #0b0f16,0 10px 24px -8px rgba(0,0,0,.8),inset 0 0 18px rgba(0,0,0,.8)}
 .jb::before{content:"";position:absolute;left:30%;right:30%;bottom:-16px;height:14px;background:linear-gradient(90deg,#2b3446 0 8px,transparent 8px calc(100% - 8px),#2b3446 calc(100% - 8px))}
 .jb-hd{display:flex;justify-content:space-between;align-items:center;font:700 9.5px var(--mono);letter-spacing:.16em;color:#ff7a5c}
+.eve{font-weight:700;color:var(--ink)} .eve.neg{color:var(--bad)}
 .jb-clk{font:700 11px var(--dot);color:var(--led);letter-spacing:.06em} .jb-clk i{font-style:normal;animation:blinkdot 1s steps(1,end) infinite}
 .jb-t{display:grid;grid-template-columns:6px minmax(0,1fr) auto;align-items:center;gap:7px;min-width:0}
 .jb-t i{width:6px;height:80%;border-radius:2px;background:linear-gradient(var(--t1) 0 65%,var(--t2) 65%)}
@@ -1600,6 +1601,56 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 .gstrip button:hover{border-color:var(--ink)}
 .rc:hover{background:color-mix(in srgb,var(--t1) 10%,transparent)}
 }
+
+/* v3.22 the book picker: one pill, a list that drops from it (scale from the trigger, 200ms out, 140ms back) */
+.bkp{position:relative;flex:0 0 auto}
+.bkp-b{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 10px 4px 14px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);cursor:pointer;transition:transform .16s cubic-bezier(.23,1,.32,1),background-color .2s}
+.bkp-b:active{transform:scale(.97)}
+.bkp-b small{font:600 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.bkp-b b{display:inline-block;font:700 13px var(--mono);letter-spacing:.03em;white-space:nowrap}
+.bkp-b svg{width:16px;height:16px;fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.23,1,.32,1)}
+.bkp.open .bkp-b svg{transform:rotate(180deg)}
+.bkp-pop{position:absolute;z-index:40;top:calc(100% + 6px);left:0;width:min(300px,calc(100vw - 32px));max-height:min(62vh,460px);overflow:auto;overscroll-behavior:contain;background:var(--panel);border:2px solid var(--ink);border-radius:14px;box-shadow:0 18px 40px -18px rgba(0,0,0,.55);padding:6px;transform-origin:20% 0}
+.bkp-h{font:600 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);padding:9px 10px 4px}
+.bkp-o{display:grid;grid-template-columns:1fr 18px;align-items:center;gap:10px;width:100%;min-height:42px;border:0;border-radius:9px;background:none;padding:6px 10px;text-align:left;cursor:pointer;animation:bkrise .26s cubic-bezier(.23,1,.32,1) calc(var(--i) * 22ms) backwards;transition:background-color .15s}
+.bkp-o span{display:flex;flex-direction:column;min-width:0}
+.bkp-o b{font:600 14.5px var(--text)}
+.bkp-o small{font:11.5px var(--mono);color:var(--mute)}
+.bkp-o i{width:18px;height:18px;border-radius:50%;border:2px solid var(--rule);transition:border-color .2s,background-color .2s,box-shadow .2s}
+.bkp-o.on{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.bkp-o.on i{border-color:var(--ink);background:var(--ink);box-shadow:inset 0 0 0 3px var(--panel)}
+.bkp-o:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.bkp-n{margin:6px 10px 6px;font:italic 12.5px/1.4 var(--text);color:var(--mute)}
+@keyframes bkrise{from{opacity:0;transform:translateY(5px)}}
+@media (hover:hover) and (pointer:fine){.bkp-o:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}.bkp-b:hover{background:var(--panel)}}
+@media(max-width:560px){.bkp{flex:1 1 100%}.bkp-b{width:100%;justify-content:space-between}.bkp-b b{margin-right:auto}.bkp-pop{width:100%}}
+/* the memo's book drawer: folded by default, an accordion on grid rows, the rows deal in when it opens */
+.bkd{border:1px solid var(--rule);border-radius:10px;background:var(--panel);padding:0}
+.bkd-t{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:52px;border:0;background:none;padding:9px 12px;text-align:left;cursor:pointer}
+.bkd-t span{display:flex;flex-direction:column;min-width:0}
+.bkd-t b{font:700 14px var(--text)}
+.bkd-t small{font:12px var(--mono);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bkd-t i{position:relative;flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--ink);transition:transform .3s cubic-bezier(.23,1,.32,1)}
+.bkd-t i::before{content:"";position:absolute;left:8px;top:7px;width:8px;height:8px;border-right:2.4px solid var(--panel);border-bottom:2.4px solid var(--panel);transform:rotate(45deg)}
+.bkd.open .bkd-t i{transform:rotate(180deg)}
+.bkd-w{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.23,1,.32,1)}
+.bkd-w>div{overflow:hidden;min-height:0;padding:0 12px}
+.bkd.open .bkd-w{grid-template-rows:1fr}
+.bkd-tb{width:100%;border-collapse:collapse;font:13px var(--mono);margin:2px 0 6px}
+.bkd-tb th,.bkd-tb td{padding:7px 6px;border:0;border-top:1px solid var(--rule);background:none;text-align:right;vertical-align:middle;text-transform:none;letter-spacing:0}
+.bkd-tb thead th{border-top:0;font:600 9.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.bkd-tb th[scope=row],.bkd-tb thead th:first-child{text-align:left;font:600 13.5px var(--text);color:var(--ink);white-space:nowrap}
+.bkd-tb th[scope=row] em{display:block;font:600 9.5px var(--mono);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--good)}
+.bkd-tb td b{display:block;font-weight:700}
+.bkd-tb td small{display:block;font-size:10.5px}
+.bkd-tb td.top b{color:var(--good)}
+.bkd-tb tr.on th[scope=row]{box-shadow:inset 3px 0 0 var(--ink);padding-left:10px}
+.bkd-tb tr.on{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.bkd-tb tr.ex{opacity:.62}
+.bkd.open .bkd-tb tbody tr{animation:bkrise .28s cubic-bezier(.23,1,.32,1) calc(60ms + var(--i) * 26ms) backwards}
+.bkd .note{margin:0 0 10px}
+@media (prefers-reduced-motion:reduce){.bkd-w{transition:none}.bkd.open .bkd-tb tbody tr,.bkp-o{animation:none}}
+/*__SIM_CSS__*/
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
   <pattern id="hOver" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="var(--accent-soft)"/><rect width="2.6" height="5" fill="var(--accent)"/></pattern>
@@ -1617,6 +1668,7 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
     <button role="tab" data-tab="desk" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14.5 8.5v7" stroke-dasharray="1.5 2.5"/></svg>The desk</button>
     <button role="tab" data-tab="board" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 9h10M7 13h6M8 21l1.2-4M16 21l-1.2-4"/></svg>Board</button>
     <button role="tab" data-tab="games" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M12 5v13M6 9.5h2.5M6 13h2.5M15.5 9.5H18M15.5 13H18"/></svg>Games</button>
+    <button role="tab" data-tab="sim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 3.5v3.7h3.7"/><path d="M10.2 9v6l5-3z" fill="currentColor" stroke="none"/></svg>Sim</button>
     <button role="tab" data-tab="research" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>Research</button>
     <button role="tab" data-tab="stress" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13h4l2-6 4 12 2-6h7"/></svg>Stress test</button>
     <button role="tab" data-tab="book" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5c-2-1.5-5-1.8-8-1.3v12.6c3-.5 6-.2 8 1.2 2-1.400 5-1.700 8-1.2V5.2c-3-.5-6-.2-8 1.3zM12 6.5V19"/></svg>Your book</button>
@@ -1650,7 +1702,7 @@ const MK = {
 };
 const MAX_EDGE = 0.12;   // keep in step with CFG max_edge in daily.py
 const TIERS = [[.08,'AAA','g','Approve'],[.06,'AA','g','Approve'],[.04,'A','g','Approve'],[.025,'BBB','g','Approve'],[.01,'BB','w','Watch'],[0,'B','w','Watch'],[-9,'C','b','Decline']];
-const TABS = ['desk','board','games','research','stress','book','model'];
+const TABS = ['desk','board','games','sim','research','stress','book','model'];
 
 /* ---------- state ---------- */
 const S = { lg:'NBA', tab:'board', memo:null, game:'all', mkt:'pts', q:'', sort:'rated', limit:40, stressSide:null, relMkt:null,
@@ -1710,7 +1762,11 @@ function dist(pr) {
    dropping its market-anchored number, so the memo priced the raw model while still calling it blended (Barnes, Nov 17:
    raw 19.7 gave Under 58.3% and AAA; the anchored 21.6 gives a C). Your line and prices now sit on top of the feed entry;
    the anchored number and the market checks are kept. */
-const getLine = key => { const u = S.store.lines[key], f = S.feed[key]; if (!u) return f || null; if (!f || f.m == null) return u;
+const getLine = key => { const u = S.store.lines[key]; let f = S.feed[key]; const bk = S.store.settings.bk;
+  // v3.22: with one book picked, the board prices at that book's own line and odds (the desk's blended number is kept).
+  // A book that does not quote the prop shows no line for it.
+  if (f && bk && bk !== 'best') { const z = bookQuote(key, bk); f = z ? Object.assign({}, f, { line: z[1] != null ? z[1] : f.line, o: z[2], u: z[3], book: bk }) : null; }
+  if (!u) return f || null; if (!f || f.m == null) return u;
   return Object.assign({}, f, u, { m: f.m, mm: f.mm, nb: f.nb, hold: f.hold, mine: true }); };
 function logVals(pr) {
   const l = pr.e.p.logs;
@@ -1890,7 +1946,7 @@ function l10Svg(b) {
 
 /* ---------- board ---------- */
 /* ---------- rooms: each tab has its own sign over the door, and its own way of arriving ---------- */
-const KICK = { desk: 'Studio 1 · the card and the record', board: 'Room 2 · draft night, every prop ranked', games: 'The scoreboard · who wins, who covers', research: 'Room 3 · matchup sheets', stress: 'Room 4 · what if he sits', book: 'Room 5 · your own bets', model: 'Room 6 · does the model earn its say' };
+const KICK = { sim: 'The booth · every game run ten thousand times', desk: 'Studio 1 · the card and the record', board: 'Room 2 · draft night, every prop ranked', games: 'The scoreboard · who wins, who covers', research: 'Room 3 · matchup sheets', stress: 'Room 4 · what if he sits', book: 'Room 5 · your own bets', model: 'Room 6 · does the model earn its say' };
 const ART = { desk: '', board: '', games: '',
   research: `<svg viewBox="0 0 300 110" preserveAspectRatio="xMaxYMid meet"><path class="pp" style="--j:0" d="M93 9l10 10M103 9l-10 10"/><path class="pp" style="--j:1" d="M173 9l10 10M183 9l-10 10"/>${[68, 108, 148, 188].map((x, i) => `<path class="pp" style="--j:${i + 2}" d="M${x} 42l10 10M${x + 10} 42l-10 10"/>`).join('')}${[22, 62, 96, 164, 198, 262].map((x, i) => `<circle class="pp" style="--j:${i + 6}" cx="${x}" cy="80" r="6"/>`).join('')}<path class="pp" style="--j:12" d="M124 74h12v12h-12z"/><circle class="pp" style="--j:13" cx="130" cy="101" r="6"/><path class="dr" pathLength="1" style="--j:0" d="M22 72V34L58 13"/><path class="dr" pathLength="1" style="--j:0" d="M49 13l9 0-4 8"/><path class="dr" pathLength="1" style="--j:1" d="M262 72V46h28"/><path class="dr" pathLength="1" style="--j:1" d="M284 40l7 6-7 6"/><path class="dr" pathLength="1" style="--j:2" d="M138 101c30 0 52-10 62-31"/><path class="dr" pathLength="1" style="--j:2" d="M191 74l9-4 2 9"/></svg>`,
   stress: `<svg viewBox="0 0 150 92"><path d="M23 80A52 52 0 0 1 49 35" fill="none" stroke="var(--led-good)" stroke-width="8"/><path d="M49 35A52 52 0 0 1 101 35" fill="none" stroke="var(--hazard)" stroke-width="8"/><path d="M101 35A52 52 0 0 1 127 80" fill="none" stroke="var(--led-bad)" stroke-width="8"/><path d="M11 80A64 64 0 0 1 139 80" fill="none" stroke="var(--chalk)" stroke-width="2"/><g class="needle"><path d="M75 80V31" stroke="var(--chalk)" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="75" cy="80" r="6" fill="var(--chalk)"/></svg>`,
@@ -1931,6 +1987,57 @@ const NBA_PLAY = `<svg viewBox="0 0 300 140" preserveAspectRatio="xMaxYMid meet"
   <path class="o ps" d="M118 112C130 88 142 60 152 34"/></svg>`;
 let BOARD_TOP = [], BOARD_RATED = false, nfT = null;
 const ARTX = {
+  sim: lg => {      // v3.20.2 the booth: someone at the controls, running the games over and over. NBA a desk rig, NFL a couch and a TV
+    const cnt = `<text class="sm-cnt" id="smCount" x="0" y="0">10,000</text>`;
+    if (lg === 'NBA') return `<svg class="sm-den nba" viewBox="0 0 360 140" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
+      <ellipse cx="190" cy="134" rx="170" ry="5" fill="rgba(0,0,0,.35)"/>
+      <path class="glow" d="M186 20L330 20L360 140L150 140Z" fill="url(#smGlowB)"/>
+      <defs><radialGradient id="smGlowB" cx=".5" cy=".2" r=".9"><stop offset="0" stop-color="#ffb35a" stop-opacity=".32"/><stop offset="1" stop-color="#ffb35a" stop-opacity="0"/></radialGradient>
+        <linearGradient id="smWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2ac70"/><stop offset="1" stop-color="#c88a4c"/></linearGradient></defs>
+      <rect x="140" y="98" width="214" height="7" rx="2" fill="#7a4a24"/><rect x="146" y="105" width="5" height="31" fill="#5c3518"/><rect x="343" y="105" width="5" height="31" fill="#5c3518"/>
+      <g class="tower"><rect x="300" y="108" width="30" height="28" rx="3" fill="#15191a" stroke="#2c3431"/><circle class="led l1" cx="308" cy="116" r="1.8" fill="#86e39a"/><circle class="led l2" cx="314" cy="116" r="1.8" fill="#ffb833"/><rect x="306" y="124" width="18" height="2" rx="1" fill="#c6ec6a" opacity=".7"/></g>
+      <rect x="252" y="88" width="12" height="10" fill="#1d2321"/><rect x="236" y="96" width="44" height="3" rx="1.5" fill="#1d2321"/>
+      <rect x="182" y="14" width="156" height="78" rx="7" fill="#0c100e" stroke="#2c3431" stroke-width="2"/>
+      <g transform="translate(189 20)"><rect width="142" height="54" rx="2" fill="url(#smWood)"/>
+        <g stroke="rgba(255,255,255,.85)" stroke-width=".9" fill="none"><rect x="3" y="3" width="136" height="48"/><path d="M71 3V51"/><circle cx="71" cy="27" r="7"/><rect x="3" y="18" width="18" height="18"/><rect x="121" y="18" width="18" height="18"/></g>
+        <rect x="3" y="18" width="18" height="18" fill="#1d4fbf" opacity=".55"/><rect x="121" y="18" width="18" height="18" fill="#c0302a" opacity=".55"/>
+        <g class="dots"><circle class="d d1" cx="44" cy="16" r="2.6" fill="#1d4fbf" stroke="#fff" stroke-width=".7"/><circle class="d d2" cx="58" cy="35" r="2.6" fill="#c0302a" stroke="#fff" stroke-width=".7"/><circle class="d d3" cx="96" cy="22" r="2.6" fill="#1d4fbf" stroke="#fff" stroke-width=".7"/><circle class="d d4" cx="104" cy="38" r="2.6" fill="#c0302a" stroke="#fff" stroke-width=".7"/><circle class="b" cx="60" cy="26" r="1.9" fill="#ef7d22"/></g></g>
+      <rect x="189" y="76" width="142" height="12" rx="2" fill="#050806"/><text class="sm-run" x="194" y="85">RUN</text><g transform="translate(326 85.5)">${cnt}</g>
+      <rect x="186" y="93" width="70" height="5" rx="2" fill="#20262a"/><rect class="rgb" x="188" y="96.5" width="66" height="1.2" rx=".6" fill="#c6ec6a"/>
+      <rect x="276" y="91" width="13" height="7" rx="3" fill="#20262a"/>
+      <g class="can"><rect x="318" y="84" width="9" height="14" rx="2" fill="#c6ec6a"/><rect x="318" y="88" width="9" height="3" fill="#15191a"/></g>
+      <g class="chair"><path d="M58 52Q56 40 68 40L84 40Q94 40 92 52L88 104L62 104Z" fill="#2a2f3a"/><rect x="56" y="102" width="40" height="7" rx="3" fill="#20242c"/><rect x="73" y="109" width="5" height="18" fill="#15191a"/><path d="M58 130h36" stroke="#15191a" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="132" r="3" fill="#15191a"/><circle cx="92" cy="132" r="3" fill="#15191a"/></g>
+      <g class="fig"><path d="M80 104L84 70Q86 58 100 58L112 58Q124 60 124 74L120 104Z" fill="#e8743b"/><path d="M96 60Q106 70 118 60" fill="none" stroke="#b9531f" stroke-width="2"/><text x="101" y="92" class="hood">10K</text>
+        <path d="M84 104L120 104L130 110L132 128L120 128L118 114L90 114Z" fill="#26324a"/><path d="M118 126h16" stroke="#f3f1ea" stroke-width="5" stroke-linecap="round"/>
+        <g class="arm"><path d="M114 68Q140 76 168 88" fill="none" stroke="#e8743b" stroke-width="9" stroke-linecap="round"/><circle class="hand h1" cx="186" cy="91" r="4" fill="#8a5a3c"/><path d="M168 88L182 91" stroke="#8a5a3c" stroke-width="6" stroke-linecap="round"/></g>
+        <g class="hd"><circle cx="106" cy="42" r="15" fill="#8a5a3c"/><path d="M91 40Q92 25 106 25Q120 25 121 38Q113 32 106 32Q98 32 91 40Z" fill="#1c1410"/><circle cx="113" cy="44" r="1.7" fill="#1a1410"/><path d="M114 50q3 1 5 -1" stroke="#3d1d12" stroke-width="1.4" fill="none"/>
+          <path d="M92 40Q91 23 106 22Q121 22 121 38" fill="none" stroke="#11161f" stroke-width="3.2"/><rect x="89" y="37" width="7" height="11" rx="3" fill="#11161f"/><path d="M93 48Q97 56 110 54" fill="none" stroke="#11161f" stroke-width="1.8"/><circle cx="111" cy="54" r="2" fill="#c6ec6a"/></g></g>
+      <g class="ballf"><circle cx="30" cy="124" r="11" fill="#ef7d22"/><path d="M19 124h22M30 113v22M22 116q8 8 0 16M38 116q-8 8 0 16" stroke="#3c1905" stroke-width="1.3" fill="none"/></g></svg>`;
+    return `<svg class="sm-den nfl" viewBox="0 0 360 140" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
+      <ellipse cx="190" cy="134" rx="170" ry="5" fill="rgba(0,0,0,.35)"/>
+      <defs><radialGradient id="smGlowF" cx=".6" cy=".25" r=".9"><stop offset="0" stop-color="#7ee39a" stop-opacity=".28"/><stop offset="1" stop-color="#7ee39a" stop-opacity="0"/></radialGradient></defs>
+      <path class="glow" d="M180 10L346 10L360 140L120 140Z" fill="url(#smGlowF)"/>
+      <rect x="196" y="104" width="140" height="10" rx="3" fill="#5c3518"/><rect x="204" y="114" width="6" height="22" fill="#3d230f"/><rect x="322" y="114" width="6" height="22" fill="#3d230f"/>
+      <rect x="258" y="96" width="16" height="8" fill="#1d2321"/>
+      <rect x="180" y="10" width="172" height="88" rx="6" fill="#0c100e" stroke="#2c3431" stroke-width="2"/>
+      <g transform="translate(187 16)"><rect width="158" height="62" rx="2" fill="#2a8a4a"/>
+        <g fill="rgba(0,0,0,.08)">${[1, 3, 5, 7].map(i => `<rect x="${12 + i * 13.4}" width="13.4" height="62"/>`).join('')}</g>
+        <rect width="12" height="62" fill="#1d4fbf"/><rect x="146" width="12" height="62" fill="#c0302a"/>
+        <g stroke="rgba(255,255,255,.75)" stroke-width=".8">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `<path d="M${12 + i * 13.4} 0V62"/>`).join('')}</g>
+        <path class="los" d="M79 0V62" stroke="#5a96ff" stroke-width="1.6"/><path class="ftd" d="M92.4 0V62" stroke="#f2d24b" stroke-width="1.6"/>
+        <g class="dots">${[[74, 22], [74, 28], [74, 34], [74, 40], [68, 31], [64, 31]].map(([x, y], i) => `<circle class="o" cx="${x}" cy="${y}" r="2.2" fill="#1d4fbf" stroke="#fff" stroke-width=".6" style="--i:${i}"/>`).join('')}${[[84, 24], [84, 30], [84, 36], [90, 18], [90, 44]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.2" fill="#c0302a" stroke="#fff" stroke-width=".6"/>`).join('')}
+          <ellipse class="fb" cx="64" cy="31" rx="2.6" ry="1.6" fill="#7a3f1c"/></g></g>
+      <rect x="187" y="80" width="158" height="12" rx="2" fill="#050806"/><text class="sm-run" x="192" y="89">RUN</text><g transform="translate(340 89.5)">${cnt}</g>
+      <g class="couch"><path d="M14 92Q14 80 26 80L132 80Q144 80 144 92L144 128L14 128Z" fill="#7c2a2a"/><rect x="8" y="96" width="22" height="34" rx="8" fill="#6a2222"/><rect x="128" y="96" width="22" height="34" rx="8" fill="#6a2222"/><rect x="30" y="104" width="98" height="14" rx="5" fill="#8d3333"/>
+        <ellipse cx="140" cy="94" rx="8" ry="5" fill="#7a3f1c" transform="rotate(-20 140 94)"/><path d="M135 94h10" stroke="#fff" stroke-width="1"/></g>
+      <g class="fig"><path d="M58 108L62 74Q64 62 78 62L92 62Q104 64 104 78L100 108Z" fill="#f3f1ea"/><path d="M62 74Q70 64 80 64M104 78Q100 66 92 63" stroke="#1d2a44" stroke-width="5" fill="none"/><text x="74" y="96" class="jn">10K</text>
+        <path d="M64 108L104 108L132 112L134 126L122 126L120 118L70 118Z" fill="#26324a"/>
+        <g class="arm"><path d="M96 74Q112 82 122 90" fill="none" stroke="#f3f1ea" stroke-width="9" stroke-linecap="round"/><path d="M72 76Q92 92 116 92" fill="none" stroke="#e7e2d4" stroke-width="8" stroke-linecap="round"/>
+          <g class="pad"><rect x="114" y="86" width="22" height="11" rx="5" fill="#1d2321"/><circle class="t1" cx="120" cy="90.5" r="1.8" fill="#c6ec6a"/><circle class="t2" cx="130" cy="90.5" r="1.8" fill="#ff8072"/></g></g>
+        <g class="hd"><circle cx="86" cy="44" r="15" fill="#b77b52"/><path d="M70 42Q70 28 86 27Q101 27 102 38L102 40L70 42Z" fill="#c0302a"/><path d="M70 41Q62 40 60 43Q66 45 72 44Z" fill="#c0302a"/>
+          <circle cx="93" cy="46" r="1.7" fill="#1a1410"/><path d="M94 52q3 1 5 -1" stroke="#5a2a1d" stroke-width="1.4" fill="none"/></g></g>
+      <g class="bowl"><path d="M160 122Q160 132 172 132Q184 132 184 122Z" fill="#c6ec6a"/><circle cx="166" cy="120" r="3" fill="#f2c230"/><circle cx="172" cy="119" r="3" fill="#e8a020"/><circle cx="178" cy="120" r="3" fill="#f2c230"/></g></svg>`;
+  },
   games: lg => {
     const G = (DATA.games || {})[lg] || {}, gs = G.games || [];
     const f = gs.find(g => g.tier === 'Strong') || gs.slice().sort((a, b) => Math.abs(b.gap || 0) - Math.abs(a.gap || 0))[0] || gs[0];
@@ -1950,7 +2057,7 @@ const ARTX = {
       f.ats && f.tier ? `${f.tier === 'Strong' ? 'EDGE' : f.tier.toUpperCase()} ${f.ats} ${lineTxt(f.ats === f.home ? -f.spread : f.spread)}` : '', f.total != null ? `O/U ${f.total}` : '',
       `${f.winner} ${Math.round(f.p_win * 100)}% TO WIN`].filter(Boolean).join('  ·  ');
     const row = (t, v, k, j) => `<div class="jb-t${(k === 0) === fa ? ' fav' : ''}" style="${(TC[lg] || {})[t] ? tcol(lg, t) : ''};--j:${j}">${badge(lg, t, 'sb')}<b>${esc(t)}${(f.rk || [])[k] ? `<small>#${f.rk[k]}</small>` : ''}</b><span class="jb-n" data-to="${Math.round(v)}">${n(v)}</span></div>`;
-    return `<i class="gm-beam b1"></i><i class="gm-beam b2"></i><div class="gm-scene"><div class="jb"><div class="jb-hd"><span>${nfl ? 'Week ' + G.week : new Date(f.day + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }).toUpperCase()} · Projected</span><span class="jb-clk">FINAL</span></div>
+    return `<i class="gm-beam b1"></i><i class="gm-beam b2"></i><div class="gm-scene"><div class="jb"><div class="jb-hd"><span>${nfl ? 'Week ' + G.week : new Date(f.day + 'T12:00:00').toLocaleDateString([], { weekday: 'short' }).toUpperCase()} </span><span class="jb-clk">PROJ. FINAL</span></div>
       ${row(f.away, sc[0], 0, 0)}${row(f.home, sc[1], 1, 1)}<div class="jb-tk"><span>${esc(tk)}  ·  ${esc(tk)}</span></div></div>${ref}</div>`;
   },
   desk: () => `<div class="vwall">${Array.from({ length: 14 }, (_, j) => `<i style="--j:${j}"></i>`).join('')}</div><span class="onair">On air</span><div class="anc"><svg viewBox="0 0 380 178" aria-hidden="true">
@@ -2038,7 +2145,7 @@ function rowHtml(pr, i) {
     <span class="cells">
       <span class="cell" title="${dk ? `Desk number. Model alone ${f1(pr.mu)}, other books ${f1(fl.mm)}` : 'Model'}"><small>${dk ? 'Proj' : 'Model'}</small><span>${pr.binary ? pct(d[1]) : f1(proj)}</span></span>
       <span class="cell"><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><span>${fair}</span></span>
-      <span class="cell"><small>Book line</small><span class="${ln ? '' : 'mut'}">${ln ? (pr.binary ? (ln.o != null ? odds(ln.o) : ln.u != null ? 'No ' + odds(ln.u) : 'enter') : ln.line) : 'enter'}</span></span>
+      <span class="cell"><small>${ln && ln.book && !ln.mine ? bkn(ln.book) + ' line' : 'Book line'}</small><span class="${ln ? '' : 'mut'}">${ln ? (pr.binary ? (ln.o != null ? odds(ln.o) : ln.u != null ? 'No ' + odds(ln.u) : 'enter') : ln.line) : 'enter'}</span></span>
       <span class="cell"><small>${pr.binary ? 'Yes' : 'Over'} %</small><span>${pct(sp.over)}</span></span>
       <span class="cell"><small>EV / $100</small><span class="${a ? (a.best.ev >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? sgn(a.best.ev * 100) : '·'}</span></span>
       <span class="cell"><small>Rating</small><span>${a ? `<span class="rate ${a.cls}">${a.rating}</span>` : '<span class="rate n">NR</span>'}</span></span>
@@ -2068,6 +2175,7 @@ function boardHtml() {
     <div class="seg mk" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-fm="${k}" aria-pressed="${S.mkt === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
     <div class="wr-row">
       <div class="seg so" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span>${[['rated', 'Best grade'], ['proj', 'Biggest number'], ['name', 'A to Z']].map(([k, n]) => `<button data-fs="${k}" aria-pressed="${S.sort === k}">${n}</button>`).join('')}</div>
+      ${bkPickHtml(lg)}
       <select id="fGame" aria-label="Game"><option value="all">Every game</option>${gopts}</select>
       <label class="wr-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg><input id="fQ" type="search" placeholder="Scout a name or a club" value="${esc(S.q)}" aria-label="Search player or team" autocomplete="off"></label>
     </div>
@@ -2128,6 +2236,7 @@ function memoHtml(pr) {
           <div class="fld"><label for="mUnder">${pr.binary ? 'No odds (optional)' : 'Under odds'}</label><input id="mUnder" inputmode="text" placeholder="-110" value="${ln.u == null ? '' : odds(ln.u)}"></div></div></div>
       <div class="sec"><h3><span>${pr.binary ? 'Chance to score' : 'Outcome distribution · drag the line'}</span></h3><svg class="dist" id="mDist" viewBox="0 0 560 170" role="img" aria-label="Distribution of outcomes">${distSvg(pr, ln.line)}</svg></div>
       <div id="mVerdict">${verdictHtml(pr)}</div>
+      <div id="mBooks">${booksDrawerHtml(pr)}</div>
       <div class="sec"><h3><span>Last ${v.length} games</span><span id="mHits">${pr.binary ? 'scored in' : 'over in'} ${hits} of ${v.length}</span></h3><div id="mLog">${logSvg(pr, ln.line)}</div></div>
       <div class="sec"><h3><span>How the number is built</span></h3><div class="build">${buildUp(pr)}</div></div>
       <div class="sec"><h3><span>Lineup</span></h3><button class="btn ghost" data-act="stress">Stress test ${esc(p.team)}: sit a teammate and reprice</button></div>
@@ -2303,16 +2412,16 @@ function bookHtml() {
 
 /* ---------- the desk: the model's own bets, each with its case file ---------- */
 const tkKey = b => b.id + '|' + b.side;
-const unitOf = b => DESK.unit || 25;      // v3.14.1: every ticket in dollars at today's unit. Tickets logged before v3.7 keep their units; they were tracked at $0.50 a unit then
+const unitOf = b => b.unit || DESK.legacy_unit || .5;      // v3.19: each ticket in dollars at the unit it was made at: $25 since Nov 17, $0.50 before (v3.14.1 showed every ticket at today's unit, 50x the old ones)
 const stakeTxt = b => `${b.units % 1 ? (b.units === .25 ? '¼' : b.units === .5 ? '½' : b.units === .75 ? '¾' : b.units) : b.units}u · ${money(b.units * unitOf(b))}`;
 const betLabel = b => `${b.side}${b.mkt === 'any_td' ? ' anytime TD' : ' ' + b.line + ' ' + MK[b.lg][b.mkt].n.toLowerCase()}`;
 const shortLabel = b => `${b.side === 'Over' ? 'O' : b.side === 'Under' ? 'U' : b.side} ${b.mkt === 'any_td' ? 'TD' : b.line + ' ' + MK[b.lg][b.mkt].s}`;
 function closeHtml(b) {
   const c = b.close; if (!c) return '';
   const px = b.alt ? null : b.side === 'Over' ? c.o : c.u, up = c.move != null && c.move >= 0;
-  return `<div class="clv"><span class="lbl">Closing line check · ${esc(c.t)}</span>
-    <span>${b.alt ? 'An alternate line: Hard Rock\'s close is tracked on the main line only.' : `Hard Rock closed the ${esc(b.side)} ${c.line != null ? c.line : b.line} at <b class="num">${px != null ? odds(px) : 'off the board'}</b>.`} The desk holds <b class="num">${odds(b.odds)}</b>. At the close ${c.nb} books made this a <b class="num">${pct(c.fair)}</b> shot${c.move != null ? `, ${up ? 'up' : 'down'} ${Math.abs(c.move * 100).toFixed(1)} points since the bet` : ''}.</span>
-    <span>Closing line value <b class="num ${c.clv >= 0 ? 'pos' : 'neg'}">${sgn(c.clv * 100)}%</b>. ${c.clv >= 0 ? 'The desk beat the close.' : 'The close beat the desk. One bet proves nothing either way. The average over many bets is the number that matters.'}</span></div>`;
+  return `<div class="clv"><span class="lbl">Later line check · ${esc(c.t)}</span>
+    <span>${b.alt ? 'An alternate line: the later price is tracked on the main line only.' : `At that pull ${esc(bkn(b.book || 'hardrockbet', 1))} had the ${esc(b.side)} ${c.line != null ? c.line : b.line} at <b class="num">${px != null ? odds(px) : 'off the board'}</b>.`} The desk holds <b class="num">${odds(b.odds)}</b>. Then ${c.nb} books made this a <b class="num">${pct(c.fair)}</b> shot${c.move != null ? `, ${up ? 'up' : 'down'} ${Math.abs(c.move * 100).toFixed(1)} points since the bet` : ''}.</span>
+    <span>Line value <b class="num ${c.clv >= 0 ? 'pos' : 'neg'}">${sgn(c.clv * 100)}%</b>. ${c.clv >= 0 ? 'The desk beat the later line.' : 'The later line beat the desk. One bet proves nothing either way. The average over many bets is the number that matters.'} This is the last pull before tip (the 6 PM evening pass), not the final closing number.</span></div>`;
 }
 function caseHtml(b) {
   const w = b.why; if (!w) return '<div class="file"><p class="prose" style="margin:0">This bet was logged before the desk kept case files.</p></div>';
@@ -2332,10 +2441,10 @@ function ticketHtml(b, i) {
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}${b.best && b.status === 'open' ? ' beam' : ''}" style="--i:${i}">
     <button class="tk-main" data-tk="${esc(k)}" aria-expanded="${op}">
-      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
+      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(t12(g.time)) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
         ${w ? `<span class="tk-head">${esc(w.head)}</span>` : ''}
-        <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('CLV', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
+        <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('Line val.', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
       <span class="tk-stub"><span class="odds">${odds(b.odds)}</span><span class="stake">${stakeTxt(b)}</span><span class="seal sm g">${esc(b.rating)}</span><span class="bar" aria-hidden="true"></span><span class="serial">No. ${serial}</span></span>
       <span class="tk-more"><span>${op ? 'Close the case file' : 'Open the case file: why the desk made this bet'}</span><i aria-hidden="true">&#9662;</i></span>
     </button>
@@ -2359,8 +2468,8 @@ function deskHtml() {
   const F = {
     rec: [['Record', `${tW.length}-${tL.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Confident plays', `${tConf.w}-${tConf.l}`, tConf.w + tConf.l ? `units ${sgn(tConf.u, 2)} · best bets ${tBest.w}-${tBest.l}` : `none graded yet · best bets ${tBest.w}-${tBest.l}`, '']],
     hit: [['Hit rate', tn ? pct(tW.length / tn) : 'n/a', `needs ${pct(tBe)} to break even`, tn && tW.length / tn >= tBe ? 'gd' : ''], ['Break even', pct(tBe), 'at the average price paid', '']],
-    units: [['Units', sgn(tUnits, 2), tn ? `ROI ${sgn(tStaked ? tUsd / tStaked * 100 : 0)}% on ${tn} bets` : 'no graded bets yet', tUnits >= 0 ? 'gd' : 'bd'], ['On paper', money(tUsd), `${money(tStaked)} staked · $25 units since 11-17`, tUsd >= 0 ? 'gd' : 'bd']],
-    clv: [['Closing line', tClv == null ? 'n/a' : sgn(tClv * 100) + '%', tClv == null ? 'tracking starts with the next card' : `${tBeat} of ${tCl.length} beat the close`, tClv == null ? '' : tClv >= 0 ? 'gd' : 'bd'],
+    units: [['Units', sgn(tUnits, 2), tn ? `ROI ${sgn(tStaked ? tUsd / tStaked * 100 : 0)}% on ${tn} bets` : 'no graded bets yet', tUnits >= 0 ? 'gd' : 'bd'], ['On paper', money(tUsd), `${money(tStaked)} staked · $0.50 units before 11-17, $25 since`, tUsd >= 0 ? 'gd' : 'bd']],
+    clv: [['Line value', tClv == null ? 'n/a' : sgn(tClv * 100) + '%', tClv == null ? 'tracking starts with the next card' : `${tBeat} of ${tCl.length} beat the later line · ${tCl.length} of ${tn} graded tickets tracked`, tClv == null ? '' : tClv >= 0 ? 'gd' : 'bd'],
           ['Market move', tMv.length ? sgn(sum(tMv.map(b => b.close.move)) / tMv.length * 100) : 'n/a', 'points toward the bet, on average', '']],
   };
   const tc = k => { const f = F[k][S.tote[k] ? 1 : 0]; return `<button class="tc" data-flip="${k}" aria-label="${esc(f[0])}: ${esc(f[1])}. ${esc(f[2])}. Press to flip."><small>${esc(f[0])}</small><b class="${f[3]}" data-v="${esc(f[1])}">${esc(f[1])}</b><em>${esc(f[2])}</em></button>`; };
@@ -2368,6 +2477,11 @@ function deskHtml() {
     : `<span><b class="${st(b) === 'won' ? 'w' : st(b) === 'lost' ? 'l' : ''}">${st(b) === 'won' ? 'PAID' : st(b) === 'lost' ? 'LOST' : esc(st(b)).toUpperCase()}</b> ${esc(b.name)} ${esc(shortLabel(b))}${b.result != null ? ' (' + b.result + ')' : ''}</span>`;
   const tape = TB.filter(b => st(b) === 'open').concat(TB.filter(b => st(b) !== 'open').reverse().slice(0, 14)).map(tapeItem).join('');      // both leagues, like the scoreboard
   const LD = DESK.days.filter(d => d.lg === S.lg), lastDate = LD.length ? LD[LD.length - 1].date : null, dd = LD.filter(d => d.date === lastDate);
+  // v3.19: say whether today's 6 PM evening pass ran, so a missed run shows instead of hiding (either league's day record counts)
+  const etNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })), etH = etNow.getHours() + etNow.getMinutes() / 60;
+  const etDay = `${etNow.getFullYear()}-${String(etNow.getMonth() + 1).padStart(2, '0')}-${String(etNow.getDate()).padStart(2, '0')}`;
+  const eveRec = DESK.days.find(d => d.date === etDay && d.pm), eveMiss = !eveRec && lastDate === etDay && etH >= 19.75;
+  const eveTxt = eveRec ? `Evening pass ran ${eveRec.pm.t}` : lastDate !== etDay ? '' : etH < 17.75 ? 'Evening pass runs about 6 PM' : etH < 19.75 ? 'Evening pass due by 7:45 PM' : 'Evening pass did not run today';
   const cenAll = dd.flatMap(d => Object.values(d.cen || {})), cenTxt = cenAll.length ? (() => { const a = Math.min(...cenAll), b = Math.max(...cenAll), f = x => Math.round(Math.abs(x - 1) * 100); return a >= 1 ? ` Before centring, the model ran ${f(a)} to ${f(b)} percent under the books.` : ''; })() : '';
   const passed = dd.flatMap(d => (d.passed || []).map(x => [x, d.lg]));
   // v3.17: what moved between the midday and evening pulls, props priced both times, biggest line moves first
@@ -2386,14 +2500,14 @@ function deskHtml() {
     return has ? `<div class="srow${op ? ' open' : ''}"><button class="row" data-tk="${esc(k)}" aria-expanded="${op}">${inner}<span class="tk-more"><span>Case file</span><i aria-hidden="true">&#9662;</i></span></button><div class="tk-file"${op ? '' : ' inert'}><div>${caseHtml(b)}</div></div></div>`
       : `<div class="srow"><div class="row">${inner}</div></div>`; };
   const settled = all.filter(b => st(b) !== 'open').reverse();
-  return `${mast('desk', 'The desk', `Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at Hard Rock prices. Paper only.`)}<section class="tote" aria-label="Desk record">
-      <div class="tote-h"><span>The board · desk record, NBA and NFL</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ' · tickets before Nov 17 shown at today\'s unit' : ''}</span></div>
+  return `${mast('desk', 'The desk', `Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at the best price across seven books. Paper only.`)}<section class="tote" aria-label="Desk record">
+      <div class="tote-h"><span>The board · desk record, NBA and NFL</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ` · tickets before Nov 17 at ${money(DESK.legacy_unit || .5)} a unit` : ''}</span></div>
       <div class="tote-g">${tc('rec')}${tc('hit')}${tc('units')}${tc('clv')}</div>
       <div class="tape${S.tapePaused ? ' paused' : ''}" id="tape"><span class="tape-live" aria-hidden="true"><i></i>Live</span><button class="tape-b" data-act="tape" aria-pressed="${S.tapePaused}">${S.tapePaused ? 'Run' : 'Hold'}</button><div class="tape-w"><div class="tape-r"><div class="tape-s">${tape}</div><div class="tape-s" aria-hidden="true">${tape}</div></div></div></div>
     </section>
-    <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet${d.conf ? `, ${d.conf.picks} confident of ${d.conf.quotes} likely quotes` : ''}`).join(' · ')}</span></div>
+    <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${eveTxt ? `<b class="eve ${eveMiss ? 'neg' : ''}">${eveTxt}</b> · ` : ''}${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet${d.conf ? `, ${d.conf.picks} confident of ${d.conf.quotes} likely quotes` : ''}`).join(' · ')}</span></div>
     ${open.length ? `<div class="cards">${open.slice().sort((a, b) => (b.best ? 1 : 0) - (a.best ? 1 : 0)).map(ticketHtml).join('')}</div>` : '<p class="prose">The next daily run posts the card here. A night with no bet is a normal night.</p>'}
-    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at Hard Rock prices and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a Hard Rock price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10. About 6 PM an <b>evening pass</b> reprices the games still to come with fresh lines and injuries, under the same rules; it never adds a second ticket on a player and never changes a midday ticket.${cenTxt}</p>
+    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at the best price among seven sportsbooks (Hard Rock only before Nov 19) and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10. About 6 PM an <b>evening pass</b> reprices the games still to come with fresh lines and injuries, under the same rules; it never adds a second ticket on a player and never changes a midday ticket.${cenTxt}</p>
     ${movesHtml}
     ${passed.length ? `<div class="hd"><h2>Passed on</h2><span>the closest calls from ${esc(lastDate)} and the test each one failed${B.some(b => b.lean && b.date === lastDate) ? '. Leans are the exception to the 3-point bar: on a day nothing clears it, the desk logs its top one or two edges of 1 point or more at a quarter unit, so a lean can sit below the bar while a smaller edge here is passed' : ''}</span></div><div class="passes">${passed.map(passHtml).join('')}</div>` : ''}
     <div class="hd"><h2>The ledger</h2><span>${(() => { const g = settled.filter(b => !b.superseded && (st(b) === 'won' || st(b) === 'lost')).length, rp = settled.filter(b => b.superseded).length, ot = settled.length - g - rp; return `${settled.length} settled: ${g} graded${ot ? `, ${ot} push or void` : ''}${rp ? `, ${rp} replaced by a later ticket` : ''}`; })()}</span></div>
@@ -2416,7 +2530,7 @@ function modelHtml() {
   return `${mast('model', 'The model audit')}${storyHtml()}<p class="prose" id="audit">${esc(String(L.backtest_note).replace('Fit on 2023-24 seasons', 'Fit on the 2023 and 2024 seasons'))} Every projection in the test used only games played before it. Data through ${esc(L.data_through)}.</p>
   <div class="card" style="margin-bottom:16px"><div class="sec"><h3><span>Standing orders: how the desk runs if it has to earn its keep</span></h3></div>
     <ol class="orders">
-      <li><b>Price before prediction.</b><span>The desk bets at one book, so there is no shopping for a better number. The lever is to pass unless Hard Rock is out of line with the other books, or the model disagrees about one player by more than it does about the rest.</span></li>
+      <li><b>Price before prediction.</b><span>The desk takes each side at whichever of seven books pays the most for it (since Nov 19; Hard Rock only before). Shopping alone was worth about 4 cents a dollar on the same lines last season. The lever is still to pass unless a price is out of line with the other books, or the model disagrees about one player by more than it does about the rest.</span></li>
       <li><b>Judge the desk by the closing line.</b><span>Wins and losses take hundreds of bets to mean anything. Whether the price taken beat the closing price shows up in weeks. ${cl.length ? `Tracked on ${cl.length} bet${cl.length === 1 ? '' : 's'} so far.` : 'Tracking starts with the next card.'}</span></li>
       <li><b>Pass most of the time.</b><span>${priced ? `On ${esc(lastDate)} the desk priced ${priced} ${lg} sides and bet ${bet}.` : 'Most sides priced are never bet.'} That ratio is the job, not a slow night.</span></li>
       <li><b>Sized stakes, no chasing.</b><span>A quarter unit to two units, set by the grade before the bet, never after a result. No doubling after a loss and no extra bets to get even.</span></li>
@@ -2452,7 +2566,9 @@ const RTOOLS = [['nmu','Matchups'],['role','Role matchups'],['hit','Hit rates'],
 const ROLES = ['QB','RB1','RB2','WR1','WR2','WR3','TE1','TE2'];
 const NBA_T = ['nmu', 'hit', 'split', 'grade'];
 const rsTool = () => S.lg === 'NBA' ? (NBA_T.includes(S.rs.tool) ? S.rs.tool : 'nmu') : (S.rs.tool === 'nmu' ? 'role' : S.rs.tool);
-const rtools = () => S.lg === 'NBA' ? RTOOLS.filter(t => NBA_T.includes(t[0])) : RTOOLS.filter(t => t[0] !== 'nmu');
+// v3.19: in the order the picker lists them (grouped), so a sheet's number, the arrows and the dots match the list
+const rOrd = k => { const i = RGRP.flatMap(g => g[1]).indexOf(k); return i < 0 ? 999 : i; };
+const rtools = () => (S.lg === 'NBA' ? RTOOLS.filter(t => NBA_T.includes(t[0])) : RTOOLS.filter(t => t[0] !== 'nmu')).slice().sort((a, b) => rOrd(a[0]) - rOrd(b[0]));
 const avg = a => a.length ? sum(a) / a.length : 0;
 const nz = (x, d = 1) => x == null || !isFinite(x) ? '·' : (+x).toFixed(d);
 const t12 = t => { const [h, m] = String(t).split(':').map(Number); return `${(h + 11) % 12 + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
@@ -2896,8 +3012,48 @@ function splitHtml() {
 /* ---------- build 1: every book's quote, market grades, hit rate grid ---------- */
 const BKS = lg => (DATA.books || {})[lg] || null;
 const BK = key => { const b = BKS(key.split('|')[0]); return b ? b.props[key] || null : null; };
-const BOOKN = { hardrockbet: ['HR', 'Hard Rock'], draftkings: ['DK', 'DraftKings'], fanduel: ['FD', 'FanDuel'], betmgm: ['MGM', 'BetMGM'], williamhill_us: ['CZR', 'Caesars'], betrivers: ['BR', 'BetRivers'], fanatics: ['FAN', 'Fanatics'] };
+const BOOKN = { polymarket: ['POLY', 'Polymarket'], novig: ['NV', 'Novig'], kalshi: ['KAL', 'Kalshi'], polymarket_us: ['PMUS', 'Polymarket US'], hardrockbet: ['HR', 'Hard Rock'], draftkings: ['DK', 'DraftKings'], fanduel: ['FD', 'FanDuel'], betmgm: ['MGM', 'BetMGM'], williamhill_us: ['CZR', 'Caesars'], betrivers: ['BR', 'BetRivers'], fanatics: ['FAN', 'Fanatics'] };
 const bkn = (b, long) => (BOOKN[b] || [b, b])[long ? 1 : 0];
+/* ---------- v3.22 prices at every book: the picker on the board, the drawer in the memo ----------
+   The board shows each prop at the best price among seven sportsbooks (the desk's pick of book, side by side) or, once
+   you pick one, at that book's own line and odds. The memo keeps every book's quote folded away behind one button. */
+const BET_BOOKS = ['hardrockbet', 'draftkings', 'fanduel', 'betmgm', 'williamhill_us', 'betrivers', 'fanatics'];
+function bookQuote(key, bk) { const b = BK(key); if (!b || !b.q) return null; return b.q.find(z => z[0] === bk && (z[2] != null || z[3] != null)) || null; }
+function bkCounts(lg) { const B = BKS(lg), c = {}; if (!B) return c; for (const k in B.props) for (const z of B.props[k].q) c[z[0]] = (c[z[0]] || 0) + 1; return c; }
+function bkPickHtml(lg) { const v = S.store.settings.bk || 'best';
+  return `<div class="bkp" id="bkp"><button class="bkp-b" data-act="bkOpen" aria-haspopup="listbox" aria-expanded="false" aria-controls="bkpPop"><small>Prices at</small><b>${v === 'best' ? 'Best of 7 books' : esc(bkn(v, 1))}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="bkp-pop" id="bkpPop" role="listbox" aria-label="Show prices at" hidden></div></div>`; }
+function bkPopHtml(lg) { const v = S.store.settings.bk || 'best', c = bkCounts(lg), ex = Object.keys(c).filter(k => !BET_BOOKS.includes(k)).sort();
+  const opt = (k, t, sub, i) => `<button role="option" class="bkp-o${v === k ? ' on' : ''}" data-act="bkSet" data-v="${k}" aria-selected="${v === k}" style="--i:${i}"><span><b>${t}</b><small>${sub}</small></span><i aria-hidden="true"></i></button>`;
+  let i = 0;
+  return opt('best', 'Best of 7 books', 'Where the desk would bet each side', i++)
+    + `<div class="bkp-h">Sportsbooks</div>` + BET_BOOKS.map(k => opt(k, esc(bkn(k, 1)), c[k] ? `${c[k]} props` : 'no lines yet', i++)).join('')
+    + (ex.length ? `<div class="bkp-h">Exchanges, shown only</div>` + ex.map(k => opt(k, esc(bkn(k, 1)), `${c[k]} props`, i++)).join('') : '')
+    + `<p class="bkp-n">Pick the book you can bet at. The desk's own paper bets always use the best of the seven.</p>`; }
+function bkOpen(on) { const w = $('#bkp'), p = $('#bkpPop'), b = w && w.querySelector('.bkp-b'); if (!p) return; const was = !p.hidden; if (on === was) return;
+  b.setAttribute('aria-expanded', on); w.classList.toggle('open', on);
+  if (on) { p.innerHTML = bkPopHtml(S.lg); p.hidden = false; if (!RM()) p.animate([{ opacity: 0, transform: 'translateY(-6px) scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.23,1,.32,1)' }); const f = p.querySelector('.on'); if (f) f.focus({ preventScroll: true }); }
+  else if (RM()) p.hidden = true;
+  else p.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-4px) scale(.98)' }], { duration: 140, easing: 'cubic-bezier(.4,0,1,1)' }).finished.then(() => { p.hidden = true; }, () => { p.hidden = true; }); }
+function bkSet(v) { S.store.settings.bk = v; persist(); bkOpen(false);
+  const lab = document.querySelector('#bkp .bkp-b b'); if (lab) { lab.textContent = v === 'best' ? 'Best of 7 books' : bkn(v, 1); if (!RM()) lab.animate([{ opacity: 0, transform: 'translateY(40%)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.23,1,.32,1)' }); }
+  repaintBoard(true); if (S.memo && PMAP[S.memo]) { liveMemo(); const m = $('#mBooks'); if (m) m.innerHTML = booksDrawerHtml(PMAP[S.memo]); } }
+function booksDrawerHtml(pr) {
+  const b = BK(pr.key); if (!b || !b.q || !b.q.length) return '';
+  const fl = S.feed[pr.key], am = anchMu(pr, fl || null), d = am != null ? dist({ key: pr.key + '#m', mu: am, lg: pr.lg, mkt: pr.mkt, binary: false }) : dist(pr);
+  const sel = S.store.settings.bk || 'best', fb = fl && fl.book;
+  const rows = b.q.filter(z => z[2] != null || z[3] != null).map(z => { let po, pu;
+    if (pr.binary) { po = d[1]; pu = d[0]; } else { const sp = E.split(d, z[1]); po = sp.over; pu = sp.under; }
+    const eo = z[2] != null ? E.ev(po, pu, z[2]) : null, eu = z[3] != null ? E.ev(pu, po, z[3]) : null;
+    return { k: z[0], line: z[1], o: z[2], u: z[3], eo, eu, top: Math.max(eo == null ? -9 : eo, eu == null ? -9 : eu), ex: !BET_BOOKS.includes(z[0]) }; });
+  if (!rows.length) return '';
+  rows.sort((x, y) => (x.ex - y.ex) || (y.top - x.top));
+  const bet = rows.filter(r => !r.ex), best = bet.length ? bet[0] : null, bo = Math.max(...bet.map(r => r.o == null ? -1e9 : E.dec(r.o) + (r.line != null ? -r.line * 1e-3 : 0))), bu = Math.max(...bet.map(r => r.u == null ? -1e9 : E.dec(r.u) + (r.line != null ? r.line * 1e-3 : 0)));
+  const cell = (v, e, isTop) => v == null ? '<td>·</td>' : `<td class="${isTop ? 'top' : ''}"><b class="num">${odds(v)}</b>${e != null ? `<small class="${e >= 0 ? 'pos' : 'neg'}">${e >= 0 ? '+' : ''}${(e * 100).toFixed(1)}</small>` : ''}</td>`;
+  const on = !!S.bkOpen;
+  return `<div class="sec bkd${on ? ' open' : ''}"><button class="bkd-t" data-act="bkDrawer" aria-expanded="${on}" aria-controls="bkdW"><span><b>Every book's price</b><small>${bet.length} sportsbook${bet.length === 1 ? '' : 's'}${rows.length > bet.length ? ` and ${rows.length - bet.length} exchange${rows.length - bet.length === 1 ? '' : 's'}` : ''}${best ? ` · best value at ${esc(bkn(best.k, 1))}` : ''}</small></span><i aria-hidden="true"></i></button>
+    <div class="bkd-w" id="bkdW"><div><table class="bkd-tb"><thead><tr><th>Book</th>${pr.binary ? '' : '<th>Line</th>'}<th>${pr.binary ? 'Yes' : 'Over'}</th><th>${pr.binary ? 'No' : 'Under'}</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr class="${(sel === 'best' ? r.k === fb : r.k === sel) ? 'on' : ''}${r.ex ? ' ex' : ''}" style="--i:${i}"><th scope="row">${esc(bkn(r.k, 1))}${r === best ? '<em>best value</em>' : ''}</th>${pr.binary ? '' : `<td class="num">${r.line != null ? r.line : '·'}</td>`}${cell(r.o, r.eo, !r.ex && r.o != null && Math.abs(E.dec(r.o) + (r.line != null ? -r.line * 1e-3 : 0) - bo) < 1e-9)}${cell(r.u, r.eu, !r.ex && r.u != null && Math.abs(E.dec(r.u) + (r.line != null ? r.line * 1e-3 : 0) - bu) < 1e-9)}</tr>`).join('')}
+    </tbody></table><p class="note">Small number under each price: the desk's expected value per $100 at that book's own line, on the desk's number. Green is the best payout on each side among the sportsbooks.${rows.some(r => r.ex) ? ' Exchanges are shown for reference; the desk does not bet them.' : ''}</p></div></div></div>`; }
 function hitLine(pr) { const own = getLine(pr.key); if (own) return own; const b = BK(pr.key); if (b && b.ml != null) { const h = b.q.find(z => z[0] === 'hardrockbet'); return { line: b.ml, o: h ? h[2] : null, u: h ? h[3] : null, src: 'mkt' }; } return null; }
 function gridHtml(rows, lg) {
   const order = lg === 'NBA' ? ['pts', 'reb', 'ast', 'fg3', 'pra', 'pr', 'pa', 'ra'] : ['pass_yds', 'pass_att', 'pass_cmp', 'pass_td', 'rush_yds', 'rush_att', 'rec', 'rec_yds'];
@@ -2936,7 +3092,7 @@ function gradeHtml() {
       <span class="mg-w">${jersey(lg, r.p)}<span><b>${esc(r.p.name)}</b><small>${esc(M.n)} · ${esc(gameLabel(lg, G[r.g]))}</small></span>${v.off ? '<span class="mg-off">Off market</span>' : ''}</span>
       <span class="mg-c"><span class="cell"><small>Hard Rock</small><span>${h ? price(h, v.gs === 'Under' || v.gs === 'No' ? 'u' : 'o') : 'no line'}</span></span>
         <span class="cell"><small>${v.gs ? 'Its ' + v.gs.toLowerCase() + ' vs books' : 'vs books'}</small><span class="${v.ge == null ? '' : v.ge >= 0 ? 'pos' : v.ge < -.04 ? 'neg' : ''}">${pc(v.ge)}</span></span>
-        <span class="cell"><small>${bin ? 'Books say' : 'Books imply'}</small><span>${v.cm == null ? '·' : bin ? pct(v.cm) : f1(v.cm)}</span></span>
+        <span class="cell"><small>${bin ? 'Books say' : 'Books imply'}</small><span>${v.cm == null ? '·' : bin ? pct(v.cm) : v.ml != null && v.cm > 2 * v.ml + 3 ? '<span title="Mostly games with nothing (zero yards). The books\' line and prices are compared as usual, but an average built from them is not meaningful.">zero-heavy</span>' : f1(v.cm)}</span></span>
         ${bin ? '' : `<span class="cell"><small>Middle line</small><span>${v.ml ?? '·'}</span></span>`}
         <span class="cell"><small>Best over</small><span>${bo ? bkn(bo[0]) + ' ' + price(bo, 'o') : '·'}</span></span>
         ${bin ? '' : `<span class="cell"><small>Best under</small><span>${bu ? bkn(bu[0]) + ' ' + price(bu, 'u') : '·'}</span></span>`}</span>
@@ -2948,7 +3104,7 @@ function gradeHtml() {
         <div class="seg so" data-seg="rs-gsort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="gs:best" aria-pressed="${H.gs === 'best' || !H.gs}">Best at Hard Rock</button><button data-rs="gs:worst" aria-pressed="${H.gs === 'worst'}">Worst</button><button data-rs="gs:off" aria-pressed="${H.gs === 'off'}">Off market</button></div>
         <select id="rsHG" aria-label="Game"><option value="all">Every game</option>${[...new Set(all.map(r => r.g))].map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select>
       </div>
-      <p class="wr-src">From the ${esc(B.asof)} pull. Each book's line and prices are turned into the number they imply, the books other than Hard Rock are averaged by their middle, and every price is checked against that.</p>
+      <p class="wr-src">From the ${esc(String(B.asof || '').replace(/^#\s*/, '').replace(/^pulled\s+/i, '').replace(/\s*pull\.?$/i, ''))} pull. Each book's line and prices are turned into the number they imply, the books other than Hard Rock are averaged by their middle, and every price is checked against that.</p>
     </section>
     <div class="mgl">${rows.slice(0, 120).map(row).join('') || '<p class="prose">Nothing matches these filters.</p>'}</div>
     <p class="note"><b>Reading a grade.</b> A: Hard Rock's better side is at least 2 points better than the other books' fair price. B: better than fair. C: a normal margin, about what a -110 side costs. D: a heavy margin. F: well out of line. Off market: Hard Rock's line implies a number more than 8% from the other books, or sits 1.5 or more off their middle line. Green chip: the best over across the books; blue: the best under. A grade is about price, not about whether the bet wins, and it does not change the desk's picks.</p>`;
@@ -3588,6 +3744,7 @@ function filmFrame(T) {
 document.addEventListener('visibilitychange', () => { if (document.hidden && STORY && STORY.playing) filmPause(); });
 addEventListener('resize', () => { if (S.tab === 'model') requestAnimationFrame(storyMount); });
 
+/*__SIM_JS__*/
 /* ---------- render + events ---------- */
 function render() {
   $('#lgNBA').setAttribute('aria-pressed', S.lg === 'NBA'); $('#lgNFL').setAttribute('aria-pressed', S.lg === 'NFL');
@@ -3613,6 +3770,7 @@ function render() {
   trayPaint();
   if (S.tab === 'research') requestAnimationFrame(() => { const m = $('#main'); if (m) rsAfter(m, wasEnter); });
   if (S.tab === 'model') requestAnimationFrame(storyMount);
+  if (S.tab === 'sim') requestAnimationFrame(() => simAfter(wasEnter)); else simStop();
   if (S.tab === 'games') requestAnimationFrame(() => { document.querySelectorAll('#main .seg').forEach(sg => placeSeg(sg, false)); jbRun(); });
   beamWatch();
 }
@@ -3622,7 +3780,7 @@ function beamWatch() {      // the border beam only runs while the ticket is on 
   if (!beamIO) beamIO = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('bb-off', !e.isIntersecting)));
   beamIO.disconnect(); els.forEach(el => { el.classList.add('bb-off'); beamIO.observe(el); });
 }
-function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'games' ? gamesHtml() : S.tab === 'research' ? researchHtml() : modelHtml(); }
+function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'games' ? gamesHtml() : S.tab === 'research' ? researchHtml() : S.tab === 'sim' ? simHtml() : modelHtml(); }
 function setLeague(lg) { if (S.lg === lg || S.irisBusy) return;
   const pk = document.querySelector('.lg-puck');      // v3.18: the puck stretches as it travels and settles like jelly (after libraries.dev Gooey, MIT; scale only, so it stays on the compositor)
   if (pk && pk.animate && !RM()) pk.animate([{ scale: '1 1' }, { scale: '1.24 .86', offset: .32 }, { scale: '.95 1.05', offset: .64 }, { scale: '1.02 .98', offset: .84 }, { scale: '1 1' }], { duration: 560, easing: 'cubic-bezier(.33,0,.2,1)' });
@@ -3634,6 +3792,8 @@ $('#lgNBA').onclick = () => setLeague('NBA'); $('#lgNFL').onclick = () => setLea
 $('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.tab === S.tab) return; const dir = TABS.indexOf(b.dataset.tab) > TABS.indexOf(S.tab) ? 'fwd' : 'back';
   go(() => { S.tab = b.dataset.tab; render(); window.scrollTo(0, 0); }, dir); };
 
+document.addEventListener('pointerdown', e => { const p = document.getElementById('bkpPop'); if (p && !p.hidden && !e.target.closest('#bkp')) bkOpen(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { const p = document.getElementById('bkpPop'); if (p && !p.hidden) { bkOpen(false); const b = document.querySelector('#bkp .bkp-b'); if (b) b.focus(); } } });
 document.addEventListener('click', e => {
   const u = e.target.closest('[data-unwatch]'); if (u) { e.stopPropagation(); watchToggle(u.dataset.unwatch); return; }
   const fc = e.target.closest('[data-flipc]'); if (fc) { flipRow(fc.closest('.row'), fc.dataset.flipc); return; }
@@ -3661,6 +3821,9 @@ document.addEventListener('click', e => {
   else if (a === 'rsRetry') { RS.st = 'idle'; loadResearch(); rsPaint(); }
   else if (a === 'tape') { S.tapePaused = !S.tapePaused; const tp = $('#tape'); tp.classList.toggle('paused', S.tapePaused); t.textContent = S.tapePaused ? 'Run' : 'Hold'; t.setAttribute('aria-pressed', S.tapePaused); }
   else if (a === 'more') { S.limit += 60; repaintBoard(false); }
+  else if (a === 'bkOpen') { bkOpen($('#bkpPop') ? $('#bkpPop').hidden : false); }
+  else if (a === 'bkSet') { bkSet(t.dataset.v); }
+  else if (a === 'bkDrawer') { S.bkOpen = !S.bkOpen; const w = t.closest('.bkd'); w.classList.toggle('open', S.bkOpen); t.setAttribute('aria-expanded', S.bkOpen); }
   else if (a === 'filmPlay') { filmPlay(); }
   else if (a === 'filmSeek') { filmSeek(+t.dataset.s); }
   else if (a === 'storySkip') { e.preventDefault(); const t = $('#audit'); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - topH() - 10, behavior: RM() ? 'auto' : 'smooth' }); }

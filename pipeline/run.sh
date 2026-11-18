@@ -49,6 +49,9 @@ python3 weather.py || echo "WEATHER STEP FAILED: no wind notes on the Games tab"
 python3 injuries.py || echo "INJURY STEP FAILED: no injury notes on the Games tab"
 python3 games.py || echo "GAME MODEL STEP FAILED: the Games tab keeps its last file"
 python3 daily.py gpicks "$(TZ=America/New_York date +%F)" grade || true
+# v3.20 the game simulator: grade yesterday's logged props, then play every game on the slate 10,000 times. Not fatal: the Sim tab keeps its last file.
+python3 sim.py grade || echo "SIM GRADE STEP FAILED"
+python3 sim.py || echo "SIM STEP FAILED: the Sim tab keeps its last file"
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
 python3 - <<'PY'
 import json; D=json.load(open('/home/claude/props/out/data.json'))

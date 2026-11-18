@@ -67,6 +67,10 @@ def build(D):
                     return None
                 po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
                 return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
+            if not bin_:      # v3.22: drop stale or one-sided quotes (an exchange's Under at 1.01): both sides must add to 1.00 to 1.12
+                books = {bk: x for bk, x in books.items() if x["o"] is not None and x["u"] is not None and CFG["sane"][0] <= 1 / dec(x["o"]) + 1 / dec(x["u"]) <= CFG["sane"][1]}
+                if not books:
+                    continue
             ims = {bk: imp(x) for bk, x in books.items()}
             others = [v for bk, v in ims.items() if bk != CFG["book"] and v is not None]
             allv = [v for v in ims.values() if v is not None]

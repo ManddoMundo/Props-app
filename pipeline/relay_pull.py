@@ -14,8 +14,9 @@ TODAY = NOW.strftime("%Y-%m-%d")
 API = "https://api.the-odds-api.com/v4/sports/"
 SPORT = {"NBA": "basketball_nba", "NFL": "americanfootball_nfl"}
 ESPN = {"NBA": "basketball/nba", "NFL": "football/nfl"}
-# Hard Rock is the book the desk bets at. The rest are the market check. Up to ten books cost the same as one.
-BOOKS = ["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics"]
+# The desk bets at the best of the seven sportsbooks (v3.22). Polymarket, Novig and Kalshi (exchanges) are shown in the app
+# and join the market view. Up to ten books cost the same as one, so the three exchanges add no credits.
+BOOKS = ["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics", "polymarket", "novig", "kalshi"]
 MARKETS = {"NBA": ["player_points", "player_rebounds", "player_assists", "player_threes", "player_points_rebounds_assists",
                    "player_points_rebounds", "player_points_assists", "player_rebounds_assists"],
            "NFL": ["player_pass_yds", "player_pass_attempts", "player_pass_completions", "player_pass_tds", "player_rush_yds",
@@ -166,14 +167,17 @@ def pull_lines(lg):
             break
         label = f"{code(lg, e.get('away_team'))} @ {code(lg, e.get('home_team'))}"
         j = None
-        for attempt in (1, 2):
+        for attempt in (1, 2, 3):
             try:
                 j, h = get(API + SPORT[lg] + "/events/" + e["id"] + "/odds", {"apiKey": KEY, "bookmakers": ",".join(BOOKS),
                                                                              "markets": ",".join(mk), "oddsFormat": "american"})
                 break
             except RuntimeError as x:
-                if attempt == 1 and "bookmaker" in str(x).lower() and len(BOOKS) > 4:
-                    BOOKS = BOOKS[:4]           # a book key the API no longer knows: fall back to the four it is known to carry
+                if attempt < 3 and "bookmaker" in str(x).lower() and len(BOOKS) > 7:
+                    BOOKS = BOOKS[:7]           # a book key the API no longer knows: fall back to the seven sportsbooks
+                    continue
+                if attempt < 3 and "bookmaker" in str(x).lower() and len(BOOKS) > 4:
+                    BOOKS = BOOKS[:4]           # still refused: the four it is known to carry
                     continue
                 errors.append(f"{lg} {label}: {x}")
                 break

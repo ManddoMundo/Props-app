@@ -1,6 +1,6 @@
 # Prop Underwriter runbook
 
-Owner: Armanddo. Artifact slug: `3e7dec79-c0d0-4f7e-ac23-b04639b091aa` (title "Prop Underwriter").
+Owner: Armanddo. Artifact slug: `3e7dec79-c0d0-4f7e-ac23-b04639b091aa` (title "Fair Line", formerly Prop Underwriter).
 The artifact stores its own pipeline. A fresh session rebuilds everything from these files.
 
 ## Files in the artifact
@@ -25,7 +25,7 @@ The artifact stores its own pipeline. A fresh session rebuilds everything from t
 FIRST, check who runs the day (v2.1): `curl -sfL https://raw.githubusercontent.com/ManddoMundo/Props-app/main/state/summary.json`.
 - It returns JSON: GitHub is the daily runner and the ONLY one that prices lines and picks. Do not run `daily.py lines`, `pick`, `news` or the WebFetch route, even if the task prompt describes them. Mirror instead:
   1. `cd /home/claude/props/src && RELAY_PASS='<passphrase from the task prompt>' python3 daily.py mirror` (unpacks GitHub's books into `/home/claude/props/out`: history, audit, priced, lines, news, data.json, research).
-  2. `python3 build.py`, then publish `index.html`, `research/nfl.json`, `desk/history.json`, `desk/audit.json` and the newest `desk/priced` files. Never edit the mirrored books.
+  2. `python3 build.py`, then publish `index.html`, `research/nfl.json`, `research/sim_nba.json`, `research/sim_nfl.json`, `desk/history.json`, `desk/audit.json` and the newest `desk/priced` files. Never edit the mirrored books.
   3. Report from the mirrored books (`python3 daily.py report`) and from summary.json: its `date`, `picks_today`, `note`, and `version`. If `date` is not today's US Eastern date, say GitHub has not run today yet and that the standalone app updates when it does. Do not pick in its place. If `version` differs from `/home/claude/props/src/VERSION`, say an upload to GitHub is pending.
 - It fails with 404: GitHub has not taken over. Use the steps below as before.
 0. Relay first. A scheduled job in Armanddo's GitHub repository (`ManddoMundo/Props-app`) pulls the day's lines and injury reports late each morning and saves them encrypted. The passphrase is in the scheduled task prompt as the relay passphrase. Use it only on this command line and never write it into a file:
@@ -34,7 +34,7 @@ FIRST, check who runs the day (v2.1): `curl -sfL https://raw.githubusercontent.c
    - A league with a saved lines file that has Hard Rock rows: skip steps 1 to 4 for that league and spend no API credits on it. Go to step 5 with the saved files.
    - A league with games today and no saved file, or a file with no Hard Rock rows: use steps 1 to 4 (WebFetch) for that league. If the relay saved a lines file without Hard Rock rows, pass it to step 6 after the WebFetch file so the other books still serve as the market check.
    - If the command prints that nothing was saved or it cannot decrypt, use steps 1 to 4 as before and say so in the report. Do not try to repair the relay from this run.
-   - The relay feeds more markets than the desk picks from. `daily.py` prices and grades all of them and picks only from `CFG["pick_markets"]`. Do not edit that list in a daily run.
+   - The relay feeds more markets than the desk picks from. `daily.py` prices and grades all of them; edge plays and leans come only from `CFG["pick_markets"]` (NBA points, rebounds, assists; NFL receiving, rushing and passing yards). The confident lane follows the books' consensus, not the model, and is not limited to that list. Do not edit the list in a daily run. (The guard went missing from the code between v1.6 and v3.18; restored in v3.19.)
 Book lines come from The Odds API and injury reports from ESPN, both through WebFetch (the shell cannot reach them). The API key is in the scheduled task prompt, not in these files. Never write the key into any file that gets published.
 If the scheduled task prompt shows an older odds URL with `bookmakers=hardrockbet` only, use the four-book pattern below instead. It costs the same credits. Hard Rock is still the only book the desk bets at; the other three are the market check, and without them no side can be picked.
 
@@ -158,3 +158,24 @@ nfl.py zero_games() adds a row of zeros (zf=1) for every QB, RB, WR, TE or FB wi
 
 ## Evening pass (v3.17)
 lines.yml crons (UTC): 27 15,16 (about 11:30 AM Eastern midday), 57 21,22 and 37 23 (about 6 PM Eastern evening). relay_pull.py due(): early 6:30 to 10:45 AM, midday 11 AM to 3:30 PM (12:45 PM weekends), evening 5:45 to 7:45 PM, Sunday close 12 to 1:45 PM. Manual run: mode evening. Evening files: lines/{LG}_{date}_pm.txt, games/{LG}_{date}_pm.txt, priced/{LG}_{date}_pm.json; news is overwritten with the newer report. site_job.sh evening: news, run.sh, engine check, daily.py close (label "evening"), today, FL_RUN=pm daily.py lines, daily.py evening, games.py. The day record gets a pm block {t, sides_priced, cleared_bar, picks, moved, compared, moves}. The workflow file lives at .github/workflows/lines.yml in the repo (pipeline/lines.yml is the copy).
+
+## Lineup news every run (v3.19)
+site_job.sh writes lineup news (daily.py news) for each league on every early, midday, build and evening run that has that day's injury report, with the lines file when there is one. nfl.py accepts news dated on a slate game day or today (Eastern). Woody Marks style doubtful/out players go inactive; questionable players carry q and are never picked.
+
+## The Sim tab (v3.20)
+- run.sh runs `python3 sim.py grade` then `python3 sim.py` after games.py. sim.py reads out/data.json, nba_check.json, nfl_check.json, games.json and the newest lines file (books.latest), plays every game still to come (NBA today and tomorrow, NFL this week) 10,000 times with simcore.py, writes out/research/sim_nba.json and sim_nfl.json, and logs every prop with a book line before tip to out/simlog.json (kept in the encrypted state; graded the next morning; trimmed after 200 days). `python3 sim.py report` prints the live record.
+- Publish research/sim_nba.json and research/sim_nfl.json beside index.html, like research/nfl.json (the page fetches them when the Sim tab opens). In mirror mode they come down with GitHub's books.
+- build.py pours simtab.css and simtab.js into the page at the /*__SIM_CSS__*/ and /*__SIM_JS__*/ markers in index.src.html. Edit the tab in those two files.
+- Display and tracking only. daily.py never reads the sim. Its settings were fitted on 2024-25 (NBA) and 2023-24 (NFL); a change to simcore.py settings must rerun sim_bt.py and sim_bt_nfl.py (research tools, run from /home/claude/props/lab, see their headers) and hold their numbers, and update sim_bt.json. Giving it a say in pricing needs 200+ graded props in simlog.json where it beats the desk's own price, and quarterback props stay out until its QB numbers stop losing to the desk's curve.
+- SIM_NOW=YYYY-MM-DDTHH:MM and SIM_LOG=path replay an earlier day locally without touching the real log. Never set them in a scheduled run.
+- v3.21: simcore reads nfl_yards_lib.json (real catch and carry yards) and sim.py ships nfl_play_lib.json inside research/sim_nfl.json for the replay; both sit beside simcore.py and are rebuilt only by sim_prep_plays.py (research tool; needs nflverse play-by-play in lab/pbp). If nfl_yards_lib.json is missing, simcore falls back to the v3.20 curves.
+- The quarterback restriction above is lifted as of v3.21: the sim's QB numbers beat the desk's curve on both test seasons. The 200-graded rule for any say in pricing still holds.
+
+## Closing-line history (v3.21)
+- `.github/workflows/history.yml` in the repo (source `pipeline/relay_history.yml` and `relay_history.py`). Run by hand from Actions, never on a schedule. It pulls closing player props for games already played (10 credits a market a game), stops at the cap (default 14,000) or when the account is down to the reserve (default 4,000, kept for the daily job), and skips any day already saved. Files: `data/history/<LG>_<date>.txt.enc` in the relay's format, and `history_status.json` (counts only). The plan resets on the 1st of the month: run it once early in the month for the days not yet saved.
+- The test: decrypt the files to /home/claude/hist/txt with the relay passphrase on the command line only, then run close_bt.py, close_score.py, close_replay.py and close_sim.py from /home/claude/props/lab. They change nothing in the desk.
+
+## Books (v3.22)
+- daily.py CFG bet_books: the books the desk may bet. It prices every side at each one's own line and price and takes the best value. CFG hold_edge: the model-alone hold by league (NBA 0.25, NFL 0.12). Changes to either are pick-policy changes: 200+ graded sides and a CHANGELOG entry.
+- The relay (relay_pull.py) pulls ten books: the seven sportsbooks plus Polymarket, Novig and Kalshi. Exchanges are display and market view only. site_job.sh prices a league when any of the seven sportsbooks has rows (it used to need Hard Rock).
+- The app's book picker reads out/books.json (books.py), the same pull as the feed. books.py drops quotes whose sides add to under 1.00 or over 1.12 in implied chance.

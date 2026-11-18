@@ -24,7 +24,19 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            min_daily=2, lean_edge=0.01, lean_units=0.25,   # at least two bets a day when anything is positive: leans fill the gap at a quarter unit
            max_picks=3, max_per_game=2, min_edge=0.03, max_edge=0.12, min_adj_ev=0.025,
            min_odds=-160, max_odds=150, min_games=8, nba_min_minutes=20.0, book="hardrockbet",
+           # v3.22: the desk bets wherever the price is best among these books (it used to bet Hard Rock only). To go back to
+           # one book, list only that one. Exchanges (Polymarket, Novig, Kalshi) are shown in the app and count toward the
+           # market view, but the desk does not bet them.
+           bet_books=["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics"],
+           sane=(1.0, 1.12),                 # a quote counts only if its two sides' implied chances add to 1.00 to 1.12 (drops stale exchange prices)
+           # v3.22: how far the model on its own may sit from the market before a side goes on hold, by league. Was 0.12 for
+           # both. Closing-line replay, 2026 season: NBA sides the 0.12 hold removed went about 60%, NFL sides lost.
+           hold_edge={"NBA": 0.25, "NFL": 0.12},
            min_books=2,                      # other books that must quote the same player and market before a side can be picked
+           # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
+           # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
+           # market has 200 graded sides and the weekly review adds it here. The confident lane follows the books, not the model.
+           pick_markets={"NBA": ["pts", "reb", "ast"], "NFL": ["rec_yds", "rush_yds", "pass_yds"]},
            cal_w0=0.25, cal_w_n0=150,        # prior weight on the model vs the market, and how many graded lines that prior is worth
            cal_c_n0=5, cal_w_max=0.7,        # cal_c_n0: lines of "no lean" prior in the per-slate centring
            # confident-plays lane (v3.6): likely outcomes at any price, as long as Hard Rock's price is no worse than fair.
@@ -34,7 +46,8 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            conf_exit=0.02, conf_cap=0.93)    # conf_cap: the curve is checked against history up to about 90%; past 93% it is not trusted                   # an over can die to an early exit the box-score curve does not see: take 2 points off its chance
 VER = "1.6"
 BOOKN = {"hardrockbet": "Hard Rock", "draftkings": "DraftKings", "fanduel": "FanDuel", "betmgm": "BetMGM", "williamhill_us": "Caesars",
-         "espnbet": "ESPN Bet", "pinnacle": "Pinnacle", "betrivers": "BetRivers", "fanatics": "Fanatics", "bovada": "Bovada"}
+         "espnbet": "ESPN Bet", "pinnacle": "Pinnacle", "betrivers": "BetRivers", "fanatics": "Fanatics", "bovada": "Bovada",
+         "polymarket": "Polymarket", "novig": "Novig", "kalshi": "Kalshi", "polymarket_us": "Polymarket US"}
 # injury tables name the club; the model uses box score codes
 TEAM = {"NBA": {"hawks": "ATL", "celtics": "BOS", "nets": "BKN", "hornets": "CHA", "bulls": "CHI", "cavaliers": "CLE", "mavericks": "DAL", "nuggets": "DEN",
                 "pistons": "DET", "warriors": "GS", "rockets": "HOU", "pacers": "IND", "clippers": "LAC", "lakers": "LAL", "grizzlies": "MEM", "heat": "MIA",
@@ -78,7 +91,7 @@ def load():
 def history():
     p = O + "history.json"
     h = json.load(open(p)) if os.path.exists(p) else {"bets": [], "days": [], "updated": ""}
-    if "legacy_unit" not in h:      # v3.7 stakes: bets already logged keep the unit they were made at; only the header changes
+    if "legacy_unit" not in h:      # v3.7 stakes: bets already logged keep the unit they were made at (b["unit_usd"]), and every dollar figure uses it
         h["legacy_unit"] = h.get("unit", 0.5)
     h.update(bankroll=CFG["bankroll"], unit=CFG["unit"], lanes={"edge": CFG["bankroll"], "confident": CFG["bankroll"]})
     return h
@@ -272,37 +285,47 @@ def price_all(date, lg, files):
         if lg == "NBA" and g["day"] != date:
             continue
         side_of[s["team"]] = s
-    quotes = {}     # (player, market) -> {book: row}. The desk bets at CFG book; every other book is the market check.
+    quotes = {}     # (player, market) -> {book: row}. v3.22: every book is a candidate to bet at; all of them are the market view.
     for f in files:
         for r in parse(f):
             quotes.setdefault((norm(r["player"]), r["market"]), {})[r["book"]] = r
     out, feed, miss, rows = [], {}, [], []
+
+    def sane(x, mkt):
+        if mkt == "any_td":
+            return x["o"] is not None
+        if x["line"] is None or x["o"] is None or x["u"] is None:
+            return False
+        return CFG["sane"][0] <= 1 / dec(x["o"]) + 1 / dec(x["u"]) <= CFG["sane"][1]
     for (nm, market), books in quotes.items():
-        r = books.get(CFG["book"])
-        if r is None:
-            continue
         mkt = MK[lg].get(market)
+        if not mkt:
+            continue
+        good = {bk: x for bk, x in books.items() if sane(x, mkt)}
+        bet = {bk: x for bk, x in good.items() if bk in CFG["bet_books"]}
+        if not bet:
+            continue
+        r0 = next(iter(bet.values()))
         cands = [p for p in byname.get(nm, []) if p["team"] in side_of]
-        if not mkt or len(cands) != 1:
-            miss.append(f'{r["player"]} ({r["market"]})'); continue
+        if len(cands) != 1:
+            miss.append(f'{r0["player"]} ({r0["market"]})'); continue
         p = cands[0]; s = side_of[p["team"]]; g = games[s["game"]]
         m = chk[lg].get(f'{s["game"]}|{p["id"]}' if lg == "NBA" else p["id"])
         if not m or not p["active"]:
-            miss.append(f'{r["player"]} not in projected lineup'); continue
+            miss.append(f'{r0["player"]} not in projected lineup'); continue
         mu = m["td"] if mkt == "any_td" else m[mkt]
-        line = .5 if mkt == "any_td" else r["line"]
-        if line is None or mu <= 0:
+        if mu <= 0:
             continue
 
-        # What the market thinks: each book's line and prices turned into the projection they imply.
+        # What the market thinks: each book's line and prices turned into the projection they imply; the median of all of them
         def imp(x):
-            if mkt == "any_td" or x["line"] is None or x["o"] is None or x["u"] is None:
+            if mkt == "any_td":
                 return None
             po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
             return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
-        others = [v for v in (imp(x) for bk, x in books.items() if bk != CFG["book"]) if v is not None]
-        mm = float(np.median(others)) if others else imp(r)      # no other book: fall back to this book's own line (never pickable)
-        rows.append(dict(r=r, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, line=line, mm=mm, nb=len(others)))
+        imps = [v for v in (imp(x) for x in good.values()) if v is not None]
+        mm = float(np.median(imps)) if imps else None
+        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good))
     # Centre the model on the market for this slate, market by market, so a general lean (it used to run low: the Under
     # lean) cannot create bets. What is left is where the model disagrees about one player more than about the rest.
     cen = {}
@@ -311,35 +334,46 @@ def price_all(date, lg, files):
         good = [x for x in z if x["nb"] >= CFG["min_books"]]
         cen[mkt] = centre([(x["mu"], x["mm"]) for x in (good or z)])
     for x in rows:
-        r, mkt, p, s, g, m, mu, line, mm, nb = (x[k] for k in ("r", "mkt", "p", "s", "g", "m", "mu", "line", "mm", "nb"))
-        o = int(r["o"]) if r["o"] is not None else None
-        u = int(r["u"]) if (r["u"] is not None and mkt != "any_td") else None
+        mkt, p, s, g, m, mu, mm, nb = (x[k] for k in ("mkt", "p", "s", "g", "m", "mu", "mm", "nb"))
         w = CAL.get(lg + "|" + mkt, {}).get("w", CFG["cal_w0"]); c0 = cen[mkt]
         muf = mu if mm is None else mm + w * (c0 * mu - mm)
-        feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}'] = {"line": line, "o": o, "u": u, "book": r["book"], "nb": nb,
-                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)})}
-        pov, pun, _ = probs(L, lg, mkt, muf, line)
-        pov0, pun0, _ = probs(L, lg, mkt, mu, line)
-        povc, punc, _ = probs(L, lg, mkt, c0 * mu, line)      # the model on its own, after centring
-        hold = None
-        for side, pw, pl, pw0, pl0, pwc, plc, odds in (("Over" if mkt != "any_td" else "Yes", pov, pun, pov0, pun0, povc, punc, o), ("Under", pun, pov, pun0, pov0, punc, povc, u)):
-            if odds is None:
-                continue
-            pn = pw / (pw + pl); be = 1 / dec(odds); edge = pn - be; ev = pw * (dec(odds) - 1) - pl
-            c, flags = confidence(lg, p, mkt, mu, edge, g, s)
-            if nb < CFG["min_books"]: flags.append("no market check")
-            edgec = pwc / (pwc + plc) - be
-            # the long-standing max_edge rule, applied to the model's own view: a gap this wide is usually news it lacks
-            if edgec > CFG["max_edge"]: flags.append("model far from market, check news"); hold = side
-            adj = ev * (c if ev > 0 else 1)
-            out.append(dict(id=f"{date}|{lg}|{p['id']}|{mkt}", date=date, lg=lg, game=s["game"], gl=f'{g["away"]} @ {g["home"]}',
-                            pid=p["id"], name=p["name"], team=p["team"], opp=s["opp"], mkt=mkt, side=side, line=line, odds=odds,
-                            book=r["book"], mu=round(mu, 2), p=round(pn, 4), be=round(be, 4), edge=round(edge, 4), ev=round(ev, 4),
-                            conf=round(c, 3), adj=round(adj, 4), rating=next(t[1] for t in TIERS if adj >= t[0]), flags=flags,
-                            n=p["n"], mn=m.get("mn"), tag=(date[5:] if lg == "NBA" else "26W" + re.sub(r"\D", "", L["label"])),
-                            ver=VER, nb=nb, muf=round(muf, 2), mm=(None if mm is None else round(mm, 2)), cen=round(c0, 3),
-                            p0=round(pw0 / (pw0 + pl0), 4), edge0=round(pw0 / (pw0 + pl0) - be, 4), edgec=round(edgec, 4)))
-        if hold: feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}']["hold"] = hold
+        hold_at = CFG["hold_edge"].get(lg, CFG["max_edge"])
+        best = {}      # side -> the book where the desk's value is highest, with everything priced at that book's own line and price
+        for bk, r in x["bet"].items():
+            line = .5 if mkt == "any_td" else r["line"]
+            o = int(r["o"]) if r["o"] is not None else None
+            u = int(r["u"]) if (r["u"] is not None and mkt != "any_td") else None
+            pov, pun, _ = probs(L, lg, mkt, muf, line)
+            pov0, pun0, _ = probs(L, lg, mkt, mu, line)
+            povc, punc, _ = probs(L, lg, mkt, c0 * mu, line)      # the model on its own, after centring
+            for side, pw, pl, pw0, pl0, pwc, plc, odds in (("Over" if mkt != "any_td" else "Yes", pov, pun, pov0, pun0, povc, punc, o), ("Under", pun, pov, pun0, pov0, punc, povc, u)):
+                if odds is None:
+                    continue
+                pn = pw / (pw + pl); be = 1 / dec(odds); edge = pn - be; ev = pw * (dec(odds) - 1) - pl
+                c, flags = confidence(lg, p, mkt, mu, edge, g, s)
+                if nb < CFG["min_books"]: flags.append("no market check")
+                edgec = pwc / (pwc + plc) - be
+                # the hold: the model on its own this far from the market is usually news it lacks (v3.22: by league)
+                if edgec > hold_at: flags.append("model far from market, check news")
+                adj = ev * (c if ev > 0 else 1)
+                rec = dict(id=f"{date}|{lg}|{p['id']}|{mkt}", date=date, lg=lg, game=s["game"], gl=f'{g["away"]} @ {g["home"]}',
+                           pid=p["id"], name=p["name"], team=p["team"], opp=s["opp"], mkt=mkt, side=side, line=line, odds=odds,
+                           book=bk, mu=round(mu, 2), p=round(pn, 4), be=round(be, 4), edge=round(edge, 4), ev=round(ev, 4),
+                           conf=round(c, 3), adj=round(adj, 4), rating=next(t[1] for t in TIERS if adj >= t[0]), flags=flags,
+                           n=p["n"], mn=m.get("mn"), tag=(date[5:] if lg == "NBA" else "26W" + re.sub(r"\D", "", L["label"])),
+                           ver=VER, nb=nb, nbet=len(x["bet"]), muf=round(muf, 2), mm=(None if mm is None else round(mm, 2)), cen=round(c0, 3),
+                           p0=round(pw0 / (pw0 + pl0), 4), edge0=round(pw0 / (pw0 + pl0) - be, 4), edgec=round(edgec, 4))
+                k = (adj, ev, bk == CFG["book"])      # ties go to the home book
+                if side not in best or k > best[side][0]:
+                    best[side] = (k, rec)
+        out += [v[1] for v in best.values()]
+        # the board's line for this prop: the book the desk would use on its better side; every book's quote rides along
+        top = max(best.values(), key=lambda v: v[0])[1]
+        tb = x["bet"][top["book"]]
+        hold = next((sd for sd, v in best.items() if v[1]["edgec"] > hold_at), None)
+        feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}'] = {"line": top["line"], "o": int(tb["o"]) if tb["o"] is not None else None,
+                                                    "u": int(tb["u"]) if (tb["u"] is not None and mkt != "any_td") else None, "book": top["book"], "nb": nb,
+                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)}), **({"hold": hold} if hold else {})}
     _CEN[lg] = cen
     return out, feed, miss
 
@@ -386,9 +420,9 @@ def cmd_relay(date):
             continue
         os.replace(d + name + ".tmp", d + name)
         if f["what"] == "lines":
-            hr = (f.get("books") or {}).get(CFG["book"], 0)
+            hr = sum(v for k, v in (f.get("books") or {}).items() if k in CFG["bet_books"])
             print(f"  saved {d + name}: {f.get('kind')} pull {f.get('et')} ET, {f.get('games')} games, {f.get('rows')} rows from {len(f.get('books') or {})} books, "
-                  f"{f.get('markets')} markets, Hard Rock rows {hr}" + ("" if hr else "  <-- Hard Rock had not posted: pull Hard Rock by WebFetch for this league"))
+                  f"{f.get('markets')} markets, rows at books the desk bets {hr}" + ("" if hr else "  <-- no book the desk bets had posted: use the WebFetch fallback for this league"))
             got += f.get("kind") == "midday" and hr > 0
         else:
             print(f"  saved {d + name}: injury report pulled {f.get('et')} ET, {f.get('rows')} players")
@@ -451,12 +485,13 @@ def cmd_lines(date, lg, files):
 
 
 def eligible(b):
+    if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False     # market on trial
     if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]): return False
     if b["n"] < CFG["min_games"]: return False
     if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
     if "missed last game" in b["flags"] or "questionable" in b["flags"]: return False
     if b.get("nb", 0) < CFG["min_books"]: return False      # no bet without the market check
-    if b.get("edgec", 0) > CFG["max_edge"]: return False     # model alone is too far from the market: likely news
+    if b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]): return False     # model alone is too far from the market: likely news
     return CFG["min_edge"] <= b["edge"] <= CFG["max_edge"] and b["adj"] >= CFG["min_adj_ev"]
 
 
@@ -466,7 +501,7 @@ def cmd_pick(date, lg):
         print("already picked for", lg, date); return
     priced = json.load(open(O + f"priced/{lg}_{date}.json"))
     pool = sorted([b for b in priced if eligible(b)], key=lambda b: -b["adj"])
-    big = sum(1 for b in priced if max(b["edge"], b.get("edgec", 0)) > CFG["max_edge"])
+    big = sum(1 for b in priced if b["edge"] > CFG["max_edge"] or b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]))
     picks, per_game, seen = [], {}, set()
     for b in pool:
         if b["pid"] in seen or per_game.get(b["game"], 0) >= CFG["max_per_game"]:
@@ -475,18 +510,19 @@ def cmd_pick(date, lg):
         picks.append(b)
         if len(picks) == CFG["max_picks"]:
             break
+    logged = 0
     for i, b in enumerate(picks):
-        b = dict(b); b.update(best=(i == 0), status="open", result=None, lane="edge")
+        b = dict(b); b.update(best=(logged == 0), status="open", result=None, lane="edge")
         for k in ("be", "conf", "adj", "n"):
             b.pop(k, None)
         if not put_stake(h, b):
             print("  day is full at", CFG["day_units"], "units:", b["name"]); continue
-        h["bets"].append(b)
+        h["bets"].append(b); logged += 1
         print(f'  {"BEST" if i == 0 else "pick"}: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} ({b["nb"]} books) blended {b["muf"]}  {b["flags"]}')
     h["days"] = [d for d in h["days"] if not (d["date"] == date and d["lg"] == lg)]
-    h["days"].append(dict(date=date, lg=lg, sides_priced=len(priced), cleared_bar=len(pool), picks=len(picks), skipped_large_edge=big))
+    h["days"].append(dict(date=date, lg=lg, sides_priced=len(priced), cleared_bar=len(pool), picks=logged, skipped_large_edge=big))      # v3.19: a pick the full day dropped is not counted
     save_history(h)
-    print(f"{lg} {date}: {len(priced)} sides priced, {len(pool)} cleared the bar, {len(picks)} logged, {big} skipped for an edge too large to trust")
+    print(f"{lg} {date}: {len(priced)} sides priced, {len(pool)} cleared the bar, {logged} logged, {big} skipped for an edge too large to trust")
     cmd_explain(date, lg)
 
 
@@ -588,29 +624,30 @@ def explain(b, D, quotes, news, mn=None):
             po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imp = implied_mean(L, lg, mkt, r["line"], po / (po + pu))
         books.append(dict(k=bk, n=BOOKN.get(bk, bk), line=r["line"], o=None if r["o"] is None else int(r["o"]), u=None if r["u"] is None else int(r["u"]),
                           imp=None if imp is None else round(imp, 2), fair=None if imp is None else round(sidep(imp), 4)))
-    books.sort(key=lambda x: (x["k"] != CFG["book"], x["n"]))
-    others = [x for x in books if x["k"] != CFG["book"] and x["imp"] is not None]
-    hr = next((x for x in books if x["k"] == CFG["book"]), None)
+    BB = b.get("book") or CFG["book"]; BN = BOOKN.get(BB, BB)      # v3.22: the book the bet is at
+    books.sort(key=lambda x: (x["k"] != BB, x["n"]))
+    others = [x for x in books if x["k"] != BB and x["imp"] is not None]
+    hr = next((x for x in books if x["k"] == BB), None)
     mm, cen, mu, muf = b.get("mm"), b.get("cen", 1.0), b["mu"], b.get("muf", b["mu"])
     p_desk = b["p"]; p_mkt = sidep(mm) if mm else None; p_model = sidep(cen * mu)
     hr_nv = hr["fair"] if hr and hr["fair"] is not None else None
     gap = (p_mkt - hr_nv) if (p_mkt is not None and hr_nv is not None) else 0.0
     tilt = (p_desk - p_mkt) if p_mkt is not None else 0.0
     kind = "both" if (gap >= .02 and tilt >= .015) else "price" if gap >= .02 else "model" if tilt >= .015 else "thin"
-    head = {"price": f"A price play. Hard Rock's number on {last} is out of line with the other {len(others)} books, and the {sw} is the side they lean to.",
-            "model": f"A model play. Hard Rock is priced like the other books. The edge is the model seeing {'more' if over else 'fewer'} {unit} for {last} than any of them.",
-            "both": f"Price and model agree. Hard Rock is softer than the other books on the {sw}, and the model leans the same way.",
+    head = {"price": f"A price play. {BN}'s number on {last} is out of line with the other {len(others)} books, and the {sw} is the side they lean to.",
+            "model": f"A model play. {BN} is priced like the other books. The edge is the model seeing {'more' if over else 'fewer'} {unit} for {last} than any of them.",
+            "both": f"Price and model agree. {BN} is softer than the other books on the {sw}, and the model leans the same way.",
             "thin": "A thin one. A small price gap and a small model lean add up to just enough."}[kind]
     pts = []
     # --- price
     oq = "; ".join(f"{x['n']} {x['line']:g} ({x['o']:+d}/{x['u']:+d})" for x in others)
-    t = f"Hard Rock has the {sw} {line:g} at {odds:+d}, which needs {pc(be)} to break even."
+    t = f"{BN} has the {sw} {line:g} at {odds:+d}, which needs {pc(be)} to break even."
     if others and p_mkt is not None:
         t += f" The others: {oq}. With the house cut taken out, those books make the {sw} {line:g} a {pc(p_mkt)} shot."
         if hr_nv is not None:
-            t += f" Hard Rock's own prices say {pc(hr_nv)}."
-            t += (f" That {gap * 100:.1f} point gap is the price edge." if gap >= .02 else " Hard Rock is the worst of the prices on this side, so the model has to carry the bet." if gap <= -.02
-                  else " No real gap: Hard Rock is in line with the market.")
+            t += f" {BN}'s own prices say {pc(hr_nv)}."
+            t += (f" That {gap * 100:.1f} point gap is the price edge." if gap >= .02 else f" {BN} is the worst of the prices on this side, so the model has to carry the bet." if gap <= -.02
+                  else f" No real gap: {BN} is in line with the market.")
     pts.append(["Price", t])
     # --- model
     t = f"The model projects {mu:.1f} {unit}" + (f" on {mn:.0f} minutes" if (lg == "NBA" and mn) else "") + "."
@@ -686,13 +723,15 @@ def explain(b, D, quotes, news, mn=None):
 
 def pass_reason(b):
     """Why a side that looked interesting was not bet. Same tests as eligible(), in the order a person would ask them."""
+    if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []):
+        return "ON TRIAL", "A market on trial: priced and graded in the audit, not picked until it has 200 graded sides and the weekly review adds it."
     if b.get("nb", 0) < CFG["min_books"]:
         return "NO SECOND BOOK", f"Only {b.get('nb', 0)} other book{'s' if b.get('nb', 0) != 1 else ''} quoting it. No market check, no bet."
     if "questionable" in b["flags"]:
         return "QUESTIONABLE", "Listed questionable. The desk does not bet a player whose status is open."
     if "missed last game" in b["flags"]:
         return "ROLE UNKNOWN", "He has been out. His role on return is a guess."
-    if b.get("edgec", 0) > CFG["max_edge"]:
+    if b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]):
         return "HOLD: NEWS?", f"The model alone is {b['edgec'] * 100:.0f} points from the book. A gap that wide is usually news the model has not seen, so it is held."
     if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]):
         return "PRICE", f"{b['odds']:+d} is outside the prices the desk plays ({CFG['min_odds']} to +{CFG['max_odds']})."
@@ -727,7 +766,7 @@ def cmd_explain(date, lg, sfx=""):
         save_history(h); print(f"{lg} {date}: evening case files written for {len(mine)} bets"); return
     took = {(b["id"], b["side"]) for b in mine}; seen, passed = set(), []
     for x in sorted(priced, key=lambda x: -x["adj"]):
-        if (x["id"], x["side"]) in took or x["id"] in seen or not (x["edge"] >= .015 or x.get("edgec", 0) > CFG["max_edge"]) or x["edge"] < 0:
+        if (x["id"], x["side"]) in took or x["id"] in seen or not (x["edge"] >= .015 or x.get("edgec", 0) > CFG["hold_edge"].get(x["lg"], CFG["max_edge"])) or x["edge"] < 0:
             continue
         seen.add(x["id"]); stamp, why = pass_reason(x)
         passed.append(dict(name=x["name"], team=x["team"], opp=x["opp"], side=x["side"], line=x["line"], mkt=x["mkt"], odds=x["odds"], p=x["p"], edge=x["edge"],
@@ -745,7 +784,7 @@ def cmd_explain(date, lg, sfx=""):
 
 def cmd_close(date, lg, label, files):
     """Closing line check. Feed it a late odds pull (same row format) for the games with open bets. For each open bet it
-    records where Hard Rock closed, the market's fair chance of the bet at the close, and closing line value:
+    records where the bet's book closed, the market's fair chance of the bet at the close, and closing line value:
     clv = what a dollar at the price we took is worth at the closing fair price, minus one. Above zero means we beat the close."""
     D, _ = load(); L = D[lg]; h = history(); quotes = _quotes(files); n = 0
     for b in h["bets"]:
@@ -760,7 +799,7 @@ def cmd_close(date, lg, label, files):
         over = b["side"] == "Over"
         def sidep(mean):
             ov, un, _ = probs(L, lg, b["mkt"], mean, b["line"]); return (ov if over else un) / (ov + un)
-        mc = float(np.median(imps)); fair = sidep(mc); hr = books.get(CFG["book"]) or {}
+        mc = float(np.median(imps)); fair = sidep(mc); hr = books.get(b.get("book") or CFG["book"]) or {}
         opened = sidep(b["mm"]) if b.get("mm") else None
         b["close"] = dict(t=label, line=hr.get("line"), o=None if hr.get("o") is None else int(hr["o"]), u=None if hr.get("u") is None else int(hr["u"]),
                           nb=len(imps), mm=round(mc, 2), fair=round(fair, 4), clv=round(dec(b["odds"]) * fair - 1, 4),
@@ -857,7 +896,7 @@ def cmd_report(h=None):
     def line(bs, label):
         w = sum(b["status"] == "won" for b in bs); l = sum(b["status"] == "lost" for b in bs)
         pl = lambda b: (dec(b["odds"]) - 1) * b["units"] if b["status"] == "won" else -b["units"] if b["status"] == "lost" else 0
-        u = sum(pl(b) for b in bs); usd = sum(pl(b) * CFG["unit"] for b in bs)        # every ticket at today's unit, matching the page
+        u = sum(pl(b) for b in bs); usd = sum(pl(b) * b.get("unit", h.get("legacy_unit", 0.5)) for b in bs)        # v3.19: each ticket at the unit it was made at, matching the page
         if w + l:
             print(f"  {label:<14} {w}-{l}  hit {w/(w+l):.1%}  units {u:+.2f}  dollars {usd:+.2f}  avg model prob {np.mean([b['p'] for b in bs if b['status'] in ('won','lost')]):.1%}")
     done = [b for b in h["bets"] if b["status"] != "open"]
@@ -922,7 +961,7 @@ ALTK = {"NBA": {"player_points_alternate": "pts", "player_rebounds_alternate": "
 
 
 def cmd_confident(date, lg, files):
-    """The confident-plays lane: outcomes the books themselves rate very likely, bet only where Hard Rock's price is no worse
+    """The confident-plays lane: outcomes the books themselves rate very likely, bet only where the best price (v3.22: any book in bet_books) is no worse
     than the books' own fair chance, and only where the model agrees on its own. Runs after `pick`, on the same lines.
     Candidates: every Hard Rock quote on the main line and on the alternate ladder. Each is priced three ways:
       fair  = the chance on the other books' consensus number (median of what each book's main line and prices imply)
@@ -947,7 +986,7 @@ def cmd_confident(date, lg, files):
         byname.setdefault(norm(x["name"]), set()).add(pid)
     rows = []
     for f in files:
-        rows += [r for r in parse(f) if r["book"] == CFG["book"]]
+        rows += [r for r in parse(f) if r["book"] in CFG["bet_books"] and (r["u"] is None or r["o"] is None or CFG["sane"][0] <= 1 / dec(r["o"]) + 1 / dec(r["u"]) <= CFG["sane"][1])]
     cands = []
     for r in rows:
         alt = r["market"] in ALTK[lg]
@@ -998,15 +1037,15 @@ def cmd_confident(date, lg, files):
         hit = sum((y > r["line"]) if c["side"] == "Over" else (y < r["line"]) for y in v)
         unit = UNIT.get(c["mkt"], c["mkt"]); pc = lambda q: f"{q * 100:.1f}%"
         b = dict(id=f'{date}|{lg}|{x["pid"]}|{c["mkt"]}|{"alt" if c["alt"] else "main"}{r["line"]}', date=date, lg=lg, game=x["game"], gl=x["gl"], pid=x["pid"], name=x["name"],
-                 team=x["team"], opp=x["opp"], mkt=c["mkt"], side=c["side"], line=r["line"], odds=c["odds"], book=CFG["book"], mu=x["mu"], p=round(c["fair"], 4),
+                 team=x["team"], opp=x["opp"], mkt=c["mkt"], side=c["side"], line=r["line"], odds=c["odds"], book=r["book"], mu=x["mu"], p=round(c["fair"], 4),
                  edge=round(c["edge"], 4), ev=round(c["fair"] * (dec(c["odds"]) - 1) - (1 - c["fair"]), 4), rating="CONF", flags=[], tag=x["tag"], ver=VER, nb=x.get("nb"),
                  muf=x.get("muf"), mm=x.get("mm"), cen=x.get("cen"), p0=round(c["model"], 4), pd=round(c["desk"], 4), lane="confident", alt=c["alt"], best=False,
                  status="open", result=None, mn=x.get("mn"))
         if not put_stake(h, b):
             print("  day is full at", CFG["day_units"], "units:", b["name"]); continue
         b["why"] = dict(kind="confident",
-            head=f'A confident play: the other books rate {c["side"].lower()} {r["line"]} {unit} a {pc(c["fair"])} shot, the model agrees, and Hard Rock charges no more than that.',
-            pts=[["Price", f'Hard Rock has the {c["side"]} {r["line"]}{" (alternate line)" if c["alt"] else ""} at {c["odds"]:+d}, which needs {pc(c["be"])} to break even: you risk 1 to win {dec(c["odds"]) - 1:.2f}.'],
+            head=f'A confident play: the books rate {c["side"].lower()} {r["line"]} {unit} a {pc(c["fair"])} shot, the model agrees, and {BOOKN.get(r["book"], r["book"])} charges no more than that.',
+            pts=[["Price", f'{BOOKN.get(r["book"], r["book"])} has the {c["side"]} {r["line"]}{" (alternate line)" if c["alt"] else ""} at {c["odds"]:+d}, which needs {pc(c["be"])} to break even: you risk 1 to win {dec(c["odds"]) - 1:.2f}.'],
                  ["Books", f'{x.get("nb")} other books on the main line imply {x["mm"]:.1f} {unit}. On that number the {c["side"].lower()} {r["line"]} lands {pc(c["fair"])} of the time{", after 2 points off for an early exit" if c["side"] == "Over" else ""}.'],
                  ["Model", f'The model on its own projects {x["mu"] * x.get("cen", 1.0):.1f} after centring, which makes it {pc(c["model"])}. It agrees.'],
                  ["Form", f'Last {len(v)}: {", ".join(str(int(y)) for y in v)}. {"Cleared" if c["side"] == "Over" else "Stayed under"} {r["line"]} in {hit} of {len(v)}.' if v else "No recent games on file."],
@@ -1022,7 +1061,7 @@ def cmd_confident(date, lg, files):
         day = dict(date=date, lg=lg, sides_priced=0, cleared_bar=0, picks=0); h["days"].append(day)
     day["conf"] = dict(quotes=len(cands), cleared=len(pool), picks=len(picks), alt=sum(c["alt"] for c in cands))
     save_history(h)
-    print(f"{lg} {date} confident lane: {len(cands)} Hard Rock quotes in the band ({sum(c['alt'] for c in cands)} alternate), {len(pool)} cleared, {len(picks)} logged")
+    print(f"{lg} {date} confident lane: {len(cands)} quotes in the band ({sum(c['alt'] for c in cands)} alternate), {len(pool)} cleared, {len(picks)} logged")
 
 
 
@@ -1044,7 +1083,8 @@ def cmd_fill(date):
         if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]) or b["n"] < CFG["min_games"]: return False
         if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
         if any(f in b["flags"] for f in ("missed last game", "questionable")): return False
-        if b.get("nb", 0) < CFG["min_books"] or b.get("edgec", 0) > CFG["max_edge"]: return False
+        if b.get("nb", 0) < CFG["min_books"] or b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]): return False
+        if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False     # leans follow the same market guard
         return CFG["lean_edge"] <= b["edge"] <= CFG["max_edge"] and b["adj"] > 0
     taken_p = {b["pid"] for b in today}; taken_g = {}
     for b in today: taken_g[b["game"]] = taken_g.get(b["game"], 0) + 1

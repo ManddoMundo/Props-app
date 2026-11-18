@@ -19,24 +19,25 @@ KIND=$(cat /tmp/relay_kind 2>/dev/null || echo none); [ -n "$FORCE" ] && KIND=$F
 D=$(TZ=America/New_York date +%F); cd $P/src; NOTE=""
 case "$KIND" in
   early|midday|build)
-    if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; N=$P/out/news/${LG}_$D.txt
-      if [ -f "$L" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" "$L"; fi; done; fi
+    # v3.19: lineup news from today's injury report on every run, lines or not (NFL news used to wait for a game day's lines)
+    for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; N=$P/out/news/${LG}_$D.txt; [ "$KIND" = midday ] || L=/nonexistent
+      if [ -f "$L" ] || [ -f "$N" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" $([ -f "$L" ] && echo "$L"); fi; done
     bash run.sh
     [ "$KIND" = early ] && NOTE="Morning refresh. Lines and picks come with the late morning run."
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
     if [ "$KIND" = midday ]; then for LG in NBA NFL; do L=$P/out/lines/${LG}_$D.txt; T=$P/out/lines/${LG}_${D}_today.txt
-      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG; python3 daily.py confident $D $LG "$T" || echo "CONFIDENT LANE FAILED for $LG"
+      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -qE '^(hardrockbet|draftkings|fanduel|betmgm|williamhill_us|betrivers|fanatics)\|' "$T"; then python3 daily.py lines $D $LG "$T"; python3 daily.py pick $D $LG; python3 daily.py confident $D $LG "$T" || echo "CONFIDENT LANE FAILED for $LG"
       else NOTE="$NOTE $LG: no Hard Rock lines for games today."; fi; done
       python3 daily.py fill $D || echo "FILL STEP FAILED"
       python3 games.py && python3 daily.py gpicks $D log || echo "GAME PICKS STEP FAILED"; fi ;;
   evening)      # v3.17: about 6 PM. Fresh injuries into the model, closing numbers for the midday bets, then a second look under the same rules
     for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; N=$P/out/news/${LG}_$D.txt
-      if [ -f "$L" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" "$L"; fi; done
+      if [ -f "$L" ] || [ -f "$N" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" $([ -f "$L" ] && echo "$L"); fi; done
     bash run.sh
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
     for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; T=$P/out/lines/${LG}_${D}_pm_today.txt
       if [ -f "$L" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), evening" "$L" || true; fi
-      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then FL_RUN=pm python3 daily.py lines $D $LG "$T" && python3 daily.py evening $D $LG || echo "EVENING PASS FAILED for $LG"
+      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -qE '^(hardrockbet|draftkings|fanduel|betmgm|williamhill_us|betrivers|fanatics)\|' "$T"; then FL_RUN=pm python3 daily.py lines $D $LG "$T" && python3 daily.py evening $D $LG || echo "EVENING PASS FAILED for $LG"
       else NOTE="$NOTE $LG: no evening Hard Rock lines for games still to come."; fi; done
     python3 games.py || echo "GAME MODEL STEP FAILED" ;;
   close)

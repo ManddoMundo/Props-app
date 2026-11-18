@@ -31,5 +31,7 @@ except Exception as e:
     print("jersey numbers skipped:",e)
 D["built"]=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 d=json.dumps(D,separators=(",",":")).replace("</","<\\/")
+# v3.20 the Sim tab lives in its own two files, poured into the page here
+h=h.replace("/*__SIM_CSS__*/",open(S+"simtab.css").read()).replace("/*__SIM_JS__*/",open(S+"simtab.js").read())
 h=h.replace("/*__ENGINE__*/",e).replace("/*__DATA__*/",d)
 open(O+"index.html","w").write(h); print(len(h))
