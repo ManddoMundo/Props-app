@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-18 v3.34 the Board card says the pick (asked for by Armanddo; display only)
+- The Board card never said which side it liked: it showed the chance of the over even when the value was on the under (Daniss Jenkins: "Over % 45.6%" next to a +17 EV that was the under), with Proj, Fair line, HR line, Over %, EV / $100 and Rating in a grid of codes.
+- Now, like the Hit rates card: name, rank (#1), team, opponent and tip time; THE PICK in a tote box ("Under 18.5 points", "-108 at CZR"), with the grade beside it; the headline "53.7% desk's chance it goes under"; an LED meter of that chance with a dashed tick at what the price needs to break even ("needs 51.9%"), the stretch past it lit amber as the edge; then Projection, Fair line, Edge and value per $100 in dollars. No book line yet: the box shows the fair line and asks for the book's. On hold: the box and headline say so and why. Same fonts as the other cards; round headings in Barlow Condensed.
+- Unfolded: two cards across, round headings across the full width.
+
 ## 2026-11-18 v3.33 a fuller TV unfolded, LED bars on the player cards (asked for by Armanddo; display only)
 - Unfolded, the TV left green space under it on the iPhone Duo: v3.32 spanned it over 30 implicit grid rows, which Safari sized differently from Chrome. Now a counter panel's controls are moved into one side column (.wr-side, done by the page as the panel lands), the TV and that column sit side by side at the same height, and the TV stretches to it: the screen grows, the counters stay two by two with larger numbers (30 to 40px) and captions, and the knobs and grille scale up. Measured at 1148px wide: TV 257px, controls 257px, no gap below.
 - Player-card bars: no more orange-to-red gradient. The chart sits on the same tote black as THE BET box, as an LED bar graph: segmented bars, lit amber on a hot card and green otherwise for games that cleared the line, dim for games that missed; values and opponents in the board's LED colours; the line dashed in chalk. Same in light mode (the panel stays dark, like the bet box).

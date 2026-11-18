@@ -679,7 +679,7 @@ button.row.pl:active{transform:translateX(5px) scale(.992)}
 .lotto i:last-child span{background:var(--led);border-color:#fff}
 .m-board.in .lotto i{animation:flipcard .7s var(--ease) backwards;animation-delay:calc(var(--j,0)*230ms + 200ms)}
 @keyframes flipcard{from{transform:rotateY(180deg)}}
-.rnd{display:flex;align-items:center;gap:10px;padding:13px 14px 7px;font:700 10.5px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--rule)}
+.rnd{display:flex;align-items:center;gap:10px;padding:13px 14px 7px;font:700 12px var(--fx-ui);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--rule)}
 .rnd b{color:var(--ink)} .rnd::after{content:"";flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--rule) 0 6px,transparent 6px 10px)}
 .pk{font:700 10.5px var(--mono);letter-spacing:.08em;color:var(--mute);margin-right:6px}
 :root[data-lg="NFL"] #ledger .row.pl.in{animation:strip-in .42s var(--thunk) backwards;animation-delay:calc(var(--i,0)*28ms)}
@@ -894,6 +894,38 @@ body.morph .memo{transition:none!important}
 .trs-c.l10.hot{border-color:#f06a14}.trs-c.l10.cold{border-color:#3e9be6}
 @media (prefers-reduced-motion:reduce){.drg *,.drg-t,.drg-t::before,.drg-t::after{animation:none!important;transition:none!important}}
 .wr-side{display:grid;gap:12px;min-width:0;align-content:start}
+/* v3.34 the Board card (rowHtml): the pick in words, the grade beside it, the desk's chance against break-even as a meter */
+.rs-led .row.pl.hrc,#ledger .row.pl.brc,.row.brc{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;padding:12px 14px 13px 18px}
+.brc-rk{font:700 15px var(--fx-num);color:var(--ink);margin-right:2px}
+.brc-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.brc-pk{display:flex;flex-direction:column;gap:3px;padding:8px 12px 9px;border-radius:9px;background:var(--tote);border:1px solid var(--tote-rule);min-width:0}
+.brc-pk>small,.brc-gr>small{font:600 11px var(--fx-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--led-mute)}
+.brc-pk em{font:500 15px var(--fx-ui);font-style:normal;color:var(--led-mute)}.brc-pk em .num{font:700 17px var(--fx-num);color:var(--chalk)}
+.brc-pk.hold b{color:var(--warn)}.brc-pk.none b{color:var(--led-mute)}
+.brc-gr{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:9px;background:var(--tote);border:1px solid var(--tote-rule);min-width:74px}
+.brc-gr .rate{font:800 22px/1 var(--fx-num);padding:5px 9px 4px;letter-spacing:.04em}
+.brc-gr .rate.g{color:var(--led-good)}.brc-gr .rate.w{color:var(--led)}.brc-gr .rate.b{color:var(--led-bad)}.brc-gr .rate.n{color:var(--led-mute)}
+.brc-hl{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brc-hl b{font:800 42px/.9 var(--fx-num);color:var(--ink)}
+.brc-hl.pos b{color:var(--good)}.brc-hl.neg b{color:var(--bad)}
+.brc-hl>span{font:500 16px/1.25 var(--fx-ui);color:var(--mute)}.brc-hl>span b.num{font-size:20px;color:var(--ink)}
+.brc-hl.hold>span{color:var(--warn)}
+.brc-m{display:block;padding:20px 12px 12px;border-radius:9px;background:var(--tote);border:1px solid var(--tote-rule)}
+.brc-mt{position:relative;display:block;height:12px;border-radius:3px;background:repeating-linear-gradient(90deg,#2a3530 0 5px,transparent 5px 7px)}
+.brc-mt i{position:absolute;top:0;bottom:0;display:block}
+.brc-mt .f{left:0;border-radius:3px;background:repeating-linear-gradient(90deg,var(--led-good) 0 5px,transparent 5px 7px);filter:drop-shadow(0 0 4px rgba(134,227,154,.45))}
+.brc-mt .f.neg{background:repeating-linear-gradient(90deg,var(--led-mute) 0 5px,transparent 5px 7px);filter:none}
+.brc-mt .g{background:repeating-linear-gradient(90deg,var(--led) 0 5px,transparent 5px 7px);filter:drop-shadow(0 0 5px rgba(255,184,51,.55))}
+.brc-mt .g.neg{background:repeating-linear-gradient(90deg,var(--led-bad) 0 5px,transparent 5px 7px)}
+.brc-mt .be{width:0;top:-6px;bottom:-6px;border-left:2px dashed var(--chalk)}
+.brc-mt .be em{position:absolute;bottom:calc(100% + 1px);left:0;transform:translateX(-50%);font:600 12.5px var(--fx-ui);font-style:normal;color:var(--chalk);white-space:nowrap}
+.brc-f b.pos{color:var(--good)}.brc-f b.neg{color:var(--bad)}
+#ledger .rnd{grid-column:1/-1}
+@media(min-width:760px){
+  #ledger.ledger:has(.brc){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:none;border:0;box-shadow:none;overflow:visible}
+  #ledger .row.brc{border:1px solid var(--rule);border-radius:12px;background:var(--panel);box-shadow:var(--lift),inset 5px 0 0 var(--t1);align-content:start}
+  #ledger .rnd,#ledger .more{grid-column:1/-1}
+}
 /* v3.32 player-card type (Armanddo did not like the dot matrix and typewriter faces on the cards): numbers in Big Shoulders
    Display, words in Barlow Condensed. The TV keeps its LED faces. */
 :root{--fx-num:"Big Shoulders Display","Oswald",var(--text);--fx-ui:"Barlow Condensed","Oswald",system-ui,sans-serif}
@@ -2324,22 +2356,34 @@ function filtered() {
   return a;
 }
 function rowHtml(pr, i) {
-  const p = pr.e.p, a = assess(pr), M = MK[pr.lg][pr.mkt], fl = getLine(pr.key);
+  // v3.34 the Board card says the pick in words, the way the Hit rates card does: who and when; THE PICK (side, line, market,
+  // price and book, with the grade); the desk's chance of that side against what the price needs to break even, drawn as a
+  // meter; then the projection, the fair line, the edge and the value per $100. (Before, it showed the chance of the over even
+  // when the value was on the under, and never said which side.)
+  const p = pr.e.p, a = assess(pr), M = MK[pr.lg][pr.mkt], fl = getLine(pr.key), lg = pr.lg, side = pr.e.side, g = IDX[lg].games[side.game];
   const am = anchMu(pr, fl), dk = am != null;      // desk number: the model moved onto what the books say (and by any lineup change)
   const d = dk ? dist({ key: pr.key + '#m', mu: am, lg: pr.lg, mkt: pr.mkt, binary: false }) : dist(pr), proj = dk ? am : pr.mu;
   const fair = pr.binary ? odds(E.amer(d[1])) : E.fairLine(d);
-  const ln = a ? a.ln : null, sp = a ? a.sp : pr.binary ? { over: d[1] } : E.split(d, fair);      // with a book line, the chance shown is the desk's, not the raw model's
-  const say = `Pick ${(i || 0) + 1}: ${p.name}, ${p.team}, ${M.n}. ${a ? `${a.hold ? 'On hold' : 'Rated ' + a.rating}: ${a.best.side}${pr.binary ? '' : ' ' + a.ln.line} at ${odds(a.best.odds)}` : `Fair line ${fair}, no book line yet`}. Projection ${pr.binary ? pct(1 - Math.exp(-pr.mu)) : f1(proj)}. Open the memo.`;      // v3.14.2: one clear spoken label
-  return `<button class="row pl${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}${i < 3 ? ' top3' : ''}" style="--i:${i || 0};${tcol(pr.lg, p.team)}" data-open="${esc(pr.key)}" aria-label="${esc(say)}">
-    ${ctlHtml(pr.key)}${whoHtml(pr, M.s, (i || 0) + 1)}
-    <span class="cells">
-      <span class="cell" title="${dk ? `Desk number. Model alone ${f1(pr.mu)}, other books ${f1(fl.mm)}` : 'Model'}"><small>${dk ? 'Proj' : 'Model'}</small><span>${pr.binary ? pct(d[1]) : f1(proj)}</span></span>
-      <span class="cell"><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><span>${fair}</span></span>
-      <span class="cell"><small>${ln && ln.book && !ln.mine ? bkn(ln.book) + ' line' : 'Book line'}</small><span class="${ln ? '' : 'mut'}">${ln ? (pr.binary ? (ln.o != null ? odds(ln.o) : ln.u != null ? 'No ' + odds(ln.u) : 'enter') : ln.line) : 'enter'}</span></span>
-      <span class="cell"><small>${pr.binary ? 'Yes' : 'Over'} %</small><span>${pct(sp.over)}</span></span>
-      <span class="cell"><small>EV / $100</small><span class="${a ? (a.best.ev >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? sgn(a.best.ev * 100) : '·'}</span></span>
-      <span class="cell"><small>Rating</small><span>${a ? `<span class="rate ${a.cls}">${a.rating}</span>` : '<span class="rate n">NR</span>'}</span></span>
-    </span></button>`;
+  const ln = a ? a.ln : null, sp = a ? a.sp : pr.binary ? { over: d[1] } : E.split(d, fair);
+  const say = `Pick ${(i || 0) + 1}: ${p.name}, ${p.team}, ${M.n}. ${a ? `${a.hold ? 'On hold' : 'Rated ' + a.rating}: ${a.best.side}${pr.binary ? '' : ' ' + a.ln.line} at ${odds(a.best.odds)}` : `Fair line ${fair}, no book line yet`}. Projection ${pr.binary ? pct(1 - Math.exp(-pr.mu)) : f1(proj)}. Open the memo.`;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const when = !g ? '' : lg === 'NFL' ? `${g.wd ? g.wd.slice(0, 3) + ' ' : ''}${t12(g.time)}` : `${g.day === today ? 'Tonight' : new Date(g.day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })} ${t12(g.time)}`;
+  const b = a && a.best, mk = esc(M.n.toLowerCase()), book = ln && ln.book && !ln.mine ? bkn(ln.book) : ln && ln.mine ? 'your book' : '';
+  const sideTxt = b ? (pr.binary ? (b.side === 'Yes' ? 'Scores' : 'No score') : `${b.side} <span class="num">${ln.line}</span>`) : '';
+  const pick = !a ? `<span class="brc-pk none"><small>No book line yet</small><span class="hrc-bl"><b>Fair <span class="num">${fair}</span></b><span>${mk}</span></span></span>`
+    : `<span class="brc-pk${a.hold ? ' hold' : ''}"><small>${a.hold ? 'On hold' : 'The pick'}</small><span class="hrc-bl"><b>${sideTxt}</b><span>${pr.binary ? 'anytime touchdown' : mk}</span></span><em><span class="num">${odds(b.odds)}</span>${book ? ' at ' + esc(book) : ''}</em></span>`;
+  const grade = a ? `<span class="rate ${a.cls}">${a.rating}</span>` : '<span class="rate n">NR</span>';
+  const meter = !a ? '' : (() => { const pc = Math.max(0, Math.min(1, b.pn)), be = Math.max(0, Math.min(1, b.be)), gl = Math.min(pc, be), gw = Math.abs(pc - be);
+    return `<span class="brc-m" role="img" aria-label="Desk chance ${pct(b.pn)}, break even ${pct(b.be)}"><span class="brc-mt"><i class="f${b.edge >= 0 ? '' : ' neg'}" style="width:${(pc * 100).toFixed(1)}%"></i><i class="g${b.edge >= 0 ? '' : ' neg'}" style="left:${(gl * 100).toFixed(1)}%;width:${(gw * 100).toFixed(1)}%"></i><i class="be" style="left:${(be * 100).toFixed(1)}%"><em>needs ${pct(b.be)}</em></i></span></span>`; })();
+  const head = !a ? `<span class="brc-hl"><span>Projection <b class="num">${pr.binary ? pct(d[1]) : f1(proj)}</b> · enter your book's line to grade it</span></span>`
+    : a.hold ? `<span class="brc-hl hold"><span>The model is far from the books here, which usually means news it has not seen. Check before betting.</span></span>`
+    : `<span class="brc-hl${b.edge >= 0 ? ' pos' : ' neg'}"><b class="num">${pct(b.pn)}</b><span>desk's chance it ${pr.binary ? (b.side === 'Yes' ? 'happens' : 'does not happen') : 'goes ' + b.side.toLowerCase()}</span></span>`;
+  const facts = `<span class="hrc-f brc-f"><span><small>${dk ? 'Projection' : 'Model'}</small><b>${pr.binary ? pct(d[1]) : f1(proj)}</b></span><span><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><b>${fair}</b></span>`
+    + `<span><small>Edge</small><b class="${a ? (b.edge >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? sgn(b.edge * 100) + '%' : 'none'}</b></span><span><small>Per $100</small><b class="${a ? (b.ev >= 0 ? 'pos' : 'neg') : 'mut'}">${a ? (b.ev >= 0 ? '+$' : '−$') + Math.abs(b.ev * 100).toFixed(2) : 'none'}</b></span></span>`;
+  return `<button class="row pl brc${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}${i < 3 ? ' top3' : ''}" style="--i:${i || 0};${tcol(pr.lg, p.team)}" data-open="${esc(pr.key)}" aria-label="${esc(say)}">
+    ${ctlHtml(pr.key)}<span class="hrc-h">${jersey(lg, p)}<span class="hrc-who"><b>${esc(p.name)}</b><small><span class="brc-rk">#${(i || 0) + 1}</span>${teamTag(lg, p.team)}${side.home ? 'vs' : '@'} ${esc(side.opp)}${when ? ' · ' + when : ''}</small></span></span>
+    <span class="brc-top">${pick}<span class="brc-gr"><small>Grade</small>${grade}</span></span>
+    ${head}${meter}${facts}</button>`;
 }
 function boardHtml() {
   const lg = S.lg, L = DATA[lg], a = filtered(), nl = PROPS.filter(p => getLine(p.key)).length, ns = Object.keys(S.scen[lg]).length;
