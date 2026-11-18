@@ -76,6 +76,14 @@
 .sm-prog b{position:absolute;top:9px;width:2px;height:11px;background:var(--tote-rule);transform:translateX(-1px)}
 .sm-runs{margin:14px 0 4px}
 .sm-runs .lbl{color:var(--led-mute)}
+.sm-fc{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 10px;padding:9px 11px;border-radius:8px;background:#050806;border:1px solid var(--tote-rule);font:600 13px var(--mono);color:var(--chalk)}
+.sm-fc span{display:flex;flex-direction:column;gap:2px}
+.sm-fc small{font:500 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--led-mute)}
+.sm-rg{display:flex;align-items:baseline;gap:8px;margin-top:8px;min-width:0}
+.sm-rg small{font:10.5px var(--mono);color:var(--led-mute);opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sm-rg .lbl{color:var(--led)}
+.sm-rn{margin:6px 0 0;font:12px/1.45 var(--mono);color:var(--led-mute);max-width:62ch}
+.sm-rn b{color:var(--chalk);font-weight:700}
 .sm-rl{display:flex;gap:6px;overflow-x:auto;padding:6px 1px 4px;scrollbar-width:none;overscroll-behavior-x:contain}
 .sm-rl::-webkit-scrollbar{display:none}
 .sm-r{flex:0 0 auto;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:78px;padding:6px 9px 7px 12px;border-radius:8px;background:#050806;color:var(--chalk);border:1px solid var(--tote-rule);transition:transform .16s var(--sm-out),border-color .2s}
@@ -83,6 +91,11 @@
 .sm-r::after{content:"";position:absolute;left:4px;top:7px;bottom:7px;width:3px;border-radius:2px;background:var(--h1);opacity:calc(max(0, var(--m)) * 1)}
 .sm-r b{font:700 14px var(--dot);color:var(--led);letter-spacing:.04em}
 .sm-r small{font:10.5px var(--mono);color:var(--led-mute);white-space:nowrap}
+.sm-rh{display:flex;align-items:baseline;gap:10px}
+.sm-r em{font:600 9.5px var(--mono);font-style:normal;letter-spacing:.04em;color:var(--warn)}
+.sm-r em.d{color:var(--led-good)}
+.sm-r.o{background:#0b0a06}
+.sm-r.o b{color:var(--chalk)}
 .sm-r:active{transform:scale(.96)}
 .sm-r.on{border-color:var(--led);box-shadow:0 0 0 1px var(--led)}
 .sm-box{margin-top:12px;border-top:1px solid var(--tote-rule);padding-top:8px}

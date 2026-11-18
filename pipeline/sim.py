@@ -241,6 +241,130 @@ def stat_of(lg, box, k):
     return box[k]
 
 
+TYP = 6         # typical runs shown by default
+
+
+def _rk(v, rng):
+    """Percentile rank of every run on one number, ties broken at random, in (0, 1)."""
+    o = np.argsort(np.asarray(v, float) + rng.random(len(v)) * 1e-6)
+    u = np.empty(len(v)); u[o] = (np.arange(len(v)) + 0.5) / len(v)
+    return u
+
+
+def _last(name):
+    bits = str(name).replace(" Jr.", "").replace(" III", "").replace(" II", "").split()
+    return bits[-1] if bits else str(name)
+
+
+def pick_runs(lg, x, s, M, tot, rng):
+    """Choose the replay runs. Typical: six runs that sit near the middle on the margin (within the winner's share of runs),
+    the total and the key players' main stats, split between the sides by how often each wins. Outliers: one representative run for
+    each named way the game can break (an upset under one in five, blowouts, shootout, low scoring, the top player's big and off nights), with its share
+    of runs and the two stats that move most against all runs. Returns ([(run, meta)], index of the most typical run)."""
+    N = len(M); nba = lg == "NBA"; tm = (x["g"]["away"], x["g"]["home"])
+    # key players: top two a side on points (NBA), top three a side on their main yards (NFL)
+    kp = []
+    for j, (ps, inp) in enumerate(x["sides"]):
+        box = s["teams"][j]; cand = []
+        for i, p in enumerate(ps):
+            if nba:
+                k = "pts"
+            else:
+                k = "pass_yds" if inp["qb"][i] else ("rush_yds" if inp["mu"]["rush_att"][i] >= inp["mu"]["tgt"][i] else "rec_yds")
+            v = box[k][:, i].astype(float)
+            cand.append((v.mean(), j, i, k, p["name"], v))
+        kp += sorted(cand, key=lambda c: -c[0])[:2 if nba else 3]
+    uM, uT = _rk(M, rng), _rk(tot, rng)
+    uP = [_rk(c[5], rng) for c in kp]
+    pl = sum((u - 0.5) ** 2 for u in uP) * (2.0 / max(1, len(uP)))
+    base = 1.5 * (uT - 0.5) ** 2 + pl                       # how far a run sits from the middle, margin aside
+    d_all = 2.0 * (uM - 0.5) ** 2 + base
+    w = 3 if nba else 4
+    seen, out = set(), []
+    def key_of(r):
+        return (int(s["score"][r, 0]), int(s["score"][r, 1]))
+    # typical: split six runs between the sides by win share, each side's runs spread over the middle of its own margins
+    home, away = M > 0, M < 0
+    ph, pa = home.mean(), away.mean()
+    nh = int(round(TYP * ph / max(1e-9, ph + pa)))
+    nh = TYP if pa < 0.2 else (0 if ph < 0.2 else min(max(nh, 1), TYP - 1))     # a side that wins under one run in five is an outlier, not typical
+    typ = []
+    for mask, n in ((home, nh), (away, TYP - nh)):
+        if n <= 0 or not mask.any():
+            continue
+        idx = np.flatnonzero(mask); uc = _rk(np.abs(M[idx]), rng)
+        for t in ([0.5] if n == 1 else np.linspace(0.25, 0.75, n)):
+            cost = 4.0 * (uc - t) ** 2 + base[idx]
+            for c in np.argsort(cost)[:400]:
+                r = int(idx[c])
+                if key_of(r) not in seen:
+                    seen.add(key_of(r)); typ.append(r); break
+    typ.sort(key=lambda r: (M[r], r))
+    dflt = int(min(range(len(typ)), key=lambda i: d_all[typ[i]])) if typ else 0
+    for r in typ:
+        m = M[r]
+        near = (np.sign(M) == np.sign(m)) & (np.abs(M - m) <= w)
+        out.append((r, dict(k="t", pct=round(float(near.mean()), 4))))
+    # outliers
+    sc = s["score"].astype(float)
+    feats = []                                              # (label, unit, values) checked for the why line
+    for j in (0, 1):
+        box = s["teams"][j]
+        if nba:
+            feats.append((f"{tm[j]} threes", "", box["fg3"].sum(1).astype(float)))
+        else:
+            if not any(c[1] == j and c[3] == "pass_yds" for c in kp):       # the QB's own line says the same thing
+                feats.append((f"{tm[j]} passing", " yds", box["pass_yds"].sum(1).astype(float)))
+            feats.append((f"{tm[j]} rushing", " yds", box["rush_yds"].sum(1).astype(float)))
+    for c in kp:
+        _, j, i, k, nm, v = c
+        feats.append((_last(nm), " pts" if k == "pts" else " yds", v))
+        if nba:
+            feats.append((f"{_last(nm)} minutes", "", s["teams"][j]["min"][:, i].astype(float)))
+    fm = [(f[2].mean(), f[2].std() + 1e-9) for f in feats]
+    def why(mask, skip=()):
+        z = []
+        for (lab, unit, v), (mu, sd) in zip(feats, fm):
+            if lab in skip:
+                continue
+            g = v[mask].mean(); z.append((abs(g - mu) / sd, lab, unit, g, mu))
+        z.sort(key=lambda t: -t[0])
+        return " · ".join(f"{lab} {g:.0f}{unit}, usually {mu:.0f}" for _, lab, unit, g, mu in z[:2] if _ > 0.1)
+    def rep(mask):
+        idx = np.flatnonzero(mask)
+        dims = [(2.0, uM), (1.5, uT)] + [(2.0 / max(1, len(uP)), u) for u in uP]
+        cost = sum(wt * (u[idx] - np.median(u[idx])) ** 2 for wt, u in dims)
+        for c in np.argsort(cost)[:400]:
+            r = int(idx[c])
+            if key_of(r) not in seen:
+                seen.add(key_of(r)); return r
+        return int(idx[np.argmin(cost)])
+    big = 20 if nba else 17
+    t90, t10 = np.percentile(tot, 90), np.percentile(tot, 10)
+    sc_ = []
+    fav = 1 if ph >= pa else 0
+    if min(ph, pa) < 0.2:                                   # at one in five or more the underdog's wins sit in Typical
+        sc_.append(("upset", f"{tm[1 - fav]} wins", (M < 0) if fav == 1 else (M > 0), ()))
+    bh = max(big, int(np.ceil(np.percentile(M, 90))))          # a blowout is past the side's own 90th percentile, never under 20 (NBA) / 17 (NFL)
+    ba = max(big, int(np.ceil(np.percentile(-M, 90))))
+    sc_.append(("bh", f"{tm[1]} by {bh}+", M >= bh, ()))
+    sc_.append(("ba", f"{tm[0]} by {ba}+", M <= -ba, ()))
+    sc_.append(("hi", f"Total {int(np.ceil(t90))}+", tot >= t90, ()))
+    sc_.append(("lo", f"Total {int(np.floor(t10))} or less", tot <= t10, ()))
+    if kp:
+        st = max(kp, key=lambda c: c[0]); v = st[5]; nm = _last(st[4]); unit = "pts" if st[3] == "pts" else "yds"
+        q9, q1 = np.percentile(v, 90), np.percentile(v, 10)
+        sc_.append(("big", f"{nm} {int(np.ceil(q9))}+ {unit}", v >= q9, (nm,)))
+        sc_.append(("off", f"{nm} {int(np.floor(q1))} {unit} or less", v <= q1, (nm,)))
+    for key, lab, mask, skip in sc_:
+        pct = float(mask.mean())
+        if pct < 0.01 or mask.sum() < 20:
+            continue
+        r = rep(mask)
+        out.append((r, dict(k="o", key=key, lab=lab, pct=round(pct, 4), why=why(mask, skip))))
+    return out, dflt
+
+
 LUD = {}
 
 
@@ -321,12 +445,13 @@ def run_game(lg, x, rng, lines, disp, slate_day):
                                           pk=None if pl["p_mkt"] is None else round(pl["p_mkt"], 4), mu=round(mu, 2) if mu is not None else None,
                                           b=b64bits(over)))
         game["teams"].append(T)
-    # replay runs: a spread of finishes, from the away side winning big to the home side winning big
-    order = np.argsort(M + rng.random(SIMS) * 0.1)
-    pick = order[np.round(np.linspace(0.04, 0.96, SAMPLES) * (SIMS - 1)).astype(int)]
+    # replay runs (v3.25): six typical games for the default set, then the outliers as named scenarios with how often each happened
     keys = ("min", "pts", "fg3", "reb", "ast") if lg == "NBA" else ("pass_att", "pass_cmp", "pass_yds", "pass_td", "rush_att", "rush_yds", "tgt", "rec", "rec_yds", "td", "rec_td")
-    for r in pick:
-        game["samples"].append(dict(sc=[int(sc[r, 0]), int(sc[r, 1])], b=[{k: [round(float(v), 1) if k == "min" else int(v) for v in s["teams"][j][k][r, :len(x["sides"][j][0])]] for k in keys} for j in (0, 1)]))
+    picks, game["def"] = pick_runs(lg, x, s, M, tot, rng)
+    for r, meta in picks:
+        game["samples"].append(dict(sc=[int(sc[r, 0]), int(sc[r, 1])], **meta, b=[{k: [round(float(v), 1) if k == "min" else int(v) for v in s["teams"][j][k][r, :len(x["sides"][j][0])]] for k in keys} for j in (0, 1)]))
+    game["mq"] = [int(round(v)) for v in np.percentile(M, [25, 50, 75])]
+    game["tq"] = [int(round(v)) for v in np.percentile(tot, [25, 50, 75])]
     return game
 
 

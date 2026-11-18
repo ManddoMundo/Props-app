@@ -58,9 +58,39 @@ function smStrip(lg, d) {
       <span class="sm-gt">${badge(lg, g.away, 'xs')}<b>${esc(g.away)}</b><i>@</i>${badge(lg, g.home, 'xs')}<b>${esc(g.home)}</b></span>
       <span class="sm-gm"><small>${t12(g.time)}</small><span class="sm-wbar" aria-hidden="true"><i></i></span><small>${Math.round((ph >= .5 ? ph : 1 - ph) * 100)}% ${esc(ph >= .5 ? g.home : g.away)}</small></span></button>`; }).join('')}</div></div>`).join('')}</nav>`;
 }
+// v3.25 replay runs: Typical (six runs near the middle, the default) and Outliers (named scenarios with how often each happened)
+function smRi(g) { const v = S.sm.run[g.id]; return v != null && g.samples[v] ? v : (g.def != null && g.samples[g.def] ? g.def : Math.floor(g.samples.length / 2)); }
+const smMg = (g, m) => m === 0 ? 'Tied' : `${m > 0 ? g.home : g.away} by ${Math.abs(m)}`;
+const smPc = p => p < .01 ? 'under 1%' : `${Math.round(p * 100)}%`;
+function smFcLine(g) {
+  if (!g.mq) return '';
+  const [a, , c] = g.mq, side = a > 0 ? g.home : c < 0 ? g.away : null;
+  const mg = side ? `${esc(side)} by ${Math.min(Math.abs(a), Math.abs(c))} to ${Math.max(Math.abs(a), Math.abs(c))}` : `${esc(smMg(g, a))} to ${esc(smMg(g, c))}`;
+  const ph = g.p.home, fav = ph >= .5 ? g.home : g.away;
+  const cell = (k, v) => `<span><small>${k}</small>${v}</span>`;
+  return `<div class="sm-fc">${cell('Margin, middle half', mg)}${cell('Total, middle half', `${g.tq[0]} to ${g.tq[2]}`)}${cell('Wins', `${esc(fav)} ${smPc(Math.max(ph, 1 - ph))}`)}</div>`;
+}
+function smRunNote(lg, g, i) {
+  const s = g.samples[i]; if (!s) return '';
+  const fin = `${esc(g.away)} ${s.sc[0]}, ${esc(g.home)} ${s.sc[1]}`;
+  if (s.k === 'o') return `<b>${esc(s.lab)}</b> in ${smPc(s.pct)} of runs. This one: ${fin}.${s.why ? ` In those runs, ${esc(s.why.split(' · ').join('; '))}.` : ''}`;
+  if (s.k === 't') return `<b>${esc(smMg(g, s.sc[1] - s.sc[0]))}</b>, ${fin}. ${smPc(s.pct)} of runs end within ${lg === 'NBA' ? 3 : 4} points of this margin.${i === g.def ? ' The most typical run on the board.' : ''}`;
+  return `${fin}.`;
+}
+function smRunBtn(lg, g, s, i, ri) {
+  const m = s.sc[1] - s.sc[0], o = s.k === 'o';
+  return `<button class="sm-r${o ? ' o' : ''}${i === ri ? ' on' : ''}" data-sm="run:${i}" aria-pressed="${i === ri}" style="--m:${Math.max(-1, Math.min(1, m / (lg === 'NBA' ? 30 : 24)))}"><span class="sm-rh"><b>${s.sc[0]}-${s.sc[1]}</b>${o ? `<em>${smPc(s.pct)}</em>` : i === g.def ? '<em class="d">Middle</em>' : ''}</span><small>${esc(o ? s.lab : smMg(g, m))}</small></button>`;
+}
+function smRunsHtml(lg, g, ri) {
+  const all = g.samples.map((s, i) => [s, i]), typ = all.filter(([s]) => s.k !== 'o'), out = all.filter(([s]) => s.k === 'o'), runs = (SMD[lg].d.runs).toLocaleString();
+  const row = (lab, sub, list) => list.length ? `<div class="sm-rg"><span class="lbl">${lab}</span><small>${sub}</small></div><div class="sm-rl">${list.map(([s, i]) => smRunBtn(lg, g, s, i, ri)).join('')}</div>` : '';
+  return `<div class="sm-runs">${smFcLine(g)}
+      ${g.samples.some(s => s.k) ? row('Typical', `${typ.length} of ${runs}, near the middle`, typ) : row('Runs', `${typ.length} of ${runs}, ${esc(g.away)}'s best night to ${esc(g.home)}'s`, typ)}
+      ${row('Outliers', 'other ways it goes', out)}
+      <p class="sm-rn" id="smRn" aria-live="polite">${smRunNote(lg, g, ri)}</p></div>`;
+}
 function smArenaHtml(lg, g) {
-  const ri = S.sm.run[g.id] != null ? S.sm.run[g.id] : Math.floor(g.samples.length / 2), sm = g.samples[ri];
-  const lab = s => { const m = s.sc[1] - s.sc[0]; return m === 0 ? 'Tied' : `${m > 0 ? g.home : g.away} by ${Math.abs(m)}`; };
+  const ri = smRi(g);
   return `<section class="sm-arena lg-${lg.toLowerCase()}" id="smArena" style="${tcol(lg, g.away).replace(/--t/g, '--a')};${tcol(lg, g.home).replace(/--t/g, '--h')}">
     <div class="sm-board" aria-label="Scoreboard">
       <div class="sm-sb a"><span class="sm-tn">${badge(lg, g.away, 'm')}<b>${esc(g.away)}</b></span><b class="sm-pts" id="smA">0</b></div>
@@ -77,8 +107,7 @@ function smArenaHtml(lg, g) {
       <button class="btn ghost sm" data-sm="restart">Restart</button><button class="btn ghost sm" data-sm="final">Final</button>
       <div class="sm-prog" id="smProg" data-sm="seek" role="slider" aria-label="Game progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i class="sm-pf" id="smPf"></i>${[1, 2, 3].map(q => `<b style="left:${q * 25}%"></b>`).join('')}</div>
     </div>
-    <div class="sm-runs"><span class="lbl">Pick a run · ${g.samples.length} of ${(SMD[lg].d.runs).toLocaleString()}, from ${esc(g.away)}'s best night to ${esc(g.home)}'s</span>
-      <div class="sm-rl">${g.samples.map((s, i) => `<button class="sm-r${i === ri ? ' on' : ''}" data-sm="run:${i}" aria-pressed="${i === ri}" style="--m:${Math.max(-1, Math.min(1, (s.sc[1] - s.sc[0]) / (lg === 'NBA' ? 30 : 24)))}"><b>${s.sc[0]}-${s.sc[1]}</b><small>${esc(lab(s))}</small></button>`).join('')}</div></div>
+    ${smRunsHtml(lg, g, ri)}
     <details class="sm-box" id="smBoxD" open><summary><span class="lbl">Box score of this run, live</span></summary><div id="smBox"></div></details>
     <p class="note">One of the ${(SMD[lg].d.runs).toLocaleString()} runs, played out. The players, minutes and final numbers are that run's; the order of the plays is drawn to fit them${lg === 'NFL' ? ': downs, field position and the call on each snap follow real 2023-24 football, and every carry, catch and score is the run\'s' : ''}.</p>
   </section>`;
@@ -134,7 +163,7 @@ function smHowHtml(lg) {      // the logic of one run, in plain words, league by
     ['5 · Ten thousand times', 'Over % is the share of runs that cleared the line. A parlay is the share of runs where every leg hit, which is why a quarterback and his own receiver price far above the two legs multiplied.']];
   const weak = lg === 'NBA' ? 'Known weak spot: it is still a touch worse than the desk on threes, and teammates\' assists still compete a little.' : 'Known weak spots: catches and the run game test about level with the desk, not better. The replay is built from real plays (down, distance, field position and the call on each snap from 2023-24), and every carry, catch and touchdown in it is the run\'s.';
   return `<section class="sm-how"><details class="card"><summary><span class="lbl">How one run works</span><b>Five steps, then the same five steps 9,999 more times</b></summary>
-    <ol class="sm-steps">${N.map(([t, d], i) => `<li style="--i:${i}"><b>${esc(t)}</b><p>${esc(d)}</p></li>`).join('')}</ol><p class="note">${esc(weak)} The replay above is one run drawn out play by play; the numbers below are all of them.</p></details></section>`;
+    <ol class="sm-steps">${N.map(([t, d], i) => `<li style="--i:${i}"><b>${esc(t)}</b><p>${esc(d)}</p></li>`).join('')}</ol><p class="note">${esc(weak)} The replay above is one run drawn out play by play, starting on the run nearest the middle; Outliers holds the other ways the game breaks, each with how often it happened. The numbers below are all of the runs.</p></details></section>`;
 }
 function smPropRows(lg, g) {
   const rows = g.props.filter(r => S.sm.mkt === 'all' || r.mkt === S.sm.mkt);
@@ -281,8 +310,10 @@ function simAfter(enter) {
   smTray();
   const lg = S.lg, z = SMD[lg]; if (z.st !== 'ready') return; const g = smGame(lg); if (!g) return;
   if (SMA) SMA.destroy();
-  const ri = S.sm.run[g.id] != null ? S.sm.run[g.id] : Math.floor(g.samples.length / 2);
+  const ri = smRi(g);
   SMA = new Arena(lg, g, ri);
+  const on = document.querySelector('.sm-r.on'), rl = on && on.parentElement;      // bring the chosen run into view inside its row, not the page
+  if (rl && rl.scrollWidth > rl.clientWidth) { const a = on.getBoundingClientRect(), r = rl.getBoundingClientRect(); rl.scrollLeft += a.left - r.left - (r.width - a.width) / 2; }
   const cn = $('#smCount');      // the booth's run counter rolls up to 10,000 on arrival
   if (cn && enter && !RM()) { const t0 = performance.now(), D = 1500; const step = t => { const q = Math.min(1, (t - t0) / D), v = Math.round(10000 * (1 - Math.pow(1 - q, 3))); cn.textContent = v.toLocaleString('en-US').padStart(6, '0'); if (q < 1 && cn.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step); }
   if (enter && !RM()) {        // the margin bars rise from the baseline, centre out
@@ -301,7 +332,9 @@ document.addEventListener('click', e => {
   const v = t.dataset.sm, i = v.indexOf(':'), key = i < 0 ? v : v.slice(0, i), val = i < 0 ? '' : v.slice(i + 1), lg = S.lg;
   if (key === 'retry') { SMD[lg].st = 'idle'; refreshMain(); return; }
   if (key === 'g') { if (S.sm.g[lg] === val) return; S.sm.g[lg] = val; S.sm.open = null; S.sm.lim = 30; const y = scrollY; S.enter = true; refreshMain(); S.enter = false; window.scrollTo(0, y); simAfter(true); return; }
-  if (key === 'run') { const g = smGame(lg); S.sm.run[g.id] = +val; if (SMA) SMA.touched = true; document.querySelectorAll('.sm-r').forEach((b, j) => { b.classList.toggle('on', j === +val); b.setAttribute('aria-pressed', j === +val); }); if (SMA) SMA.load(+val, true); return; }
+  if (key === 'run') { const g = smGame(lg); S.sm.run[g.id] = +val; if (SMA) SMA.touched = true; document.querySelectorAll('.sm-r').forEach(b => { const on = b.dataset.sm === 'run:' + val; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    const n = $('#smRn'); if (n) { n.innerHTML = smRunNote(lg, g, +val); if (!RM()) n.animate([{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'cubic-bezier(.23,1,.32,1)' }); }
+    if (SMA) SMA.load(+val, true); return; }
   if (key === 'play') { if (SMA) SMA.toggle(); return; }
   if (key === 'sp') { S.sm.speed = +val; segPress(t); if (SMA) SMA.speed = +val; return; }
   if (key === 'restart') { if (SMA) { SMA.seek(0); SMA.play(); } return; }
