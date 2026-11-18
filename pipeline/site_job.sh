@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fair Line daily job. Runs inside GitHub Actions, from the repo root.
 #   site_job.sh open   make the fixed work folders, install what the models need, unlock yesterday's books
-#   site_job.sh run    run the day (kind comes from the relay step: midday, close, or FORCE=build), rebuild the app, lock the books
+#   site_job.sh run    run the day (kind comes from the relay step: early, midday, evening, close, or FORCE=build), rebuild the app, lock the books
 # The books (bets, audit, priced lines) are stored encrypted with RELAY_PASS because they hold sportsbook prices.
 set -e
 R=$(pwd); P=/home/claude/props; ENC="$R/state/state.tar.gz.enc"
@@ -29,6 +29,16 @@ case "$KIND" in
       else NOTE="$NOTE $LG: no Hard Rock lines for games today."; fi; done
       python3 daily.py fill $D || echo "FILL STEP FAILED"
       python3 games.py && python3 daily.py gpicks $D log || echo "GAME PICKS STEP FAILED"; fi ;;
+  evening)      # v3.17: about 6 PM. Fresh injuries into the model, closing numbers for the midday bets, then a second look under the same rules
+    for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; N=$P/out/news/${LG}_$D.txt
+      if [ -f "$L" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" "$L"; fi; done
+    bash run.sh
+    node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
+    for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; T=$P/out/lines/${LG}_${D}_pm_today.txt
+      if [ -f "$L" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), evening" "$L" || true; fi
+      if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -q '^hardrockbet|' "$T"; then FL_RUN=pm python3 daily.py lines $D $LG "$T" && python3 daily.py evening $D $LG || echo "EVENING PASS FAILED for $LG"
+      else NOTE="$NOTE $LG: no evening Hard Rock lines for games still to come."; fi; done
+    python3 games.py || echo "GAME MODEL STEP FAILED" ;;
   close)
     for LG in NBA NFL; do for F in $P/out/lines/${LG}_${D}_close*.txt; do
       if [ -f "$F" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), relay" "$F" || true; fi; done; done ;;

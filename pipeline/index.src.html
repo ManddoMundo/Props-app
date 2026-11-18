@@ -1163,6 +1163,9 @@ body.has-tray main{padding-bottom:120px}
 .gp-ijl{display:grid;gap:3px;margin:2px 0 1px;font:13px/1.35 var(--text);color:var(--ink)}
 .gp-ij{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:baseline}
 .gp-ij>b{font:700 11px var(--mono);letter-spacing:.06em;color:var(--mute)}
+.mvt td{vertical-align:top} .mvt td:first-child{font-family:var(--text)} .mvt td:first-child small{display:block;font:11px var(--mono);color:var(--mute);letter-spacing:.03em}
+.mvt td small{font-size:.82em;color:var(--mute)} .mvt td:nth-child(n+2){white-space:nowrap}
+.mvt .mv-p{display:none} @media (max-width:560px){.mvt .mv-c{display:none} .mvt .mv-p{display:block;font:11px var(--mono);margin-top:2px} .mvt .mv-p.pos{color:var(--good)} .mvt .mv-p.neg{color:var(--bad)}}
 .gp-ij small{font:10.5px var(--mono);color:var(--mute);letter-spacing:.04em}
 .gp-tg{font:700 9.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:5px;border:1px solid var(--rule);color:var(--mute);white-space:nowrap}
 .gp-tg.t-strong{border-color:var(--good);color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
@@ -1675,7 +1678,12 @@ function dist(pr) {
   else { const dp = DATA[pr.lg].model.disp[pr.mkt]; d = E.pmf(pr.mu, E.nbK(pr.mu, dp[0], dp[1])); }
   dcache.set(pr.key, { mu: pr.mu, d }); return d;
 }
-const getLine = key => S.store.lines[key] || S.feed[key] || null;
+/* v3.16.2: a line you set yourself (dragging the marker, nudging the line or the odds) used to replace the desk feed entry,
+   dropping its market-anchored number, so the memo priced the raw model while still calling it blended (Barnes, Nov 17:
+   raw 19.7 gave Under 58.3% and AAA; the anchored 21.6 gives a C). Your line and prices now sit on top of the feed entry;
+   the anchored number and the market checks are kept. */
+const getLine = key => { const u = S.store.lines[key], f = S.feed[key]; if (!u) return f || null; if (!f || f.m == null) return u;
+  return Object.assign({}, f, u, { m: f.m, mm: f.mm, nb: f.nb, hold: f.hold, mine: true }); };
 function logVals(pr) {
   const l = pr.e.p.logs;
   if (pr.lg === 'NBA') return l.pts.map((_, i) => (E.NBA_COMBO[pr.mkt] || [pr.mkt]).reduce((s, k) => s + l[k][i], 0));
@@ -1727,7 +1735,8 @@ function assess(pr) {
   let t = TIERS.find(t => adj >= t[0]);
   const far = anch && ln.hold === best.side;      // desk feed: the model on its own is more than MAX_EDGE from the market
   if (far) cf.flags.push('The model on its own is too far from the market on this one. A gap this wide is usually news or a role change the model has not seen. On hold until you check.');
-  const hold = best.edge > MAX_EDGE || far; if (hold) t = [adj, 'HOLD', 'w', 'Hold'];
+  const qh = !!(pr.e && pr.e.p && pr.e.p.q);      // v3.16.2: questionable today. The desk will not bet him, so the memo does not approve him either
+  const hold = best.edge > MAX_EDGE || far || qh; if (hold) t = [adj, 'HOLD', 'w', 'Hold'];
   const st = S.store.settings;
   const stake = t[3] === 'Approve' ? Math.min(st.bank * .02, st.bank * st.kf * E.kelly(best.pw, best.pl, best.odds) * cf.c) : 0;
   return { ln, sp, sides, best, adj, conf: cf, rating: t[1], cls: t[2], decision: t[3], stake, hold };
@@ -2065,7 +2074,7 @@ function buildUp(pr) {
 function draftLine(pr) { const l = getLine(pr.key); if (l) return l; const o = S.store.settings.odds; return pr.binary ? { line: .5, o: null, u: null, draft: true } : { line: E.fairLine(dist(pr)), o, u: o, draft: true }; }
 function verdictHtml(pr) {
   const a = assess(pr), d = dist(pr), ln = draftLine(pr), sp = a ? a.sp : pr.binary ? { over: d[1], under: d[0], push: 0 } : E.split(d, ln.line);      // v3.14.2: with a line, the same desk chances the pick uses
-  const probs = `<div class="kvs"><div class="kv"><small>${pr.binary ? 'Scores' : 'Over ' + ln.line}</small><span>${pct(sp.over)}</span></div><div class="kv"><small>${pr.binary ? 'Does not' : 'Under ' + ln.line}</small><span>${pct(sp.under)}</span></div><div class="kv"><small>${pr.binary ? 'Fair price' : 'Push'}</small><span>${pr.binary ? odds(E.amer(sp.over)) : pct(sp.push)}</span></div></div>` + (a ? `<p class="mut" style="font-size:12px;margin:2px 0 8px">Desk chances: the model blended with what the other books imply${Object.keys(S.scen[pr.lg] || {}).length ? ', moved by your lineup change' : ''}. The outcome chart shows the model alone.</p>` : `<p class="mut" style="font-size:12px;margin:2px 0 8px">The model alone, until a book line is entered.</p>`);
+  const probs = `<div class="kvs"><div class="kv"><small>${pr.binary ? 'Scores' : 'Over ' + ln.line}</small><span>${pct(sp.over)}</span></div><div class="kv"><small>${pr.binary ? 'Does not' : 'Under ' + ln.line}</small><span>${pct(sp.under)}</span></div><div class="kv"><small>${pr.binary ? 'Fair price' : 'Push'}</small><span>${pr.binary ? odds(E.amer(sp.over)) : pct(sp.push)}</span></div></div>` + (a ? `<p class="mut" style="font-size:12px;margin:2px 0 8px">${a.ln.m != null && !pr.binary ? `Desk chances: the model blended with what the other books imply (desk number ${(+anchMu(pr, a.ln)).toFixed(1)}, model alone ${f1(pr.mu)})${Object.keys(S.scen[pr.lg] || {}).length ? ', moved by your lineup change' : ''}${a.ln.mine ? ', at the line you set' : ''}. The outcome chart shows the model alone.` : `The model alone: no market number for this prop${a.ln.mine ? ' at the line you set' : ''}.`}</p>` : `<p class="mut" style="font-size:12px;margin:2px 0 8px">The model alone, until a book line is entered.</p>`);
   if (!a) return `<div class="verdict">${probs}<div class="mut" style="font-size:13.5px">${pr.binary ? 'Enter the book price for Yes to get a rating.' : 'Showing the model fair line. Enter the book line and odds, or drag the marker, to get a rating.'}</div></div>`;
   const b = a.best, cf = a.conf, tk = S.seal === pr.key + a.rating ? '' : ' thunk'; S.seal = pr.key + a.rating;
   return `<div class="verdict ${a.cls}"><div class="vtop"><span class="seal${tk}">${a.rating}</span><div><b>${a.hold ? 'On hold: verify ' + b.side + (pr.binary ? '' : ' ' + a.ln.line) : a.decision + (a.decision === 'Decline' ? '' : ': ' + b.side + (pr.binary ? '' : ' ' + a.ln.line))}</b><span class="mut num">${odds(b.odds)} · ${cf.c >= .999 ? 'no data warnings' : `data trust ${Math.round(cf.c * 100)}%, see the notes below`}</span></div></div>
@@ -2295,7 +2304,7 @@ function ticketHtml(b, i) {
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}" style="--i:${i}">
     <button class="tk-main" data-tk="${esc(k)}" aria-expanded="${op}">
-      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
+      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(g.time) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
         ${w ? `<span class="tk-head">${esc(w.head)}</span>` : ''}
         <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('CLV', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
@@ -2312,21 +2321,32 @@ function deskHtml() {
   const rec = a => { const w = a.filter(b => st(b) === 'won').length, l = a.filter(b => st(b) === 'lost').length; return { w, l, hit: w + l ? w / (w + l) : null, u: sum(a.map(u)) }; };
   const best = rec(B.filter(b => b.best)), conf = rec(B.filter(b => b.lane === 'confident')), be = n ? sum(graded.map(b => 1 / E.dec(b.odds))) / n : (B.length ? sum(B.map(b => 1 / E.dec(b.odds))) / B.length : .524);
   const cl = B.filter(b => b.close), clv = cl.length ? sum(cl.map(b => b.close.clv)) / cl.length : null, beat = cl.filter(b => b.close.clv > 0).length, mv = cl.filter(b => b.close.move != null);
-  const lr = lg => { const r = rec(ALL.filter(b => !b.superseded && b.lg === lg)); return `${lg} ${r.w}-${r.l}`; };      // both leagues, on the record tile
+  const lr = lg => { const r = rec(ALL.filter(b => !b.superseded && b.lg === lg)); return `${lg} ${r.w}-${r.l}`; };
+  // v3.16.1: the scoreboard always counts both leagues (the full desk record). The cards, ledger and splits below follow the league switch.
+  const TB = ALL.filter(b => !b.superseded), tW = TB.filter(b => st(b) === 'won'), tL = TB.filter(b => st(b) === 'lost'), tG = tW.concat(tL), tn = tG.length;
+  const tUnits = sum(tG.map(u)), tUsd = sum(tG.map(b => u(b) * unitOf(b))), tStaked = sum(tG.map(b => b.units * unitOf(b)));
+  const tBest = rec(TB.filter(b => b.best)), tConf = rec(TB.filter(b => b.lane === 'confident'));
+  const tBe = tn ? sum(tG.map(b => 1 / E.dec(b.odds))) / tn : (TB.length ? sum(TB.map(b => 1 / E.dec(b.odds))) / TB.length : .524);
+  const tCl = TB.filter(b => b.close), tClv = tCl.length ? sum(tCl.map(b => b.close.clv)) / tCl.length : null, tBeat = tCl.filter(b => b.close.clv > 0).length, tMv = tCl.filter(b => b.close.move != null);
   const F = {
-    rec: [['Record', `${won.length}-${lost.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Confident plays', `${conf.w}-${conf.l}`, conf.w + conf.l ? `units ${sgn(conf.u, 2)} · best bets ${best.w}-${best.l}` : `none graded yet · best bets ${best.w}-${best.l}`, '']],
-    hit: [['Hit rate', n ? pct(won.length / n) : 'n/a', `needs ${pct(be)} to break even`, n && won.length / n >= be ? 'gd' : ''], ['Break even', pct(be), 'at the average price paid', '']],
-    units: [['Units', sgn(units, 2), n ? `ROI ${sgn(staked ? usd / staked * 100 : 0)}% on ${n} bets` : 'no graded bets yet', units >= 0 ? 'gd' : 'bd'], ['On paper', money(usd), `${money(staked)} staked · $25 units since 11-17`, usd >= 0 ? 'gd' : 'bd']],
-    clv: [['Closing line', clv == null ? 'n/a' : sgn(clv * 100) + '%', clv == null ? 'tracking starts with the next card' : `${beat} of ${cl.length} beat the close`, clv == null ? '' : clv >= 0 ? 'gd' : 'bd'],
-          ['Market move', mv.length ? sgn(sum(mv.map(b => b.close.move)) / mv.length * 100) : 'n/a', 'points toward the bet, on average', '']],
+    rec: [['Record', `${tW.length}-${tL.length}`, `${lr('NBA')} · ${lr('NFL')}`, ''], ['Confident plays', `${tConf.w}-${tConf.l}`, tConf.w + tConf.l ? `units ${sgn(tConf.u, 2)} · best bets ${tBest.w}-${tBest.l}` : `none graded yet · best bets ${tBest.w}-${tBest.l}`, '']],
+    hit: [['Hit rate', tn ? pct(tW.length / tn) : 'n/a', `needs ${pct(tBe)} to break even`, tn && tW.length / tn >= tBe ? 'gd' : ''], ['Break even', pct(tBe), 'at the average price paid', '']],
+    units: [['Units', sgn(tUnits, 2), tn ? `ROI ${sgn(tStaked ? tUsd / tStaked * 100 : 0)}% on ${tn} bets` : 'no graded bets yet', tUnits >= 0 ? 'gd' : 'bd'], ['On paper', money(tUsd), `${money(tStaked)} staked · $25 units since 11-17`, tUsd >= 0 ? 'gd' : 'bd']],
+    clv: [['Closing line', tClv == null ? 'n/a' : sgn(tClv * 100) + '%', tClv == null ? 'tracking starts with the next card' : `${tBeat} of ${tCl.length} beat the close`, tClv == null ? '' : tClv >= 0 ? 'gd' : 'bd'],
+          ['Market move', tMv.length ? sgn(sum(tMv.map(b => b.close.move)) / tMv.length * 100) : 'n/a', 'points toward the bet, on average', '']],
   };
   const tc = k => { const f = F[k][S.tote[k] ? 1 : 0]; return `<button class="tc" data-flip="${k}" aria-label="${esc(f[0])}: ${esc(f[1])}. ${esc(f[2])}. Press to flip."><small>${esc(f[0])}</small><b class="${f[3]}" data-v="${esc(f[1])}">${esc(f[1])}</b><em>${esc(f[2])}</em></button>`; };
   const tapeItem = b => st(b) === 'open' ? `<span><b>OPEN</b> ${esc(b.name)} ${esc(shortLabel(b))} ${odds(b.odds)}</span>`
     : `<span><b class="${st(b) === 'won' ? 'w' : st(b) === 'lost' ? 'l' : ''}">${st(b) === 'won' ? 'PAID' : st(b) === 'lost' ? 'LOST' : esc(st(b)).toUpperCase()}</b> ${esc(b.name)} ${esc(shortLabel(b))}${b.result != null ? ' (' + b.result + ')' : ''}</span>`;
-  const tape = open.concat(B.filter(b => st(b) !== 'open').reverse().slice(0, 14)).map(tapeItem).join('');
+  const tape = TB.filter(b => st(b) === 'open').concat(TB.filter(b => st(b) !== 'open').reverse().slice(0, 14)).map(tapeItem).join('');      // both leagues, like the scoreboard
   const LD = DESK.days.filter(d => d.lg === S.lg), lastDate = LD.length ? LD[LD.length - 1].date : null, dd = LD.filter(d => d.date === lastDate);
   const cenAll = dd.flatMap(d => Object.values(d.cen || {})), cenTxt = cenAll.length ? (() => { const a = Math.min(...cenAll), b = Math.max(...cenAll), f = x => Math.round(Math.abs(x - 1) * 100); return a >= 1 ? ` Before centring, the model ran ${f(a)} to ${f(b)} percent under the books.` : ''; })() : '';
   const passed = dd.flatMap(d => (d.passed || []).map(x => [x, d.lg]));
+  // v3.17: what moved between the midday and evening pulls, props priced both times, biggest line moves first
+  const pmd = dd.filter(d => d.pm), mvRow = (m, lg) => { const mk = (MK[lg] || {})[m.mkt], dp = (m.p1 - m.p0) * 100;
+    return `<tr><td>${esc(m.name)}<small>${esc(m.team)} · ${esc(mk ? mk.n : m.mkt)}</small></td><td>${m.l0} <small>${odds(m.o0)}</small> → ${m.l1 !== m.l0 ? `<b>${m.l1}</b>` : m.l1} <small>${odds(m.o1)}</small><small class="mv-p ${Math.abs(dp) < .5 ? '' : dp > 0 ? 'pos' : 'neg'}">desk over ${pct(m.p0)} → ${pct(m.p1)}</small></td><td class="mv-c ${Math.abs(dp) < .5 ? '' : dp > 0 ? 'pos' : 'neg'}">${pct(m.p0)} → ${pct(m.p1)}</td></tr>`; };
+  const movesHtml = pmd.length ? `<div class="hd"><h2>Since midday</h2><span>${pmd.map(d => `${esc(d.lg)} at ${esc(d.pm.t)}: ${d.pm.moved} of ${d.pm.compared} props moved, ${d.pm.cleared_bar} sides cleared every test, ${d.pm.picks} new ticket${d.pm.picks === 1 ? '' : 's'}`).join(' · ')}</span></div>
+    ${pmd.some(d => (d.pm.moves || []).length) ? `<div class="card scroll mvt"><table><thead><tr><th>Player</th><th>Line, midday → evening</th><th class="mv-c">Desk over</th></tr></thead><tbody>${pmd.flatMap(d => (d.pm.moves || []).map(m => mvRow(m, d.lg))).join('')}</tbody></table></div>` : ''}` : '';
   const passHtml = ([x, lg], i) => `<div class="pass${S.fresh ? ' in' : ''}" style="--i:${i}"><span class="ph"><b>${esc(x.name)}</b><span class="pstamp">${esc(x.stamp)}</span></span>
     <span class="lbl">${esc(lg)} · ${esc(x.team)} v ${esc(x.opp)}</span><span class="pl">${esc(x.side)} ${x.line} ${esc(MK[lg][x.mkt].s)} ${odds(x.odds)} · edge ${sgn(x.edge * 100)}</span><p>${esc(x.why)}</p></div>`;
   const split = (title, keyf, names) => { const ks = [...new Set(graded.map(keyf))]; if (!ks.length) return ''; return `<div class="card scroll"><table><thead><tr><th>${title}</th><th>Record</th><th>Hit rate</th><th>Units</th></tr></thead><tbody>${ks.map(k => { const r = rec(graded.filter(b => keyf(b) === k)); return `<tr><td>${esc(names(k))}</td><td>${r.w}-${r.l}</td><td>${pct(r.hit)}</td><td class="${r.u >= 0 ? 'pos' : 'neg'}">${sgn(r.u, 2)}</td></tr>`; }).join('')}</tbody></table></div>`; };
@@ -2339,13 +2359,14 @@ function deskHtml() {
       : `<div class="srow"><div class="row">${inner}</div></div>`; };
   const settled = all.filter(b => st(b) !== 'open').reverse();
   return `${mast('desk', 'The desk', `Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at Hard Rock prices. Paper only.`)}<section class="tote" aria-label="Desk record">
-      <div class="tote-h"><span>The board · ${S.lg} desk record</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ' · tickets before Nov 17 shown at today\'s unit' : ''}</span></div>
+      <div class="tote-h"><span>The board · desk record, NBA and NFL</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ' · tickets before Nov 17 shown at today\'s unit' : ''}</span></div>
       <div class="tote-g">${tc('rec')}${tc('hit')}${tc('units')}${tc('clv')}</div>
       <div class="tape${S.tapePaused ? ' paused' : ''}" id="tape"><span class="tape-live" aria-hidden="true"><i></i>Live</span><button class="tape-b" data-act="tape" aria-pressed="${S.tapePaused}">${S.tapePaused ? 'Run' : 'Hold'}</button><div class="tape-w"><div class="tape-r"><div class="tape-s">${tape}</div><div class="tape-s" aria-hidden="true">${tape}</div></div></div></div>
     </section>
     <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet${d.conf ? `, ${d.conf.picks} confident of ${d.conf.quotes} likely quotes` : ''}`).join(' · ')}</span></div>
     ${open.length ? `<div class="cards">${open.slice().sort((a, b) => (b.best ? 1 : 0) - (a.best ? 1 : 0)).map(ticketHtml).join('')}</div>` : '<p class="prose">The next daily run posts the card here. A night with no bet is a normal night.</p>'}
-    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at Hard Rock prices and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a Hard Rock price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10.${cenTxt}</p>
+    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at Hard Rock prices and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a Hard Rock price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10. About 6 PM an <b>evening pass</b> reprices the games still to come with fresh lines and injuries, under the same rules; it never adds a second ticket on a player and never changes a midday ticket.${cenTxt}</p>
+    ${movesHtml}
     ${passed.length ? `<div class="hd"><h2>Passed on</h2><span>the closest calls from ${esc(lastDate)} and the test each one failed${B.some(b => b.lean && b.date === lastDate) ? '. Leans are the exception to the 3-point bar: on a day nothing clears it, the desk logs its top one or two edges of 1 point or more at a quarter unit, so a lean can sit below the bar while a smaller edge here is passed' : ''}</span></div><div class="passes">${passed.map(passHtml).join('')}</div>` : ''}
     <div class="hd"><h2>The ledger</h2><span>${(() => { const g = settled.filter(b => !b.superseded && (st(b) === 'won' || st(b) === 'lost')).length, rp = settled.filter(b => b.superseded).length, ot = settled.length - g - rp; return `${settled.length} settled: ${g} graded${ot ? `, ${ot} push or void` : ''}${rp ? `, ${rp} replaced by a later ticket` : ''}`; })()}</span></div>
     ${n ? `<div class="grid2" style="margin-bottom:14px">${split('By market', b => b.lg + '|' + b.mkt, k => k.split('|')[0] + ' ' + MK[k.split('|')[0]][k.split('|')[1]].n)}${split('By rating', b => b.rating, k => k)}</div>` : ''}

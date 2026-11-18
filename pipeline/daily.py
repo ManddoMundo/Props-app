@@ -437,7 +437,10 @@ def cmd_lines(date, lg, files):
     cur.update(feed)
     json.dump(cur, open(fp, "w"))
     os.makedirs(O + "priced", exist_ok=True)
-    json.dump(priced, open(O + f"priced/{lg}_{date}.json", "w"))
+    sfx = "_pm" if os.environ.get("FL_RUN") == "pm" else ""      # v3.17: the evening pass keeps its own priced file; the audit grades the midday one
+    for b in priced:
+        if sfx: b["run"] = "pm"
+    json.dump(priced, open(O + f"priced/{lg}_{date}{sfx}.json", "w"))
     chk2 = sum(1 for v in feed.values() if v["nb"] >= CFG["min_books"])
     print(f"{lg} {date}: {len(feed)} lines matched, {chk2} with a market check from {CFG['min_books']}+ other books, {len(priced)} sides priced, {len(miss)} unmatched")
     cal = calib(None)
@@ -485,6 +488,57 @@ def cmd_pick(date, lg):
     save_history(h)
     print(f"{lg} {date}: {len(priced)} sides priced, {len(pool)} cleared the bar, {len(picks)} logged, {big} skipped for an edge too large to trust")
     cmd_explain(date, lg)
+
+
+def cmd_evening(date, lg):
+    """v3.17 evening pass (about 6 PM). Same pick rules as midday, on the evening lines, for games still to come:
+    never a second ticket on a player already bet today, never past max_picks edge plays per league a day, max_per_game and
+    day_units as always. Tickets from midday are never changed. Also records what moved since midday: line, prices and the
+    desk's own chance on every prop priced both times."""
+    fp = O + f"priced/{lg}_{date}_pm.json"
+    if not os.path.exists(fp):
+        print(f"{lg} {date}: no evening lines priced"); return
+    h = history(); pm = json.load(open(fp))
+    am_fp = O + f"priced/{lg}_{date}.json"; am = json.load(open(am_fp)) if os.path.exists(am_fp) else []
+    A = {(x["id"], x["side"]): x for x in am}
+    moves, n_moved, n_both = [], 0, 0
+    for x in pm:
+        if x["side"] not in ("Over", "Yes"): continue
+        a = A.get((x["id"], x["side"]))
+        if not a: continue
+        n_both += 1
+        dl = (x["line"] or 0) - (a["line"] or 0); dp = x["p"] - a["p"]
+        if dl or x["odds"] != a["odds"]: n_moved += 1
+        elif abs(dp) < .05: continue          # no line or price move and the desk barely changed: not worth a row
+        moves.append(dict(name=x["name"], team=x["team"], mkt=x["mkt"], l0=a["line"], l1=x["line"], o0=a["odds"], o1=x["odds"],
+                          p0=round(a["p"], 4), p1=round(x["p"], 4), m0=a.get("muf"), m1=x.get("muf"), dl=dl, dp=round(dp, 4)))
+    moves.sort(key=lambda m: (-abs(m["dl"]), -abs(m["dp"])))
+    today = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded")]
+    taken = {b["pid"] for b in today}; per_game = {}
+    for b in today:
+        per_game[b["game"]] = per_game.get(b["game"], 0) + 1
+    room = CFG["max_picks"] - sum(1 for b in today if b.get("lane") != "confident" and not b.get("lean"))
+    pool = sorted([b for b in pm if eligible(b)], key=lambda b: -b["adj"]); picks = []
+    for b in pool:
+        if room <= 0: break
+        if b["pid"] in taken or per_game.get(b["game"], 0) >= CFG["max_per_game"]: continue
+        b = dict(b); b.update(best=False, status="open", result=None, lane="edge", run="pm")
+        for k in ("be", "conf", "adj", "n"):
+            b.pop(k, None)
+        if not put_stake(h, b):
+            print("  day is full at", CFG["day_units"], "units:", b["name"]); break
+        h["bets"].append(b); picks.append(b); taken.add(b["pid"]); per_game[b["game"]] = per_game.get(b["game"], 0) + 1; room -= 1
+        print(f'  evening pick: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} blended {b["muf"]}')
+    from zoneinfo import ZoneInfo
+    t = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p")
+    rec = next((d for d in h["days"] if d["date"] == date and d["lg"] == lg), None)
+    if rec is None:
+        rec = dict(date=date, lg=lg, sides_priced=0, cleared_bar=0, picks=0); h["days"].append(rec)
+    rec["pm"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks), moved=n_moved, compared=n_both, moves=moves[:12])
+    save_history(h)
+    print(f"{lg} {date} evening: {len(pm)} sides priced, {len(pool)} cleared the bar, {len(picks)} new, {n_moved} of {n_both} props moved since midday")
+    if picks:
+        cmd_explain(date, lg, "_pm")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -653,19 +707,24 @@ def pass_reason(b):
     return "CAP", "It cleared every test. The desk already had this player, two bets in this game, or three for the day."
 
 
-def cmd_explain(date, lg):
-    """Write the case file onto each of the day's bets and the pass list onto the day record. Safe to rerun."""
-    fp = O + f"priced/{lg}_{date}.json"
+def cmd_explain(date, lg, sfx=""):
+    """Write the case file onto each of the day's bets and the pass list onto the day record. Safe to rerun.
+    sfx="_pm": the evening pass, case files for its own bets only, from the evening lines."""
+    fp = O + f"priced/{lg}_{date}{sfx}.json"
     if not os.path.exists(fp):
         return
     D, _ = load(); h = history(); priced = json.load(open(fp))
-    quotes = _quotes([O + f"lines/{lg}_{date}.txt"])
+    quotes = _quotes([O + f"lines/{lg}_{date}{sfx}.txt"])
     news = (json.load(open(NEWS)) if os.path.exists(NEWS) else {}).get(lg, {})
     row = {(x["id"], x["side"]): x for x in priced}
     mine = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded") and b.get("lane") != "confident"]
+    if sfx:
+        mine = [b for b in mine if b.get("run") == "pm"]
     for b in mine:
         mn = b.get("mn") or (row.get((b["id"], b["side"])) or {}).get("mn")
         b["why"] = explain(b, D, quotes, news, mn)
+    if sfx:
+        save_history(h); print(f"{lg} {date}: evening case files written for {len(mine)} bets"); return
     took = {(b["id"], b["side"]) for b in mine}; seen, passed = set(), []
     for x in sorted(priced, key=lambda x: -x["adj"]):
         if (x["id"], x["side"]) in took or x["id"] in seen or not (x["edge"] >= .015 or x.get("edgec", 0) > CFG["max_edge"]) or x["edge"] < 0:
@@ -1074,6 +1133,7 @@ if __name__ == "__main__":
     elif a[0] == "explain": cmd_explain(a[1], a[2])
     elif a[0] == "close": cmd_close(a[1], a[2], a[3], a[4:])
     elif a[0] == "pick": cmd_pick(a[1], a[2])
+    elif a[0] == "evening": cmd_evening(a[1], a[2])
     elif a[0] == "confident": cmd_confident(a[1], a[2], a[3:])
     elif a[0] == "fill": cmd_fill(a[1])
     elif a[0] == "gpicks": cmd_gpicks(a[1], a[2] if len(a) > 2 else "grade")

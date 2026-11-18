@@ -194,7 +194,7 @@ def pull_lines(lg):
     if not body:
         notes.append(f"{lg}: no lines to save ({len(picked)} games in the window)")
         return
-    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}" + (f"_close{NOW:%H}" if KIND == "close" else "")
+    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}" + (f"_close{NOW:%H}" if KIND == "close" else "_pm" if KIND == "evening" else "")
     save("lines", lg, name, f"# relay pulled {NOW:%Y-%m-%d %H:%M} ET, {KIND}, books: {','.join(BOOKS)}\nbookmaker_key|market_key|player|line|over_price|under_price",
          body, rows=sum(books.values()), games=games, books=books, markets=len(mk))
 
@@ -227,7 +227,7 @@ def pull_games(lg):
             n += 1; body += [f"# game: {code(lg, e.get('away_team'))} @ {code(lg, e.get('home_team'))}", f"# tip: {t:%Y-%m-%d %H:%M} ET"] + rows
     if not body:
         notes.append(f"{lg}: no game odds to save"); return
-    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}"
+    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}" + ("_pm" if KIND == "evening" else "")
     save("games", lg, name, f"# relay pulled {NOW:%Y-%m-%d %H:%M} ET, {KIND}, game odds\nbookmaker_key|market_key|team|point|price", body, rows=len(body), games=n)
 
 
@@ -262,13 +262,16 @@ def due():
         return "early"
     if 11 <= h < (12.75 if NOW.weekday() >= 5 else 15.5) and ST["done"].get("midday") != TODAY:
         return "midday"
-    slot = "close_early" if h < 15 else "close_late"
-    if ((18 <= h < 19.75) or (NOW.weekday() == 6 and 12 <= h < 13.75)) and ST["done"].get(slot) != TODAY:
+    # v3.17: the evening pass (about 6 PM): fresh lines and injuries for the games still to come, closing numbers for the
+    # midday bets, a second look under the same pick rules, and what moved since midday.
+    if 17.75 <= h < 19.75 and ST["done"].get("evening") != TODAY:
+        return "evening"
+    if NOW.weekday() == 6 and 12 <= h < 13.75 and ST["done"].get("close_early") != TODAY:      # Sunday: NFL 1 PM closing lines
         return "close"
     return None
 
 
-KIND = MODE if MODE in ("early", "midday", "close", "test") else None if MODE == "none" else due()
+KIND = MODE if MODE in ("early", "midday", "evening", "close", "test") else None if MODE == "none" else due()
 with open("/tmp/relay_kind", "w") as f:
     f.write(KIND or "none")
 TIER, CAP = "unknown", 0
@@ -298,12 +301,12 @@ elif KIND == "close" and TIER == "lite":
 else:
     for lg in ("NBA", "NFL"):
         pull_lines(lg)
-        if KIND in ("midday", "test") and TIER == "full":
+        if KIND in ("midday", "evening", "test") and TIER == "full":
             pull_games(lg)
-if KIND in ("early", "midday", "test"):
+if KIND in ("early", "midday", "evening", "test"):
     for lg in ("NBA", "NFL"):
         pull_news(lg)
-if KIND in ("early", "midday"):
+if KIND in ("early", "midday", "evening"):
     ST["done"][KIND] = TODAY
 elif KIND == "close":
     ST["done"]["close_early" if NOW.hour < 15 else "close_late"] = TODAY
