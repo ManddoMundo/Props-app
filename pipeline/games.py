@@ -12,7 +12,7 @@ from scipy.stats import norm
 D = "/home/claude/props/data/"
 O = "/home/claude/props/out/"
 CFG = {"NFL": dict(K=20, HFA=48, PPE=25.0, rev=1 / 3, sd=13.1, b2b=0),
-       "NBA": dict(K=25, HFA=60, PPE=26.0, rev=0.25, sd=14.7, b2b=30)}
+       "NBA": dict(K=25, HFA=60, PPE=26.0, rev=0.25, sd=11.8, b2b=30)}     # v3.16: NBA sd fitted on 2025-26 by log loss (was 14.7, too timid); 2026-27 log loss .5906 -> .5869
 TIERS = [(4.5, "Strong"), (3.0, "Pick"), (1.5, "Lean")]      # spread gap in points, model against the market
 TIER_ON = {"NFL": True, "NBA": False}       # NBA ratings went 47.8% against DraftKings' closing spread (2025-27): no tiers there
 PTS = {"NFL": dict(k=0.03, rev=0.4, hfa=1.6, mu=22.0, mr=0.004), "NBA": dict(k=0.05, rev=0.5, hfa=2.5, mu=113.0, mr=0.01)}   # fitted on 2010-18 (NFL), 2025 (NBA)
@@ -401,7 +401,7 @@ def nfl():
     rk = ranks(el.E, set(g[g.season == cur].home_team))
     mk = market_files("NFL"); NF = nfelo_file() or {}; HS = history("NFL")
     WX = json.load(open(O + "weather.json")) if os.path.exists(O + "weather.json") else {}
-    games = []
+    IJ = injuries("NFL"); games = []
     for r in [r for r in up if r["week"] == wk]:
         r["rk"] = [rk.get(r["away"]), rk.get(r["home"])]
         rq = mk.get(f'{r["away"]}@{r["home"]}') if mk else None
@@ -420,6 +420,7 @@ def nfl():
             g["nf"] = dict(line=round(-float(n.nfelo_home_line_close), 1), side=None if pd.isna(he) or he == ae or max(he, ae) <= 0 else (r["home"] if he > ae else r["away"]),
                            ev=None if pd.isna(he) else round(float(max(he, ae)), 4), at=None if pd.isna(n.home_line_close) else -float(n.home_line_close))
         w = WX.get(r["gid"])
+        g["inj"] = inj_card(IJ, r["away"], r["home"], "NFL")
         g["venue"] = dict(roof="neutral" if r.get("neutral") else (r.get("roof") or "retractable"), wind=w["wind"] if w else None, temp=w.get("temp") if w else None)
         games.append(g)
     return dict(games=games, week=wk, season=cur, bt=bt, this=score(done), seasons=seasons(rows, 2015), mvbt=moves_nfl(rows, NF) if NF else None, last=dict(week=lastwk, games=[final(r) for r in done if r["week"] == lastwk]),
@@ -447,8 +448,35 @@ def nba_lines():
     return out
 
 
+INJ_BT = dict(th=8, moved=[326, 124], close=[287, 277], open=[311, 253], since="2025-11-24", to="2026-11-02",
+              note="Games where one side was missing 8 or more points of Game Score value more than the other, from Sports Leader's injury files")
+
+
+def injuries(lg):
+    """This league's block of out/injuries.json when it is under 36 hours old, else {}."""
+    try:
+        x = json.load(open(O + "injuries.json"))[lg]
+        age = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.strptime(x["asof"], "%Y-%m-%dT%H:%MZ").replace(tzinfo=datetime.timezone.utc)
+        return x if age.total_seconds() < 36 * 3600 else {}
+    except Exception:
+        return {}
+
+
+def inj_card(IJ, a, hm, lg):
+    """Who is out on each side, and for the NBA which way the absences tilt the game (display only)."""
+    if not IJ:
+        return None
+    t = IJ.get("t", {}); ea, eh = t.get(a, {}), t.get(hm, {})
+    keep = (lambda q: q[2] >= 1.5) if lg == "NBA" else (lambda q: True)
+    g = dict(a=[q for q in ea.get("p", []) if keep(q)][:3], h=[q for q in eh.get("p", []) if keep(q)][:3], src=IJ.get("src"), asof=IJ.get("asof"))
+    if lg == "NBA":
+        g["ma"], g["mh"] = ea.get("m", 0.0), eh.get("m", 0.0); dm = round(g["ma"] - g["mh"], 1); g["dm"] = dm
+        g["tilt"] = (hm if dm > 0 else a) if abs(dm) >= INJ_BT["th"] else None
+    return g if (g["a"] or g["h"] or g.get("tilt")) else dict(g, none=True)
+
+
 def nba():
-    c = CFG["NBA"]; LN = nba_lines()
+    c = CFG["NBA"]; LN = nba_lines(); IJ = injuries("NBA")
     d = pd.concat([pd.read_parquet(f"{D}nba_pb_{y}.parquet", columns=["game_id", "season", "season_type", "game_date", "team_abbreviation", "opponent_team_abbreviation",
                                                                      "home_away", "team_score", "opponent_team_score"]) for y in (2025, 2026, 2027)])
     d = d[d.season_type.isin([2, 3])].drop_duplicates(["game_id", "team_abbreviation"])
@@ -486,6 +514,7 @@ def nba():
                    elo=(round(el.E[hm]), round(el.E[a])), rk=[rk.get(a), rk.get(hm)], rest=[min(rest(a, day), 3), min(rest(hm, day), 3)])
         g = pick("NBA", row, consensus(rq, a, hm) if rq else None, bt)
         g["b2b"] = [int(rest(a, day) == 0), int(rest(hm, day) == 0)]
+        g["inj"] = inj_card(IJ, a, hm, "NBA")
         path = HS.get(f"{a}@{hm}", [])
         if path:
             g["mv"] = move(row["pm"], g.get("spread"), g.get("total"), path[0][1], path[0][2], path, "first pull " + path[0][0][5:])
@@ -493,7 +522,7 @@ def nba():
     pd_ = sorted({r["day"] for r in rows if r["season"] == cur})[-2:]
     return dict(games=games, days=days, season=cur, bt=bt, this=score([r for r in rows if r["season"] == cur]), seasons=seasons(rows, 2026), mvbt=moves_nba(rows),
                 last=dict(days=pd_, games=[final(r, "NBA") for r in rows if r["day"] in pd_]),
-                cfg=dict(c, pts=PTS["NBA"], test="2025-26 and 2026-27 seasons, every game priced before it was played, against DraftKings' closing spread, total and moneylines where ESPN carries them"))
+                cfg=dict(c, pts=PTS["NBA"], inj=INJ_BT, test="2025-26 and 2026-27 seasons, every game priced before it was played, against DraftKings' closing spread, total and moneylines where ESPN carries them"))
 
 
 if __name__ == "__main__":

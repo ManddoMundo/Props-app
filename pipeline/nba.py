@@ -15,8 +15,9 @@ PM0 = 15.0  # pseudo-minutes of positional prior in each rate
 MW0 = 0.05    # pseudo-games of a 14-minute prior in the minutes average
 CARRY = 0.6   # weight kept on last season's per-minute rates when a new season starts
 ROT_T = 250.0       # live lineup with no news: fill the rotation by minutes to this team total (walk-forward tested, CHANGELOG v1.3)
-ROT_T_NEWS = 236.0  # with lineup news: the model was calibrated on the players who actually played, whose minutes add to
-                    # about 240 to 244 a game. Filling to 236 lands the live lineup on the same total (CHANGELOG v1.4).
+ROT_T_NEWS = 246.0  # with lineup news. v3.16: replayed 2025-26 as the desk sees it at noon (last game's roster, the official
+                    # injury report at noon). Tuned on games to Jan 31: 236 under-projected points by 0.23 a player, 246 by 0.10;
+                    # on Feb 1 on, 246 had no bias (-0.01) and a lower points miss (4.868 vs 4.879). Was 236 (CHANGELOG v1.4).
 
 
 def load():
@@ -255,7 +256,7 @@ def main():
     check = {f"{r.game_id}|{r.pid}": {k: round(float(getattr(r, "mu_" + k)), 4) for k in BASE + list(COMBO)} | {"mn": round(float(r.mn), 4)} for r in proj.itertuples()}
     out = dict(league="NBA", label=" / ".join(x[5:] for x in days), data_through=last_gd, games=games, sides=sides, players=list(players.values()),
                model=dict(bm=MF["bm"], bs=MF["bs"], cal=MF["cal"], lin=MF["lin"], disp={k: list(v) for k, v in MF["disp"].items()}),
-               backtest=bt, backtest_note="Fit on the 2024-25 season, scored on 2025-26 and 2026-27 games it never saw.")
+               backtest=bt, backtest_note="Fit on the 2024-25 season, scored on 2025-26 and 2026-27 games it never saw. These scores know who played each night; replayed with only the noon injury report, the points miss was 4.87 against 4.71 here and minutes 5.01 against 4.64.")
     os.makedirs(OUT, exist_ok=True)
     json.dump(out, open(OUT + "nba.json", "w")); json.dump(check, open(OUT + "nba_check.json", "w"))
     print("lin", {k: [round(z, 3) for z in v] for k, v in MF["lin"].items()})

@@ -1,6 +1,6 @@
 """NFL prop model: team volume x player share x efficiency, negative binomial distributions.
 Walk-forward: every feature for a game is built only from games played before it."""
-import json, sys
+import json, os, sys
 from types import SimpleNamespace
 from collections import defaultdict, deque
 import numpy as np, pandas as pd
@@ -27,9 +27,41 @@ def load():
     pw = pw[pw.position.isin(["QB", "RB", "WR", "TE", "FB"])].copy()
     pw["pos"] = pw.position.replace({"FB": "RB"})
     pw[NUM] = pw[NUM].fillna(0)
+    pw["zf"] = 0
+    pw = pd.concat([pw, zero_games(pw)], ignore_index=True)
     g = pd.read_csv(D + "nfl_games.csv")
     g = g[g.season >= 2023].copy()
     return pw, g
+
+
+ZERO = os.environ.get("NFL_ZERO", "1") != "0"     # v3.16: count games a player took snaps in but recorded nothing (0 to compare with the old way)
+
+
+def zero_games(pw):
+    """nflverse's weekly stats leave out a player who was on the field but recorded no stat (a blocking tight end, a receiver
+    with no targets). Those are real zero games: books grade them, and leaving them out made the model think those players
+    get the ball every time they play. Rebuilt from snap counts: every QB, RB, WR, TE or FB with an offensive snap and no
+    stat line gets a row of zeros (zf=1)."""
+    import glob
+    try:
+        ids = pd.read_parquet(D + "nfl_players.parquet", columns=["gsis_id", "pfr_id"]).dropna()
+    except Exception:
+        return pw.iloc[0:0]
+    mp = dict(zip(ids.pfr_id, ids.gsis_id)); have = set(zip(pw.player_id, pw.game_id)); out = []
+    info = pw.drop_duplicates("player_id", keep="last").set_index("player_id")
+    for f in sorted(glob.glob(D + "nfl_snaps_20*.csv")):
+        sn = pd.read_csv(f, low_memory=False)
+        sn = sn[sn.position.isin(["QB", "RB", "WR", "TE", "FB"]) & (sn.offense_snaps > 0) & sn.game_type.isin(["REG", "WC", "DIV", "CON", "SB"])]
+        for r in sn.itertuples():
+            pid = mp.get(r.pfr_player_id)
+            if pid is None or (pid, r.game_id) in have:
+                continue
+            nm = info.player_display_name.get(pid, r.player) if pid in info.index else r.player
+            out.append(dict(player_id=pid, player_display_name=nm, position=r.position, pos="RB" if r.position == "FB" else r.position,
+                            season=int(r.season), week=int(r.week), season_type="REG" if r.game_type == "REG" else "POST", game_id=r.game_id,
+                            team=r.team, opponent_team=r.opponent, zf=1, **{c: 0.0 for c in NUM}))
+            have.add((pid, r.game_id))
+    return pd.DataFrame(out) if out else pw.iloc[0:0]
 
 
 def priors(pw):
@@ -146,10 +178,10 @@ def walk(pw, g, P):
                 pf = S.player_feat(x["player_id"], x["pos"])
                 l5 = {("l5_" + cn): (float(np.mean(list(S.last[x["player_id"]][cn])[-5:])) if S.last[x["player_id"]][cn] else np.nan) for cn in NUM}
                 prow.append(dict(game_id=r.game_id, team=t, opp=o, season=r.season, week=r.week, player_id=x["player_id"],
-                                 name=x["player_display_name"], pos=x["pos"], **pf, **l5, **{c2: x[c2] for c2 in NUM}))
+                                 name=x["player_display_name"], pos=x["pos"], zf=int(x.get("zf", 0) or 0), **pf, **l5, **{c2: x[c2] for c2 in NUM}))
             pend.append((t, o, rows))
         for t, o, rows in pend:
-            S.update(r.season, t, o, rows)
+            S.update(r.season, t, o, rows if ZERO else [x for x in rows if not x.get("zf")])
     return pd.DataFrame(prow), pd.DataFrame(trow), S, C
 
 
@@ -197,6 +229,10 @@ def main():
     pr["y_td"] = ((pr.receiving_tds + pr.rushing_tds) > 0).astype(int)
     warm = ~((pr.season == 2023) & (pr.week <= 4))
     twarm = ~((tr.season == 2023) & (tr.week <= 4))
+    if "zf" not in pr:
+        pr["zf"] = 0
+    if not ZERO:      # the old way, for comparison: zero games never seen in training, still scored in the test
+        warm = warm & (pr.zf == 0)
     is_tr, is_te = warm & (pr.season <= 2024), pr.season >= 2025
     M = {"lg_ip": float(tr.ip.mean()), "beta": 0.8, "cal": defaultdict(lambda: 1.0)}
 
@@ -291,7 +327,7 @@ def main():
             tg = recent[recent.team == t]
             wks = sorted(tg.week.unique())[-4:]
             cand = tg[tg.week.isin(wks)].drop_duplicates("player_id", keep="last")
-            cands[t] = (tg, [x for x in cand.itertuples() if list(S.last[x.player_id]["team"])[-1] == t])
+            cands[t] = (tg, [x for x in cand.itertuples() if (list(S.last[x.player_id]["team"]) or [None])[-1] == t])
         # Starting QB: the book's passing yards market names him. That beats the schedule file and last week's box score.
         bookqb = list(news["qb_game"].get(f"{r.away_team}@{r.home_team}", []))
         if bookqb:
@@ -363,7 +399,7 @@ def main():
     check = {r.player_id: {k: round(float(getattr(r, "mu_" + k)), 4) for k in list(STATS) + ["td", "tgt"]} | {"f_pass": round(float(r.f_pass), 4), "f_rush": round(float(r.f_rush), 4)} for r in proj.itertuples()}
     out = dict(league="NFL", label=f"Week {wk}", data_through=f"2026 Week {wk - 1}", games=games, teams=teams, players=players,
                model=dict(beta=MF["beta"], tpa=P["lg"]["tpa"], cal=MF["cal"], lin=MF["lin"], disp={k: list(v) for k, v in MF["disp"].items()}),
-               backtest=bt, backtest_note="Fit on 2023-24 seasons, scored on 2025 and 2026 games it never saw.")
+               backtest=bt, backtest_note="Fit on the 2023 and 2024 seasons, scored on 2025 and 2026 games it never saw, including games a player was on the field with no stat line. These scores know who played each week, so they run a little better than live.")
     import os; os.makedirs(OUT, exist_ok=True)
     json.dump(out, open(OUT + "nfl.json", "w"))
     json.dump(check, open(OUT + "nfl_check.json", "w"))

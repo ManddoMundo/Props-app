@@ -12,6 +12,8 @@ for y in 2023 2024 2025 2026; do get nfl_pw_$y.csv $B/stats_player/stats_player_
 get nfl_games.csv https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv
 # snap counts (who actually played). Not fatal: without them grading falls back to the stats file alone.
 curl -sfL -m 180 -o nfl_snaps_2026.csv.tmp $B/snap_counts/snap_counts_2026.csv && mv nfl_snaps_2026.csv.tmp nfl_snaps_2026.csv || echo "snap counts not available"
+# v3.16: past seasons' snap counts, once (they no longer change). nfl.py adds the games a player was on the field with no stat line.
+for y in 2023 2024 2025; do [ -s nfl_snaps_$y.csv ] || { curl -sfL -m 180 -o nfl_snaps_$y.csv.tmp $B/snap_counts/snap_counts_$y.csv && mv nfl_snaps_$y.csv.tmp nfl_snaps_$y.csv || echo "snap counts $y not available"; }; done
 # research room files (matchup sheets). Not fatal: a file that fails to download keeps its last copy.
 soft(){ curl -sfL -m 240 -o "$1.tmp" "$2" && mv "$1.tmp" "$1" || { rm -f "$1.tmp"; echo "research file not refreshed: $1"; }; }
 soft nfl_play_by_play_2026.parquet $B/pbp/play_by_play_2026.parquet
@@ -44,6 +46,7 @@ python3 nba_match.py || echo "NBA MATCHUP STEP FAILED: the sheet keeps its last 
 # game picks: team ratings, win chances and spread picks for both leagues, then grade any finished picks. Not fatal.
 python3 nba_lines.py || echo "NBA LINES STEP FAILED: the NBA track record uses the lines already on file"
 python3 weather.py || echo "WEATHER STEP FAILED: no wind notes on the Games tab"
+python3 injuries.py || echo "INJURY STEP FAILED: no injury notes on the Games tab"
 python3 games.py || echo "GAME MODEL STEP FAILED: the Games tab keeps its last file"
 python3 daily.py gpicks "$(TZ=America/New_York date +%F)" grade || true
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt

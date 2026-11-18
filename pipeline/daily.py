@@ -798,7 +798,7 @@ def cmd_report(h=None):
     def line(bs, label):
         w = sum(b["status"] == "won" for b in bs); l = sum(b["status"] == "lost" for b in bs)
         pl = lambda b: (dec(b["odds"]) - 1) * b["units"] if b["status"] == "won" else -b["units"] if b["status"] == "lost" else 0
-        u = sum(pl(b) for b in bs); usd = sum(pl(b) * b.get("unit", h.get("legacy_unit", 0.5)) for b in bs)
+        u = sum(pl(b) for b in bs); usd = sum(pl(b) * CFG["unit"] for b in bs)        # every ticket at today's unit, matching the page
         if w + l:
             print(f"  {label:<14} {w}-{l}  hit {w/(w+l):.1%}  units {u:+.2f}  dollars {usd:+.2f}  avg model prob {np.mean([b['p'] for b in bs if b['status'] in ('won','lost')]):.1%}")
     done = [b for b in h["bets"] if b["status"] != "open"]
@@ -1033,7 +1033,8 @@ def cmd_gpicks(date, mode="grade"):
                               spread=g["spread"], ats=g["ats"], gap=g["gap"], tier=g.get("tier"), p_mkt=g.get("p_mkt"), status="open",
                               pt=g.get("pt"), total=g.get("total"), ou=g.get("ou"), tgap=g.get("tgap"),
                               ml_px=(g.get("ml") or {}).get("px"), ml_bk=(g.get("ml") or {}).get("bk"), s_px=(g.get("sbest") or {}).get("px"),
-                              open=(g.get("mv") or {}).get("open"), nf=(g.get("nf") or {}).get("side"), wind=(g.get("venue") or {}).get("wind")))
+                              open=(g.get("mv") or {}).get("open"), nf=(g.get("nf") or {}).get("side"), wind=(g.get("venue") or {}).get("wind"),
+                              itilt=(g.get("inj") or {}).get("tilt"), idm=(g.get("inj") or {}).get("dm")))
                 have.add((lg, g["id"]))
     res = {}
     try:
@@ -1058,6 +1059,8 @@ def cmd_gpicks(date, mode="grade"):
             x["nf_cover"] = int((c > 0) == (x["nf"] == x["home"]))          # nfelo's side, graded at the line we logged
         if x.get("wind") is not None and x["wind"] >= 10 and x.get("total") is not None and tot != x["total"]:
             x["wind_under"] = int(tot < x["total"])
+        if x.get("itilt") and c != 0:
+            x["inj_cover"] = int((c > 0) == (x["itilt"] == x["home"]))     # the healthier side, graded at the line we logged
         x["status"] = "done"; n += 1
     json.dump(P, open(gp, "w"))
     done = [x for x in P if x["status"] == "done"]
