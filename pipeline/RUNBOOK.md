@@ -189,3 +189,6 @@ site_job.sh writes lineup news (daily.py news) for each league on every early, m
 ## Dragons (v3.30, redrawn v3.31)
 - Hot (over in 7+ of the last 10) and ice cold (3 or fewer of 10) props get a pixel dragon on the Hit rates rows and the Trends by split cards (dragonHtml, heatOf in index.src.html). Display only.
 - The art is drawn in code by `dragon_sprites.py` (research tool, needs Pillow). It writes the sprite sheets into index.src.html between the `/*DRAGON:start*/` and `/*DRAGON:end*/` markers. Rerun it only to change the art; build.py does not run it. v3.31: 11 frames of 56 x 54, lingering flame and frost sheets (--drg-fire-l, --drg-ice-l) used on a lit number; the loops run only while the card is on screen.
+
+## Parlay tab (v3.35)
+- The builder, slip and press live in simtab.js (search "v3.35"). The press prices with smSlipPrice, the same sum as the slip; nothing in it touches the model, the policy or history.json. It needs research/sim_nba.json and sim_nfl.json, like the Sim tab.

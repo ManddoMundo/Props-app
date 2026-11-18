@@ -1890,6 +1890,7 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
     <button role="tab" data-tab="board" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 9h10M7 13h6M8 21l1.2-4M16 21l-1.2-4"/></svg>Board</button>
     <button role="tab" data-tab="games" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M12 5v13M6 9.5h2.5M6 13h2.5M15.5 9.5H18M15.5 13H18"/></svg>Games</button>
     <button role="tab" data-tab="sim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 3.5v3.7h3.7"/><path d="M10.2 9v6l5-3z" fill="currentColor" stroke="none"/></svg>Sim</button>
+    <button role="tab" data-tab="parlay" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 6.5V4h13v11h-2.5"/><rect x="3.5" y="8" width="13" height="12" rx="1.5"/><path d="M6.5 12h7M6.5 15.5h4.5"/></svg>Parlay</button>
     <button role="tab" data-tab="research" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg>Research</button>
     <button role="tab" data-tab="stress" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13h4l2-6 4 12 2-6h7"/></svg>Stress test</button>
     <button role="tab" data-tab="book" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5c-2-1.5-5-1.8-8-1.3v12.6c3-.5 6-.2 8 1.2 2-1.400 5-1.700 8-1.2V5.2c-3-.5-6-.2-8 1.3zM12 6.5V19"/></svg>Your book</button>
@@ -1923,7 +1924,7 @@ const MK = {
 };
 const MAX_EDGE = 0.12;   // keep in step with CFG max_edge in daily.py
 const TIERS = [[.08,'AAA','g','Approve'],[.06,'AA','g','Approve'],[.04,'A','g','Approve'],[.025,'BBB','g','Approve'],[.01,'BB','w','Watch'],[0,'B','w','Watch'],[-9,'C','b','Decline']];
-const TABS = ['desk','board','games','sim','research','stress','book','model'];
+const TABS = ['desk','board','games','sim','parlay','research','stress','book','model'];
 
 /* ---------- state ---------- */
 const S = { lg:'NBA', tab:'board', memo:null, game:'all', mkt:'pts', q:'', sort:'rated', limit:40, stressSide:null, relMkt:null,
@@ -4092,6 +4093,7 @@ function render() {
   if (S.tab === 'research') requestAnimationFrame(() => { const m = $('#main'); if (m) rsAfter(m, wasEnter); });
   if (S.tab === 'model') requestAnimationFrame(storyMount);
   if (S.tab === 'sim') requestAnimationFrame(() => simAfter(wasEnter)); else simStop();
+  if (S.tab === 'parlay') requestAnimationFrame(() => parlayAfter(wasEnter));
   if (S.tab === 'games') requestAnimationFrame(() => { document.querySelectorAll('#main .seg').forEach(sg => placeSeg(sg, false)); jbRun(); });
   beamWatch();
 }
@@ -4101,7 +4103,7 @@ function beamWatch() {      // the border beam only runs while the ticket is on 
   if (!beamIO) beamIO = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('bb-off', !e.isIntersecting)));
   beamIO.disconnect(); els.forEach(el => { el.classList.add('bb-off'); beamIO.observe(el); });
 }
-function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'games' ? gamesHtml() : S.tab === 'research' ? researchHtml() : S.tab === 'sim' ? simHtml() : modelHtml(); }
+function refreshMain() { $('#main').innerHTML = S.tab === 'board' ? boardHtml() : S.tab === 'desk' ? deskHtml() : S.tab === 'stress' ? stressHtml() : S.tab === 'book' ? bookHtml() : S.tab === 'games' ? gamesHtml() : S.tab === 'research' ? researchHtml() : S.tab === 'sim' ? simHtml() : S.tab === 'parlay' ? parlayHtml() : modelHtml(); }
 function setLeague(lg) { if (S.lg === lg || S.irisBusy) return;
   const pk = document.querySelector('.lg-puck');      // v3.18: the puck stretches as it travels and settles like jelly (after libraries.dev Gooey, MIT; scale only, so it stays on the compositor)
   if (pk && pk.animate && !RM()) pk.animate([{ scale: '1 1' }, { scale: '1.24 .86', offset: .32 }, { scale: '.95 1.05', offset: .64 }, { scale: '1.02 .98', offset: .84 }, { scale: '1 1' }], { duration: 560, easing: 'cubic-bezier(.33,0,.2,1)' });

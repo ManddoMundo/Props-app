@@ -5,14 +5,15 @@
    critically damped springs, the ball flies on parabolas, and the loop sleeps when the court is off screen.
    Reduced motion: nothing plays by itself; Play steps through the plays with the players placed, not moving. */
 const SMD = { NBA: { st: 'idle' }, NFL: { st: 'idle' } };
-S.sm = { g: { NBA: null, NFL: null }, run: {}, speed: 2, mkt: 'all', slip: { NBA: [], NFL: [] }, sort: 'lean', lim: 30, open: null, bt: 'games', bq: '', bm: 'all', px: '', stack: false };
+const smOn = () => S.tab === 'sim' || S.tab === 'parlay';      // v3.35: the slip and the builder are shared by the Sim and Parlay tabs
+S.sm = { g: { NBA: null, NFL: null }, run: {}, speed: 2, mkt: 'all', slip: { NBA: [], NFL: [] }, sort: 'lean', lim: 30, open: null, bt: 'games', bq: '', bm: 'all', px: '', stack: false, pk: { NBA: null, NFL: null } };
 const SM_MK = { NBA: [['all', 'All'], ['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['fg3', '3PM'], ['pra', 'PRA'], ['pr', 'P+R'], ['pa', 'P+A'], ['ra', 'R+A']],
                 NFL: [['all', 'All'], ['pass_yds', 'PASS YDS'], ['rush_yds', 'RUSH YDS'], ['rec_yds', 'REC YDS'], ['rec', 'REC'], ['any_td', 'ANY TD'], ['pass_att', 'ATT'], ['pass_cmp', 'CMP'], ['pass_td', 'PASS TD'], ['rush_att', 'CAR']] };
 function loadSim(lg) {
   const z = SMD[lg]; if (z.st !== 'idle') return; z.st = 'load';
   fetch(`research/sim_${lg.toLowerCase()}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(d => { z.st = 'ready'; z.d = d; z.bits = new Map(); }).catch(() => { z.st = 'error'; })
-    .then(() => { if (S.tab === 'sim' && S.lg === lg) { refreshMain(); simAfter(true); } });
+    .then(() => { if (smOn() && S.lg === lg) { refreshMain(); if (S.tab === 'sim') simAfter(true); else parlayAfter(true); } });
 }
 const smGame = lg => { const d = SMD[lg].d; if (!d || !d.games.length) return null; let g = d.games.find(x => x.id === S.sm.g[lg]); if (!g) { g = d.games[0]; S.sm.g[lg] = g.id; } return g; };
 const smName = (lg, pid) => { const p = IDX[lg].byId[pid]; return p ? p.name : ''; };
@@ -48,7 +49,7 @@ function simHtml() {
   if (z.st !== 'ready') return head + `<div class="card"><span class="lbl">Running the games</span><div class="wait"><i></i><i></i><i></i></div></div>`;
   const d = z.d, g = smGame(lg);
   if (!g) return head + `<p class="prose">No ${lg} games left on the slate to simulate. The next slate is simulated with the morning run.</p>`;
-  return head + smStrip(lg, d) + smArenaHtml(lg, g) + smHowHtml(lg) + smOddsHtml(lg, g) + smPropsHtml(lg, g) + smBuildHtml(lg, d) + smScriptHtml(lg, g) + smTestHtml(lg, d) + `<div id="smTray" class="sm-tray" hidden></div>`;
+  return head + smStrip(lg, d) + smArenaHtml(lg, g) + smHowHtml(lg) + smOddsHtml(lg, g) + smPropsHtml(lg, g) + smDoorHtml(lg) + smScriptHtml(lg, g) + smTestHtml(lg, d) + `<div id="smTray" class="sm-tray" hidden></div>`;
 }
 function smStrip(lg, d) {
   const days = {}; d.games.forEach(g => (days[g.day] = days[g.day] || []).push(g));
@@ -243,7 +244,7 @@ function smTestHtml(lg, d) {
 
 /* ---------- v3.21 the parlay builder: every game on the slate, its lines and its props ---------- */
 function smBuildHtml(lg, d) {
-  return `<section class="sm-build" id="smBuild"><div class="hd"><h2>Build a parlay</h2><span>Any game on the slate, its lines and its props</span></div>
+  return `<section class="sm-build" id="smBuild"><div class="hd"><h2>${S.tab === 'parlay' ? 'Pick your legs' : 'Build a parlay'}</h2><span>Any game on the slate, its lines and its props</span></div>
     <div class="sm-bf"><div class="seg sm-bt" data-seg="smbt"><span class="seg-ink"></span>${[['games', 'Game lines'], ['props', 'Props']].map(([k, t]) => `<button data-sm="bt:${k}" aria-pressed="${S.sm.bt === k}">${t}</button>`).join('')}</div>
       <label class="sm-bs fld"${S.sm.bt === 'games' ? ' hidden' : ''}><span class="sr">Find a player</span><input id="smBq" type="search" inputmode="search" autocomplete="off" placeholder="Find a player" value="${esc(S.sm.bq)}"></label></div>
     ${S.sm.bt === 'props' ? `<div class="seg sm-bm" data-seg="smbm"><span class="seg-ink"></span>${SM_MK[lg].filter(([k]) => k === 'all' || d.games.some(g => g.props.some(r => r.mkt === k))).map(([k, t]) => `<button data-sm="bm:${k}" aria-pressed="${S.sm.bm === k}">${t}</button>`).join('')}</div>` : ''}
@@ -264,7 +265,7 @@ function smBuildList(lg, d) {
     ${rows.length > 24 ? `<p class="note">Showing the 24 with the biggest lean of ${rows.length}. Search a name to find anyone else.</p>` : ''}`;
 }
 let smBqT = 0;
-document.addEventListener('input', e => { if (e.target.id !== 'smBq' || S.tab !== 'sim') return; S.sm.bq = e.target.value; clearTimeout(smBqT);
+document.addEventListener('input', e => { if (e.target.id !== 'smBq' || !smOn()) return; S.sm.bq = e.target.value; clearTimeout(smBqT);
   smBqT = setTimeout(() => { const el = $('#smBl'), d = SMD[S.lg].d; if (el && d) el.innerHTML = smBuildList(S.lg, d); }, 140); });
 function smBuildPaint() { const sec = $('#smBuild'), d = SMD[S.lg].d; if (!sec || !d) return; const y = scrollY; sec.outerHTML = smBuildHtml(S.lg, d); window.scrollTo(0, y); document.querySelectorAll('.sm-build .seg').forEach(sg => placeSeg(sg, false)); }
 
@@ -273,6 +274,7 @@ function smBuildPaint() { const sec = $('#smBuild'), d = SMD[S.lg].d; if (!sec |
    hover (or tap the stack) and they fan out into a list. A new leg slides in from below and the stack shifts back to
    make room; a removed one slides off to the side. Every move is a CSS transform that retargets from wherever it is,
    so quick taps never jump. Reduced motion: no sliding, the tickets simply appear and the stack is laid out flat. */
+function smLegTeam(l, g) { return l.key.startsWith('G|') ? (/^(away|acover)$/.test(l.key.slice(2)) ? g.away : /^(home|hcover)$/.test(l.key.slice(2)) ? g.home : null) : (g.props.find(r => `P|${r.pid}|${r.mkt}` === l.key.replace(/\|[ou]$/, '')) || {}).t === 1 ? g.home : g.away; }
 function smTray() {
   const t = $('#smTray'); if (!t) return; const lg = S.lg, legs = smLegsOf(lg), n = legs.length;
   document.body.classList.toggle('sm-has-tray', !!n);
@@ -281,12 +283,12 @@ function smTray() {
   if (!t.firstElementChild) t.innerHTML = `<div class="sm-slip" data-open="${S.sm.stack ? 1 : 0}"><ol class="sm-stack" data-sm="stack" aria-label="Legs in the parlay"></ol>
     <div class="sm-sum"><button class="sm-sh" data-sm="stack" aria-expanded="${S.sm.stack}"><span class="lbl" id="smSl"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
       <div class="sm-nums"><div><small>The runs</small><b class="num" id="smPj"></b><span id="smPjf"></span></div><div><small>Legs multiplied</small><b class="num" id="smPm"></b><span id="smPmf"></span></div><div><small>Books</small><b class="num" id="smBk"></b><span id="smBkf"></span></div><div class="lift" id="smLf"><small>Edge at the books</small><b class="num" id="smEv"></b><span id="smEvf"></span></div></div>
-      <div class="sm-ex"><div><div class="sm-exi"><label class="sm-yp"><span>Your price</span><input id="smPx" inputmode="numeric" autocomplete="off" placeholder="+600" value="${esc(S.sm.px)}"></label><p class="sm-ye" id="smYe"></p><div class="sm-gp" id="smGp"></div><button class="btn ghost sm sm-clr" data-sm="clear">Clear slip</button></div></div></div></div></div>`;
+      <div class="sm-ex"><div><div class="sm-exi"><label class="sm-yp"><span>Your price</span><input id="smPx" inputmode="numeric" autocomplete="off" placeholder="+600" value="${esc(S.sm.px)}"></label><p class="sm-ye" id="smYe"></p><div class="sm-gp" id="smGp"></div><button class="btn ghost sm sm-clr" data-sm="clear">Clear slip</button><button class="btn sm sm-gop" data-sm="goparlay">Pack it on the Parlay tab</button></div></div></div></div></div>`;
   const ol = t.querySelector('.sm-stack'), have = new Map([...ol.children].filter(li => !li.classList.contains('out')).map(li => [li.dataset.u, li]));
   const G = SMD[lg].d.games, gOf = id => G.find(x => x.id === id);
   legs.forEach((l, idx) => { const u = smUid(l.g, l.key), k = n - 1 - idx, g = gOf(l.g); let li = have.get(u);
     if (!li) { li = document.createElement('li'); li.className = 'sm-card'; li.dataset.u = u;
-      const team = l.key.startsWith('G|') ? (/^(away|acover)$/.test(l.key.slice(2)) ? g.away : /^(home|hcover)$/.test(l.key.slice(2)) ? g.home : null) : (g.props.find(r => `P|${r.pid}|${r.mkt}` === l.key.replace(/\|[ou]$/, '')) || {}).t === 1 ? g.home : g.away;
+      const team = smLegTeam(l, g);
       li.setAttribute('style', team ? tcol(lg, team) : '');
       li.innerHTML = `<span class="sm-cs" aria-hidden="true"></span><span class="sm-cb"><b>${esc(l.label)}</b><small>${esc(g.away)} @ ${esc(g.home)}${l.px != null ? ' · books ' + odds(l.px) : ''}</small></span><b class="num sm-cp">${pct(l.p)}</b><button class="sm-cx" data-sm="rm:${esc(u)}" aria-label="Remove ${esc(l.label)}">×</button>`;
       ol.appendChild(li);
@@ -314,7 +316,7 @@ function smSlipNums(lg) {
   if (gp) gp.innerHTML = Object.entries(P.by).map(([gid, L]) => { const g = G.find(x => x.id === gid), pj = L.length > 1 ? smJoint(lg, L.map(l => ({ k: smUid(l.g, l.key), b: l.b, neg: l.neg }))) : L[0].p, pm = L.reduce((a, l) => a * l.p, 1);
     return `<span class="sm-gpi"><b>${esc(g.away)} @ ${esc(g.home)}</b> ${L.length} leg${L.length > 1 ? 's' : ''} · ${pct(pj)}${L.length > 1 ? ` · <i class="${pj >= pm ? 'pos' : 'neg'}">${(pj / pm).toFixed(2)}x</i> together` : ''}</span>`; }).join('');
 }
-document.addEventListener('input', e => { if (e.target.id !== 'smPx' || S.tab !== 'sim') return; S.sm.px = e.target.value.replace(/[^\d+-]/g, ''); smSlipNums(S.lg); });
+document.addEventListener('input', e => { if ((e.target.id !== 'smPx' && e.target.id !== 'pkPx') || !smOn()) return; S.sm.px = e.target.value.replace(/[^\d+-]/g, ''); if (S.tab === 'parlay') pkYours(S.lg); else smSlipNums(S.lg); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.tab === 'sim' && S.sm.stack) { S.sm.stack = false; const sl = document.querySelector('.sm-slip'); if (sl) { sl.dataset.open = 0; sl.querySelector('.sm-sh').setAttribute('aria-expanded', false); } } });
 
 /* ---------- mounting and events ---------- */
@@ -340,9 +342,10 @@ function smPropsPaint() {     // repaint the props list only, keeping the replay
   const lg = S.lg, g = smGame(lg), sec = document.querySelector('.sm-props'); if (!g || !sec) return;
   const y = scrollY; sec.outerHTML = smPropsHtml(lg, g); window.scrollTo(0, y); document.querySelectorAll('.sm-props .seg').forEach(sg => placeSeg(sg, false));
 }
-function smLegSync() { document.querySelectorAll('[data-sm="leg"]').forEach(b => { const on = smLegsOf(S.lg).some(l => l.g === b.dataset.g && l.key === b.dataset.k); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); smTray(); }
+function smLegSync() { if (S.tab === 'parlay' && PK.busy && PK.sig !== pkSig(smLegsOf(S.lg))) pkReset(S.lg, true);
+ document.querySelectorAll('[data-sm="leg"]').forEach(b => { const on = smLegsOf(S.lg).some(l => l.g === b.dataset.g && l.key === b.dataset.k); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); smTray(); if (S.tab === 'parlay') pkPaint(S.lg); const dg = $('#smDgT'); if (dg) dg.textContent = smDgT(smLegsOf(S.lg).length); }
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-sm]'); if (!t || S.tab !== 'sim') return;
+  const t = e.target.closest('[data-sm]'); if (!t || !smOn()) return;
   const v = t.dataset.sm, i = v.indexOf(':'), key = i < 0 ? v : v.slice(0, i), val = i < 0 ? '' : v.slice(i + 1), lg = S.lg;
   if (key === 'retry') { SMD[lg].st = 'idle'; refreshMain(); return; }
   if (key === 'g') { if (S.sm.g[lg] === val) return; S.sm.g[lg] = val; S.sm.open = null; S.sm.lim = 30; const y = scrollY; S.enter = true; refreshMain(); S.enter = false; window.scrollTo(0, y); simAfter(true); return; }
@@ -367,8 +370,11 @@ document.addEventListener('click', e => {
       if (legs.length >= 10) legs.shift(); legs.push({ g: gid, key: k, b: t.dataset.b, neg: t.dataset.n === '1', label: t.dataset.l, p: +t.dataset.p, px: t.dataset.px != null ? +t.dataset.px : null }); }
     smLegSync(); return; }
   if (key === 'rm') { const legs = smLegsOf(lg), j = legs.findIndex(l => smUid(l.g, l.key) === val); if (j >= 0) legs.splice(j, 1); smLegSync(); return; }
-  if (key === 'clear') { smLegsOf(lg).length = 0; smLegSync(); return; }
+  if (key === 'clear') { smLegsOf(lg).length = 0; if (S.tab === 'parlay') pkReset(lg); smLegSync(); return; }
   if (key === 'stack') { if (e.target.closest('.sm-cx')) return; S.sm.stack = !S.sm.stack; const sl = t.closest('.sm-slip'); if (sl) { sl.dataset.open = S.sm.stack ? 1 : 0; sl.querySelector('.sm-sh').setAttribute('aria-expanded', S.sm.stack); } smTray(); return; }
+  if (key === 'goparlay') { go(() => { S.tab = 'parlay'; S.enter = true; render(); window.scrollTo(0, 0); }, 'fwd'); return; }
+  if (key === 'pack') { pkRun(lg); return; }
+  if (key === 'pill') { const m = $('#pk'); if (!m) return; m.scrollIntoView({ behavior: RM() ? 'auto' : 'smooth', block: 'start' }); if (smLegsOf(lg).length >= 2) setTimeout(() => pkRun(lg), RM() ? 0 : 520); return; }
   if (key === 'bt') { if (S.sm.bt === val) return; S.sm.bt = val; segPress(t); setTimeout(smBuildPaint, RM() ? 0 : 200); return; }
   if (key === 'bm') { S.sm.bm = val; segPress(t); setTimeout(() => { const el = $('#smBl'), d = SMD[lg].d; if (el && d) el.innerHTML = smBuildList(lg, d); }, RM() ? 0 : 160); return; }
 });
@@ -1037,4 +1043,241 @@ class Arena {
     if ((e.k === 'run' || e.k === 'pass') && u > .9 && e.y) fx.push({ id: `y${this.i}`, k: 'txt', s: e.td ? 'TD' : `${e.y > 0 ? '+' : ''}${e.y}`, x: bx / 1, y: by, d: .9, col: e.td ? '#ffd65a' : '#ffffff' });
     return { toks, ball: { x: bx, y: by, z: bz, rot }, fx, lines };
   }
+}
+
+/* ---------- v3.35 the Parlay tab: the builder on a page of its own, and the press that packs the legs into a ticket ----------
+   The press is one SVG: a belt that carries the legs (a block per leg, in its team's colours), a glass chamber, a ram, a lamp
+   and an LED readout. Pack it and the belt feeds the blocks in, the runs are read (the counter climbs to 10,000 while the lamp
+   blinks), the ram comes down and seals them, and the ticket drops out of the slot with the price stamped on it. The price is
+   the slip's own sum (smSlipPrice): the press only stages it. Transform and opacity only; reduced motion skips to the ticket. */
+const PK = { busy: false, io: null, seen: new Set(), tok: 0 };
+const PK_X0 = 14, PK_DX = 168, PK_SP = 29, PK_W = 24, PK_H = 18, PK_FL = 132;
+const pkCol = i => 4 - (i % 5), pkRow = i => Math.floor(i / 5);
+const pkBx = i => PK_X0 + pkCol(i) * PK_SP, pkBy = i => PK_FL - PK_H - pkRow(i) * (PK_H + 1);
+const PK_MK = { pass_yds: 'PYD', pass_att: 'ATT', pass_cmp: 'CMP', pass_td: 'PTD', rush_yds: 'RYD', rush_att: 'CAR', rec: 'REC', rec_yds: 'RCYD', any_td: 'TD' };
+const pkSig = legs => legs.map(l => smUid(l.g, l.key)).sort().join(',');
+const pkNo = sig => { let h = 2166136261; for (let i = 0; i < sig.length; i++) { h ^= sig.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).toUpperCase().slice(-5).padStart(5, '0'); };
+const pkWhen = a => { const m = /(\d{4})-(\d\d)-(\d\d)\s*(.*)/.exec(String(a)); return m ? `runs of ${new Date(+m[1], m[2] - 1, +m[3]).toLocaleDateString([], { month: 'short', day: 'numeric' })}${m[4] ? ', ' + m[4] : ''}` : `runs of ${a}`; };
+const pkWait = ms => new Promise(r => setTimeout(r, ms));
+const pkGame = (lg, id) => ((SMD[lg].d || {}).games || []).find(x => x.id === id);
+function pkTag(lg, l) {
+  if (l.key.startsWith('G|')) { const k = l.key.slice(2); return k === 'home' || k === 'away' ? 'ML' : k === 'over' ? 'OVER' : k === 'under' ? 'UNDER' : 'SPRD'; }
+  const [, , mkt, side] = l.key.split('|'); return (mkt === 'any_td' ? '' : side === 'u' ? '▼' : '▲') + (PK_MK[mkt] || ((MK[lg] || {})[mkt] || {}).s || mkt).replace(/\s.*/, '');
+}
+const pkStyle = (lg, l, g) => { const t = g && smLegTeam(l, g); return t ? tcol(lg, t) : '--t1:#e8dfc4;--t2:#8a7f62;--tn:#111111'; };
+function pkBlock(lg, l, i) {
+  const g = pkGame(lg, l.g); if (!g) return ''; const t = smLegTeam(l, g);
+  return `<g class="pk-b" data-u="${esc(smUid(l.g, l.key))}" style="${pkStyle(lg, l, g)}"><g transform="translate(${pkBx(i)} ${pkBy(i)})"><rect class="pk-bf" width="${PK_W}" height="${PK_H}" rx="2.5"/><rect class="pk-bh" x="2" y="1.6" width="20" height="2.4" rx="1"/><text x="12" y="10">${esc(t || `${g.away}/${g.home}`.slice(0, 7))}</text><text class="m" x="12" y="15.6">${esc(pkTag(lg, l))}</text></g></g>`;
+}
+function pkMachine() {
+  const rv = (x, y) => `<circle class="pk-rv" cx="${x}" cy="${y}" r="1.4"/>`;
+  return `<svg class="pk-svg" id="pkSvg" viewBox="0 0 360 176" aria-hidden="true">
+    <defs>
+      <linearGradient id="pkSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34403a"/><stop offset="1" stop-color="#161d1a"/></linearGradient>
+      <linearGradient id="pkBr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a5a22"/><stop offset=".35" stop-color="#e6c477"/><stop offset=".62" stop-color="#b8903f"/><stop offset="1" stop-color="#6a4c1b"/></linearGradient>
+      <linearGradient id="pkBv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecca7e"/><stop offset=".55" stop-color="#b8903f"/><stop offset="1" stop-color="#7a5a22"/></linearGradient>
+      <linearGradient id="pkCh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5d6662"/><stop offset=".4" stop-color="#d9dfdb"/><stop offset=".7" stop-color="#8d9692"/><stop offset="1" stop-color="#4a524e"/></linearGradient>
+      <pattern id="pkHz" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4.5" height="9" fill="#f5b800"/></pattern>
+      <clipPath id="pkCc"><rect x="174" y="40" width="156" height="136"/></clipPath>
+      <clipPath id="pkCb"><rect x="8" y="132" width="162" height="9" rx="4.5"/></clipPath>
+    </defs>
+    <g id="pkBody">
+      <rect class="pk-ro" x="8" y="8" width="152" height="52" rx="5"/>
+      <text class="pk-st" id="pkSt" x="15" y="30">ADD LEGS BELOW</text>
+      <text class="pk-sb" id="pkSb" x="15" y="49">0 LEGS ON THE BELT</text>
+      <path class="pk-sd" d="M26 141V174M150 141V174M20 174h12M144 174h12"/>
+      <rect class="pk-bt" x="8" y="132" width="162" height="9" rx="4.5"/>
+      <g clip-path="url(#pkCb)"><path class="pk-tr" id="pkTr" d="${Array.from({ length: 23 }, (_, i) => `M${i * 8} 132v9`).join('')}"/></g>
+      <circle class="pk-rl" cx="12.5" cy="136.5" r="2.6"/><circle class="pk-rl" cx="62" cy="136.5" r="2.6"/><circle class="pk-rl" cx="112" cy="136.5" r="2.6"/>
+      <rect class="pk-cb" x="174" y="58" width="156" height="74"/>
+      <path class="pk-cg" d="M174 76.5h156M174 95h156M174 113.5h156M213 58v74M252 58v74M291 58v74"/>
+      <g id="pkBlk" class="pk-blk"></g>
+      <g clip-path="url(#pkCc)"><g id="pkSlab" class="pk-slab"><rect id="pkSlabR" x="182" y="110" width="140" height="22" rx="2"/><path d="M190 116h70M190 121h52M190 126h86"/><rect class="pk-sc" x="296" y="114" width="20" height="14" rx="1.5"/></g></g>
+      <g id="pkRam" class="pk-ram"><rect class="pk-rod" x="247" y="28" width="10" height="32"/><rect class="pk-rh" x="178" y="57" width="148" height="13" rx="2"/><rect x="180" y="64" width="144" height="5" fill="url(#pkHz)"/></g>
+      <rect class="pk-fl" id="pkFl" x="174" y="58" width="156" height="74"/>
+      <rect class="pk-gl" x="174" y="58" width="156" height="74"/>
+      <path class="pk-sh" d="M196 60l-18 34v-14l10-20zM224 60l-44 72h7l44-72z"/>
+      <rect class="pk-lb" x="168" y="134" width="170" height="42"/>
+      <rect class="pk-dr" id="pkDl" x="174" y="132" width="78" height="4"/><rect class="pk-dr r" id="pkDr" x="252" y="132" width="78" height="4"/>
+      <path class="pk-vt" d="M182 148h40M182 154h40M182 160h40M282 148h40M282 154h40M282 160h40"/>
+      <rect class="pk-pl" x="226" y="145" width="52" height="18" rx="2.5"/><text class="pk-plt" x="252" y="157.6">FAIR LINE</text>
+      ${rv(173, 140)}${rv(333, 140)}${rv(173, 170)}${rv(333, 170)}
+      <rect class="pk-pil" x="166" y="50" width="8" height="42"/><rect class="pk-pil" x="330" y="50" width="8" height="84"/>
+      <rect class="pk-beam" x="160" y="40" width="184" height="18" rx="3"/><path class="pk-bs" d="M162 53.5h180"/>
+      ${rv(166, 46)}${rv(338, 46)}
+      <rect class="pk-cyl" x="235" y="10" width="34" height="30" rx="3"/><path class="pk-cbd" d="M235 17h34M235 33h34"/>
+      <rect class="pk-lst" x="306" y="30" width="16" height="10" rx="2"/>
+      <circle class="pk-gw" cx="314" cy="23" r="15"/><circle class="pk-lp" cx="314" cy="23" r="7.5"/><circle class="pk-lh" cx="311.5" cy="20.5" r="2.2"/>
+    </g>
+  </svg>`;
+}
+function pkLegsHtml(lg) {
+  const legs = smLegsOf(lg); if (!legs.length) return `<li class="pk-none">Nothing on the belt yet. Pick legs from the list${matchMedia('(min-width:760px)').matches ? '' : ' below'}: a team to win, a spread, a total or a player's line.</li>`;
+  return legs.map(l => { const g = pkGame(lg, l.g); if (!g) return '';
+    return `<li class="pk-lr" style="${pkStyle(lg, l, g)}"><i class="pk-sw" aria-hidden="true"></i><span class="pk-lt"><b>${esc(l.label)}</b><small>${esc(g.away)} @ ${esc(g.home)}${l.px != null ? ' · books ' + odds(l.px) : ''}</small></span><b class="num">${pct(l.p)}</b><button class="pk-x" data-sm="rm:${esc(smUid(l.g, l.key))}" aria-label="Remove ${esc(l.label)}">×</button></li>`; }).join('');
+}
+function pkPressHtml(lg) {
+  return `<section class="pk" id="pk" data-st="idle" aria-label="The parlay press">
+    <div class="pk-m">${pkMachine()}</div>
+    <div class="pk-base"><div class="pk-cnt"><b id="pkN">0</b><span id="pkNs">legs</span></div><p class="pk-hint" id="pkHint"></p><button class="pk-rs" id="pkRs" data-sm="clear" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 3.5v3.7h3.7"/></svg><span>Clear</span></button><button class="pk-go" id="pkGo" data-sm="pack" disabled><span id="pkGoT">Pack it</span></button><span class="pk-slot" aria-hidden="true"></span></div>
+    <div class="pk-out" id="pkOut" aria-live="polite"></div>
+    <div class="pk-slip"><div class="pk-sh"><span class="lbl">On the belt</span><button class="btn ghost sm" data-sm="clear" id="pkClr">Clear</button></div><ol class="pk-legs" id="pkLegs"></ol>
+      <label class="pk-yp"><span>Your price <small>optional, to see the edge at it</small></span><input id="pkPx" inputmode="numeric" autocomplete="off" placeholder="+600" value="${esc(S.sm.px)}"></label></div>
+  </section>`;
+}
+function parlayHtml() {
+  const lg = S.lg, z = SMD[lg]; loadSim(lg);
+  const head = mast('parlay', 'Pack a parlay', 'Legs from one game are priced together from that game\'s 10,000 runs; legs from different games are multiplied');
+  if (z.st === 'error') return head + `<div class="banner"><span>The simulator file did not load, and the press prices from it.</span><button class="btn ghost sm" data-sm="retry">Try again</button></div>`;
+  if (z.st !== 'ready') return head + `<div class="card"><span class="lbl">Loading the runs</span><div class="wait"><i></i><i></i><i></i></div></div>`;
+  const d = z.d; if (!d.games.length) return head + `<p class="prose">No ${lg} games left on the slate to build from. The next slate is simulated with the morning run.</p>`;
+  return head + `<div class="pk-wrap"><div class="pk-col">${pkPressHtml(lg)}</div><div class="pk-bld">${smBuildHtml(lg, d)}</div></div><button class="pk-pill" id="pkPill" data-sm="pill" hidden></button>`;
+}
+function parlayAfter(enter) {
+  document.querySelectorAll('#main .seg').forEach(sg => placeSeg(sg, false));
+  const lg = S.lg; if (SMD[lg].st !== 'ready' || !$('#pk')) return;
+  PK.seen = new Set(enter ? [] : smLegsOf(lg).map(l => smUid(l.g, l.key)));
+  PK.busy = false; pkPaint(lg, true);
+  if (PK.io) PK.io.disconnect();
+  if ('IntersectionObserver' in window) { PK.io = new IntersectionObserver(es => es.forEach(e => { PK.vis = e.isIntersecting; pkPill(lg); }), { threshold: 0, rootMargin: '-40px 0px -60px 0px' }); PK.io.observe($('.pk-m')); }
+}
+function pkPill(lg) {
+  const p = $('#pkPill'); if (!p) return; const n = smLegsOf(lg).length, show = n > 0 && PK.vis === false;
+  if (show) { const P = smSlipPrice(lg, smLegsOf(lg)); p.innerHTML = `<span class="pk-pn">${n}</span><span>${n === 1 ? 'leg' : 'legs'} · ${pct(P.pj)}</span><b>${n >= 2 ? 'Pack it' : 'To the press'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></b>`; }
+  if (show === !p.hidden) return; p.hidden = !show;
+  if (show && !RM()) p.animate([{ transform: 'translate(-50%,140%)' }, { transform: 'translate(-50%,0)' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
+}
+const PK_RW = 138;      // the readout's usable width, in the press's units
+function pkFit(el, base) { if (!el) return; el.style.fontSize = base + 'px'; let w = 0; try { w = el.getComputedTextLength(); } catch (e) { return; }
+  if (w > PK_RW) el.style.fontSize = Math.max(base * PK_RW / w, base * .6).toFixed(2) + 'px'; }
+function pkText(st, sb) { const a = $('#pkSt'), b = $('#pkSb');
+  if (a && st != null && a.textContent !== st) { a.textContent = st; pkFit(a, 13); }
+  if (b && sb != null && b.textContent !== sb) { b.textContent = sb; pkFit(b, 10); } }
+const pkDone = (P, n) => pkText(`${pct(P.pj)} HIT`, `FAIR ${smOdds(P.pj)} · ${n} LEGS`);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { pkFit($('#pkSt'), 13); pkFit($('#pkSb'), 10); });
+// v3.35: the belt shows what is on the slip; once a slip is packed the belt stands empty until the slip changes
+function pkPaint(lg, mount) {
+  const pk = $('#pk'); if (!pk) return; const legs = smLegsOf(lg), n = legs.length, sig = pkSig(legs), T = S.sm.pk[lg], packed = T && T.sig === sig && n > 0;
+  const ul = $('#pkLegs'); if (ul) ul.innerHTML = pkLegsHtml(lg);
+  const games = new Set(legs.map(l => l.g)).size;
+  $('#pkN').textContent = n; $('#pkNs').textContent = `${n === 1 ? 'leg' : 'legs'}${games > 1 ? ` · ${games} games` : ''}`;
+  $('#pkClr').hidden = !n; $('#pkRs').hidden = !n && !T; $('#pkGo').disabled = n < 2 || PK.busy; $('#pkGoT').textContent = PK.busy ? 'Packing' : packed ? 'Pack again' : 'Pack it';
+  $('#pkHint').textContent = PK.busy ? '' : n === 0 ? (T ? 'Add legs for a new ticket' : 'Up to 10 legs') : n === 1 ? 'One more leg to pack' : packed ? 'Packed. Clear to start over' : n >= 10 ? 'Full: a new leg bumps the oldest' : `${10 - n} more fit`;
+  pkOutPaint(lg, false);
+  pkPill(lg);
+  if (PK.busy) return;
+  pk.dataset.st = packed ? 'done' : 'idle';
+  if (packed) pkDone(T.P, T.legs.length);
+  else pkText(n === 0 ? 'ADD LEGS BELOW' : n === 1 ? 'ONE MORE LEG' : 'READY TO PACK', `${n} LEG${n === 1 ? '' : 'S'} ON THE BELT`);
+  pkBlocks(lg, packed ? [] : legs, mount);
+}
+function pkBlocks(lg, legs, mount) {
+  const G = $('#pkBlk'); if (!G) return; G.getAnimations().forEach(a => a.cancel());
+  G.innerHTML = legs.map((l, i) => pkBlock(lg, l, i)).join('');
+  if (RM()) { legs.forEach(l => PK.seen.add(smUid(l.g, l.key))); return; }
+  let k = 0;
+  G.querySelectorAll('.pk-b').forEach(b => { if (PK.seen.has(b.dataset.u)) return; PK.seen.add(b.dataset.u);      // a new leg drops onto the belt
+    b.animate([{ transform: 'translateY(-70px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1, offset: .62, easing: 'cubic-bezier(.3,0,.6,1)' }, { transform: 'translateY(-5px)', offset: .8 }, { transform: 'translateY(0)' }], { duration: 520, delay: mount ? 120 + k++ * 70 : 0, easing: 'cubic-bezier(.55,0,1,.45)', fill: 'backwards' }); });
+}
+function pkTicketHtml(lg, T, stale) {
+  const n = T.legs.length, P = T.P, ev = P.dec ? P.pj * P.dec - 1 : null;
+  const rows = T.legs.map(l => { const g = pkGame(lg, l.g); return `<li style="${pkStyle(lg, l, g)}"><i aria-hidden="true"></i><span>${esc(l.label)}<small>${g ? `${esc(g.away)} @ ${esc(g.home)}` : ''}</small></span><b class="num">${pct(l.p)}</b></li>`; }).join('');
+  return `<article class="pk-tk${stale ? ' stale' : ''}" id="pkTk" aria-label="Parlay ticket">
+    <header class="pk-th"><b>Fair Line</b><span>Parlay ticket · No. ${T.no}</span></header>
+    <div class="pk-tm"><span>${n} legs${P.games > 1 ? ` · ${P.games} games` : ' · one game'}</span><span>${esc(S.lg)} · ${esc(pkWhen(T.asof))}</span></div>
+    <ol class="pk-tl">${rows}</ol>
+    <div class="pk-tn"><div><small>Hit together</small><b class="num">${pct(P.pj)}</b><span>${P.games === 1 ? 'of the game\'s 10,000 runs' : 'each game from its runs, games multiplied'}</span></div>
+      <div><small>Fair price</small><b class="num">${smOdds(P.pj)}</b><span>legs multiplied: ${pct(P.pm)}</span></div></div>
+    ${P.multi ? `<p class="pk-tx">Legs from the same game hit together <b class="${P.pj >= P.pm ? 'pos' : 'neg'}">${(P.pj / P.pm).toFixed(2)}x</b> as often as multiplying them says.</p>` : ''}
+    <div class="pk-tf"><div><p class="pk-tb">${P.dec ? `Books ${odds(smAm(P.dec))} (implied ${pct(1 / P.dec)}): <b class="${ev >= 0 ? 'pos' : 'neg'}">${ev >= 0 ? '+' : '−'}$${Math.abs(ev * 100).toFixed(0)}</b> per $100 on the runs.` : `The books price ${P.priced} of the ${n} legs, so there is no books total to hold it against.`}</p>
+    <p class="pk-ty" id="pkYp"></p></div><span class="pk-stamp" id="pkStamp"></span></div>
+    <div class="pk-ta"><button class="btn ghost sm" data-sm="clear">Start over</button></div>
+    ${stale ? `<div class="pk-stale"><span>The slip has changed since this was packed.</span><button class="btn sm" data-sm="pack">Pack it again</button></div>` : ''}
+  </article>`;
+}
+function pkYours(lg) {
+  const T = S.sm.pk[lg], el = $('#pkYp'), st = $('#pkStamp'); if (!T || !el) return; const yp = parseFloat(S.sm.px), P = T.P;
+  const pin = $('#pkPx'); if (pin && document.activeElement !== pin && pin.value !== S.sm.px) pin.value = S.sm.px;
+  let ev = P.dec ? P.pj * P.dec - 1 : null;
+  if (isFinite(yp) && Math.abs(yp) >= 100) { const e2 = P.pj * E.dec(yp) - 1; ev = e2; el.innerHTML = `At your ${odds(yp)}: <b class="${e2 >= 0 ? 'pos' : 'neg'}">${e2 >= 0 ? '+' : '−'}$${Math.abs(e2 * 100).toFixed(1)}</b> per $100. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .001)))}.`; }
+  else el.textContent = `Type the price you are offered under the slip to see the edge at it. It breaks even at ${odds(smAm(1 / Math.max(P.pj, .001)))}.`;
+  if (st) { st.className = 'pk-stamp ' + (ev == null ? 'k' : ev >= 0 ? 'g' : 'b'); st.textContent = ev == null ? 'Packed' : ev >= 0 ? 'Good price' : 'Short price'; }
+}
+function pkOutPaint(lg, fresh) {
+  const out = $('#pkOut'); if (!out) return; const T = S.sm.pk[lg], legs = smLegsOf(lg);
+  if (!T) { if (!out.querySelector('.pk-ph')) out.innerHTML = `<div class="pk-ph"><span>The ticket prints here</span></div>`; return; }
+  const stale = T.sig !== pkSig(legs), tk = out.querySelector('.pk-tk');
+  if (!fresh && tk && tk.classList.contains('stale') === stale) return;
+  out.innerHTML = pkTicketHtml(lg, T, stale); pkYours(lg);
+}
+async function pkRun(lg) {
+  const legs = smLegsOf(lg), svg = $('#pkSvg'), pk = $('#pk'); if (PK.busy || legs.length < 2 || !svg) return;
+  const P = smSlipPrice(lg, legs), sig = pkSig(legs), n = legs.length, rows = n > 5 ? 2 : 1;
+  const T = { sig, no: pkNo(sig), asof: SMD[lg].d.asof, legs: legs.map(l => Object.assign({}, l)), P: { pj: P.pj, pm: P.pm, dec: P.dec, priced: P.priced, games: P.games, multi: Object.values(P.by).some(L => L.length > 1) } };
+  PK.sig = sig; const tok = ++PK.tok, alive = () => tok === PK.tok && svg.isConnected && S.tab === 'parlay' && S.lg === lg;
+  const fin = () => { if (tok !== PK.tok) return; PK.busy = false; S.sm.pk[lg] = T; if (!alive()) return; pkSettle(); pk.dataset.st = 'done'; pkDone(P, n); pkOutPaint(lg, true); pkPaint(lg); };
+  PK.busy = true; legs.forEach(l => PK.seen.add(smUid(l.g, l.key))); pkPaint(lg);
+  if (RM()) { $('#pkBlk').innerHTML = ''; fin(); const tk = $('#pkTk'); if (tk) tk.focus && tk.setAttribute('tabindex', '-1'); return; }
+  const blk = $('#pkBlk'), ram = $('#pkRam'), slab = $('#pkSlab'), body = $('#pkBody'), out = $('#pkOut'), ease = 'cubic-bezier(.45,0,.25,1)';
+  const old = out.querySelector('.pk-tk'); if (old) { await old.animate([{ opacity: 1 }, { transform: 'translateY(-14px)', opacity: 0 }], { duration: 220, easing: 'cubic-bezier(.4,0,1,1)', fill: 'forwards' }).finished.catch(() => {}); out.innerHTML = `<div class="pk-ph on"><span>Printing</span></div>`; }
+  else { const ph = out.querySelector('.pk-ph'); if (ph) { ph.classList.add('on'); ph.firstElementChild.textContent = 'Printing'; } }
+  // 1. the belt feeds the blocks in, the one nearest the press first
+  pkBlocks(lg, legs, false); slab.style.opacity = 0;
+  pk.dataset.st = 'feed'; pkText(`FEEDING ${n} LEGS`, 'BELT RUNNING');
+  const tr = $('#pkTr').animate([{ transform: 'translateX(0)' }, { transform: 'translateX(8px)' }], { duration: 230, iterations: Infinity });
+  const moves = [...blk.querySelectorAll('.pk-b')].map((b, i) => b.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${PK_DX}px)` }], { duration: 820, delay: (4 - pkCol(i)) * 75 + pkRow(i) * 40, easing: ease, fill: 'forwards' }).finished);
+  await Promise.all(moves).catch(() => {}); tr.cancel(); if (!alive()) return fin();
+  // 2. the runs are read: the counter climbs to 10,000 while the lamp blinks and the blocks hum
+  pk.dataset.st = 'read'; pkText('READING RUNS', '00,000 OF 10,000');
+  const hum = blk.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-1.2px)' }, { transform: 'translateY(0)' }, { transform: 'translateY(-.6px)' }, { transform: 'translateY(0)' }], { duration: 300, iterations: 4 });
+  await new Promise(res => { const t0 = performance.now(), D = 1150; const step = t => { const q = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - q, 2), v = Math.round(10000 * e);
+    pkText(null, `${v.toLocaleString('en-US').padStart(6, '0')} OF 10,000`); if (q < 1 && alive()) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+  hum.cancel(); if (!alive()) return fin();
+  // 3. the ram comes down and seals them
+  pk.dataset.st = 'seal'; pkText('SEALING', `${pct(P.pj)} HIT TOGETHER`);
+  const top = PK_FL - rows * (PK_H + 1) + 1, dyC = top - 70, sq = .58, dyF = PK_FL - (PK_FL - top) * sq - 70;
+  await ram.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${dyC}px)` }], { duration: 240, easing: 'cubic-bezier(.55,0,1,.45)', fill: 'forwards' }).finished.catch(() => {});
+  if (!alive()) return fin();
+  ram.animate([{ transform: `translateY(${dyC}px)` }, { transform: `translateY(${dyF}px)` }], { duration: 150, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+  blk.style.transformOrigin = `252px ${PK_FL}px`;
+  const squash = blk.animate([{ transform: 'scaleY(1)' }, { transform: `scaleY(${sq})` }], { duration: 150, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+  $('#pkFl').animate([{ opacity: 0 }, { opacity: .6, offset: .25 }, { opacity: 0 }], { duration: 300 });
+  body.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(1.6px)' }, { transform: 'translateY(-.6px)' }, { transform: 'translateY(0)' }], { duration: 240, delay: 60 });
+  await squash.finished.catch(() => {}); await pkWait(140); if (!alive()) return fin();
+  // 4. the blocks become one slab, the ram lifts, the floor opens and the ticket drops through
+  const sh = (PK_FL - top) * sq, sr = $('#pkSlabR'); sr.setAttribute('y', PK_FL - sh); sr.setAttribute('height', sh);
+  slab.style.opacity = 1; slab.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 });
+  blk.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+  ram.animate([{ transform: `translateY(${dyF}px)` }, { transform: 'translateY(0)' }], { duration: 460, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' });
+  await pkWait(260); if (!alive()) return fin();
+  const dl = $('#pkDl'), dr = $('#pkDr'); dl.style.transformOrigin = '174px 134px'; dr.style.transformOrigin = '330px 134px';
+  dl.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(.04)', offset: .3 }, { transform: 'scaleX(.04)', offset: .7 }, { transform: 'scaleX(1)' }], { duration: 640, easing: 'cubic-bezier(.4,0,.2,1)' });
+  dr.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(.04)', offset: .3 }, { transform: 'scaleX(.04)', offset: .7 }, { transform: 'scaleX(1)' }], { duration: 640, easing: 'cubic-bezier(.4,0,.2,1)' });
+  await pkWait(150);
+  await slab.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(48px)' }], { duration: 260, easing: 'cubic-bezier(.55,0,1,.45)', fill: 'forwards' }).finished.catch(() => {});
+  slab.style.opacity = 0; slab.getAnimations().forEach(a => a.cancel()); blk.getAnimations().forEach(a => a.cancel()); blk.style.transformOrigin = ''; blk.innerHTML = '';
+  ram.getAnimations().forEach(a => a.cancel());
+  // 5. out of the slot, then the stamp
+  fin(); if (!alive()) return;
+  const tk = $('#pkTk'); if (!tk) return;
+  await tk.animate([{ transform: 'translateY(-101%)' }, { transform: 'translateY(0)' }], { duration: 760, easing: 'cubic-bezier(.22,.9,.3,1)', fill: 'backwards' }).finished.catch(() => {});
+  const st = $('#pkStamp'); if (st && st.isConnected) { st.animate([{ transform: 'rotate(-9deg) scale(1.9)', opacity: 0 }, { transform: 'rotate(-9deg) scale(1)', opacity: 1 }], { duration: 170, easing: 'cubic-bezier(.55,0,1,.45)', fill: 'backwards' });
+    tk.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(2px)' }, { transform: 'translateY(0)' }], { duration: 200, delay: 150 }); }
+}
+ART.parlay = `<svg viewBox="0 0 150 96" aria-hidden="true"><g class="pt" style="--j:2" transform="rotate(-10 75 48)"><rect x="34" y="18" width="92" height="56" rx="4"/></g><g class="pt" style="--j:1" transform="rotate(-4 75 48)"><rect x="30" y="22" width="92" height="56" rx="4"/></g><g class="pt top" style="--j:0" transform="rotate(3 75 48)"><rect x="26" y="26" width="92" height="56" rx="4"/><path d="M36 40h44M36 50h58M36 60h30"/><circle cx="100" cy="62" r="10"/></g></svg>`;
+const smDgT = n => n ? `Pack your ${n} leg${n > 1 ? 's' : ''}` : 'Open the Parlay tab';
+function smDoorHtml(lg) {      // v3.35: the builder moved to the Parlay tab; the Sim tab keeps a door to it
+  const n = smLegsOf(lg).length;
+  return `<section class="sm-door"><div class="sm-dt"><h2>Build a parlay</h2><p>Every game on the slate, its lines and its props, now has a tab of its own, with the press that packs them into a ticket. The legs you add on this page go on the same slip.</p></div>
+    <button class="btn sm-dg" data-sm="goparlay"><span id="smDgT">${smDgT(n)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></section>`;
+}
+// v3.35.1: put the press back to rest: every animation stopped, the ram up, the chamber empty, the lamp off
+function pkSettle() { const svg = $('#pkSvg'); if (!svg) return;
+  (svg.getAnimations ? svg.getAnimations({ subtree: true }) : []).forEach(a => a.cancel());
+  const blk = $('#pkBlk'), slab = $('#pkSlab'); if (blk) { blk.style.transformOrigin = ''; blk.innerHTML = ''; } if (slab) slab.style.opacity = 0; }
+function pkReset(lg, keepTicket) {
+  PK.tok++; PK.busy = false; pkSettle();
+  if (!keepTicket) { S.sm.pk[lg] = null; const out = $('#pkOut'); if (out) { out.getAnimations && out.getAnimations({ subtree: true }).forEach(a => a.cancel()); out.innerHTML = ''; } }
+  const pk = $('#pk'); if (pk) pk.dataset.st = 'idle';
+  PK.seen = new Set(); pkPaint(lg);
 }
