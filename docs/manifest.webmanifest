@@ -1,7 +1,7 @@
 {
  "name": "Fair Line",
  "short_name": "Fair Line",
- "description": "NBA and NFL player prop model with a paper-bet desk.",
+ "description": "NBA and NFL player props priced from ten thousand simulated games, with a paper-bet desk that keeps score.",
  "start_url": ".",
  "scope": ".",
  "display": "standalone",

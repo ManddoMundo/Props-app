@@ -249,17 +249,17 @@
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
-   "rows": 105
+   "kind": "lineups",
+   "et": "2026-11-18 18:42",
+   "rows": 103
   },
   {
    "path": "data/news/NFL_2026-11-18.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
+   "kind": "lineups",
+   "et": "2026-11-18 18:42",
    "rows": 800
   },
   {
@@ -267,25 +267,26 @@
    "what": "lineups",
    "lg": "NBA",
    "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
-   "rows": 258,
-   "confirmed": 138
+   "kind": "lineups",
+   "et": "2026-11-18 18:42",
+   "rows": 289,
+   "confirmed": 209
   }
  ],
  "done": {
   "midday": "2026-11-18",
-  "evening": "2026-11-18"
+  "evening": "2026-11-18",
+  "lineups_a": "2026-11-18"
  },
  "quota": {
   "remaining": 5081,
   "used": 14919
  },
- "updated_utc": "2026-11-18 23:15",
- "et": "2026-11-18 18:15",
- "kind": "evening",
+ "updated_utc": "2026-11-18 23:42",
+ "et": "2026-11-18 18:42",
+ "kind": "lineups",
  "tier": "full",
- "spent": 214,
+ "spent": 0,
  "errors": [],
  "notes": []
 }
