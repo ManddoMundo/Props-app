@@ -119,7 +119,7 @@ function smGameLegs(lg, g) { const p = g.p, sl = g.spread, ovr = p.over;
     .concat(ovr == null ? [] : [['over', `Over ${g.tline}`, ovr], ['under', `Under ${g.tline}`, 1 - ovr]]); }
 function smHowHtml(lg) {      // the logic of one run, in plain words, league by league
   const N = lg === 'NBA' ? [
-    ['Where it starts', 'The desk\'s own number for every player: the model, centred on the books for the slate and blended with each player\'s line at the weight the desk has learned. Players with a points line keep it; the rest of the rotation shares what is left of the books\' team total.'],
+    ['Where it starts', 'The desk\'s own number for every player: the model, centred on the books for the slate and blended with each player\'s line at the weight the desk has learned. Players with a points line keep it; the rest of the rotation shares what is left of the books\' team total. Who plays comes from the injury report and, once the league posts them in the evening, tonight\'s starting fives: a player moved into the five gets about 21% more minutes, one moved out about 15% fewer, and the replay tips off with that five.'],
     ['1 · The game', 'Draw the final margin and total around the books\' spread and total. The spread of misses (about 14 points on the margin, 20 on the total) is what the closing line actually missed by last season.'],
     ['2 · The minutes', 'Move each player\'s minutes by how lopsided this run is: a 36-minute star plays about 13% less in a 30-point game, the end of the bench about 30% more. Add his own night-to-night swing, then keep the team to 240.'],
     ['3 · The team\'s night', 'Threes, rebounds and assists follow the team\'s points: a hot shooting night brings more threes and more assists, a cold one fewer. Fitted on 2024-25 box scores, with no shrink on threes or assists (v3.21).'],
@@ -346,15 +346,17 @@ const smLerp = (a, b, u) => a + (b - a) * u;
 /* NBA: 16 three-minute shifts; each player's run minutes become shifts on the floor, then every made shot, free throw
    trip, rebound and assist in his line is placed in a shift he played */
 function smNbaScript(g, smp, R) {
-  const SL = 16, teams = [0, 1].map(j => g.teams[j].players.map((p, i) => ({ id: p.id, name: p.name, min: smp.b[j].min[i] || 0, pts: smp.b[j].pts[i] || 0, fg3: smp.b[j].fg3[i] || 0, reb: smp.b[j].reb[i] || 0, ast: smp.b[j].ast[i] || 0 })));
+  const SL = 16, teams = [0, 1].map(j => g.teams[j].players.map((p, i) => ({ id: p.id, name: p.name, lu: p.lu, min: smp.b[j].min[i] || 0, pts: smp.b[j].pts[i] || 0, fg3: smp.b[j].fg3[i] || 0, reb: smp.b[j].reb[i] || 0, ast: smp.b[j].ast[i] || 0 })));
   const lineups = teams.map(rows => {
     const need = rows.map(r => Math.min(SL, Math.max(0, Math.round(r.min / 3)))); let tot = need.reduce((a, b) => a + b, 0);
     const byMin = rows.map((r, i) => i).sort((a, b) => rows[b].min - rows[a].min);
     while (tot > 5 * SL) { const i = [...byMin].reverse().find(i => need[i] > 0); need[i]--; tot--; }
     while (tot < 5 * SL) { const i = byMin.find(i => need[i] < SL); if (i == null) break; need[i]++; tot++; }
-    const rem = need.slice(), on = [];
+    const rem = need.slice(), on = [], five = rows.map((r, i) => i).filter(i => rows[i].lu === 'S' && need[i] > 0);
     for (let s = 0; s < SL; s++) {
-      const left = SL - s, pick = rows.map((r, i) => i).filter(i => rem[i] > 0).sort((a, b) => rem[b] / left - rem[a] / left || rows[b].min - rows[a].min).slice(0, 5);
+      const left = SL - s;
+      // v3.24: the opening shift is the starting five the league lists for tonight, when it has posted one
+      const pick = s === 0 && five.length === 5 ? five.slice() : rows.map((r, i) => i).filter(i => rem[i] > 0).sort((a, b) => rem[b] / left - rem[a] / left || rows[b].min - rows[a].min).slice(0, 5);
       for (const i of byMin) { if (pick.length >= 5) break; if (!pick.includes(i)) pick.push(i); }
       pick.forEach(i => { if (rem[i] > 0) rem[i]--; }); on.push(pick);
     }
@@ -381,6 +383,12 @@ function smNbaScript(g, smp, R) {
   const trips = [0, 1].map(j => ev.filter(e => e.j === j && (e.k === '2' || e.k === '3' || (e.k === 'ft') || (e.k === 'miss' && !e.off))).length);
   for (const j of [0, 1]) { const n = Math.max(0, trips[1 - j] - trips[j]) + 9 + Math.floor(R() * 5); for (let k = 0; k < n; k++) { const t = R() * 48, s = Math.min(SL - 1, Math.floor(t / 3)), on = lineups[j][s]; ev.push({ k: 'to', j, i: on[Math.floor(R() * on.length)], t }); } }
   ev.sort((a, b) => a.t - b.t);
+  // v3.23: the opening tip (each side's best rebounder on the floor jumps) and the start of each quarter. The side that
+  // loses the tip has the ball to start the 2nd and 3rd, the winner the 4th, as in the rule book
+  const jumper = j => lineups[j][0].slice().sort((a, b) => teams[j][b].reb - teams[j][a].reb || teams[j][b].min - teams[j][a].min)[0];
+  const cj = [jumper(0), jumper(1)], tw = R() < .5 ? 0 : 1;
+  ev.unshift({ k: 'tip', j: tw, t: 0, c: cj });
+  for (const [q, j] of [[2, 1 - tw], [3, 1 - tw], [4, tw]]) { const t = (q - 1) * 12, at = ev.findIndex(e => e.t >= t); ev.splice(at < 0 ? ev.length : at, 0, { k: 'qtr', j, t, q }); }
   return { ev, lineups, teams, SL, final: smp.sc };
 }
 
@@ -435,15 +443,17 @@ function smNflScript(g, smp, R) {
   const plan = [0, 1].map(j => {
     const pts = smp.sc[j], pl = T[j].plays; let tdl = pl.filter(p => p.td);
     while (tdl.length * 6 > pts) tdl.pop().td = false;
-    let pn = null;
+    let pn = null, ret = 0;
     for (let guard = 0; guard < 4 && !pn; guard++) {
-      const a0 = tdl.length, R0 = pts - 6 * a0;
+      const a0 = tdl.length + ret, R0 = pts - 6 * a0;
       for (let f = Math.floor(R0 / 3); f >= 0; f--) { const p = R0 - 3 * f; if (p >= 0 && p <= 2 * a0 && (!pn || Math.abs(p - a0) < Math.abs(pn.p - a0))) pn = { fg: f, p, saf: 0 }; }
-      if (!pn) { const cand = pl.filter(p => !p.td && p.y >= 1).sort((x, y) => y.y - x.y)[0];
-        if (cand && (tdl.length + 1) * 6 <= pts) { cand.td = true; tdl.push(cand); } else break; }
+      // v3.23: the score needs a touchdown the box score does not have: it came on a return (kickoff, punt or a
+      // fumble run back), so every player's line stays the run's own. (It used to turn a long gain into a touchdown.)
+      if (!pn) { if ((tdl.length + ret + 1) * 6 <= pts) ret++; else break; }
     }
-    if (!pn) { const a0 = tdl.length, R0 = pts - 6 * a0, f = Math.floor(R0 / 3); pn = { fg: Math.max(0, f - (R0 % 3 === 1 && f > 0 ? 1 : 0)), p: 0 }; pn.saf = R0 - 3 * pn.fg; }
-    const a = tdl.length; pn.pat = Array.from({ length: a }, (_, k) => pn.p >= a ? (k < pn.p - a ? 2 : 1) : (k < pn.p ? 1 : 0));
+    if (!pn) { const a0 = tdl.length + ret, R0 = pts - 6 * a0, f = Math.floor(R0 / 3); pn = { fg: Math.max(0, f - (R0 % 3 === 1 && f > 0 ? 1 : 0)), p: 0 }; pn.saf = R0 - 3 * pn.fg; }
+    const a = tdl.length + ret; pn.pat = Array.from({ length: a }, (_, k) => pn.p >= a ? (k < pn.p - a ? 2 : 1) : (k < pn.p ? 1 : 0));
+    pn.ret = ret; pn.box = tdl.length;
     return pn;
   });
   // drives. Each starts from a real starting spot and runs its natural course: the call on every down (run, pass,
@@ -500,6 +510,11 @@ function smNflScript(g, smp, R) {
     while (ti < a) { drives[j].push({ j, kind: 'td', pl: [tdp[ti]], pat: plan[j].pat[ti], s: 100 - tdp[ti].y }); ti++; }      // only if the plays ran out
     if (pool.length) { const dr = drives[j].filter(d => d.kind === 'punt').slice(-1)[0]; dr.pl.unshift(...pool.splice(0)); dr.end = 'to'; }
     drives[j] = drives[j].filter(d => d.kind !== 'punt' || d.pl.length);      // a possession with no snaps left for it never happened
+    for (let k = 0; k < plan[j].ret; k++) {      // return touchdowns: a returner on the roster (the backs and receivers return kicks)
+      const P = T[j].P, b = smp.b[j], who = P.map((p, i) => i).filter(i => i !== T[j].qb).sort((x, y) => ((b.rec[y] || 0) + (b.rush_att[y] || 0) * .5) - ((b.rec[x] || 0) + (b.rush_att[x] || 0) * .5)).slice(0, 4);
+      const how = R() < .4 ? 'kick' : R() < .58 ? 'punt' : 'fum', at = 1 + Math.floor(R() * Math.max(1, drives[j].length - 1));
+      drives[j].splice(at, 0, { j, kind: 'rtd', pl: [], how, i: who.length ? who[Math.floor(R() * who.length)] : 0, pat: plan[j].pat[plan[j].box + k], s: 0,
+                                yds: how === 'kick' ? 90 + Math.floor(R() * 11) : how === 'punt' ? 55 + Math.floor(R() * 30) : 8 + Math.floor(R() * 40) }); }
     const span = d => { let x = 0, mx = 0, mn = 0; d.pl.forEach(p => { x += p.y; mx = Math.max(mx, x); mn = Math.min(mn, x); }); return { x, mx, mn }; };
     for (const d of drives[j]) if (d.kind === 'td') {      // a touchdown drive longer than the field hands its biggest gain to a stall it fits in
       for (let k = 0; k < 6 && d.s < 1; k++) { const pre = d.pl.slice(0, -1); if (!pre.length) break; const mv = pre.reduce((m, p) => p.y > m.y ? p : m, pre[0]);
@@ -515,13 +530,13 @@ function smNflScript(g, smp, R) {
     for (const dr of smShuffle(R, drives[j].filter(d => d.kind === 'punt' && !d.end))) { const X = downs(dr, dr.s), need = 4 - X.dn;
       if (need > 0 && need <= t.incs.length) { for (let k = 0; k < need; k++) dr.pl.push(t.incs.pop()); dr.end = 'punt'; } }
     while (t.incs.length) { const cands = [];
-      drives[j].forEach(dr => { if (dr.kind === 'saf' || !dr.pl.length) return; const X = downs(dr, dr.s);
+      drives[j].forEach(dr => { if (dr.kind === 'saf' || dr.kind === 'rtd' || !dr.pl.length) return; const X = downs(dr, dr.s);
         dr.pl.forEach((p, k) => { const x = X.st[k]; if (x.dn <= 2 && (p.td || (p.k !== 'inc' && x.los + p.y >= x.fdl))) cands.push([dr, k]); }); });
       if (!cands.length) { const dr = drives[j].filter(d => d.kind === 'punt').slice(-1)[0]; if (!dr) break; dr.pl.push(...t.incs.splice(0)); dr.end = 'to'; break; }
       const [dr, k] = pick(cands); dr.pl.splice(k, 0, t.incs.pop()); }
     for (const dr of drives[j]) if (dr.kind === 'punt' && !dr.end) dr.end = dr.pl.length && downs(dr, dr.s).dn < 4 ? 'to' : 'punt';
   }
-  for (const j of [0, 1]) for (const d of drives[j]) if (d.kind !== 'td' && d.kind !== 'saf') {      // last check: every snap on the field
+  for (const j of [0, 1]) for (const d of drives[j]) if (d.kind !== 'td' && d.kind !== 'saf' && d.kind !== 'rtd') {      // last check: every snap on the field
     let x = 0, mx = 0, mn = 0; d.pl.forEach(p => { x += p.y; mx = Math.max(mx, x); mn = Math.min(mn, x); }); d.s = Math.max(1 - mn, Math.min(d.s, 98 - mx)); }
   for (const j of [0, 1]) for (const d of drives[j]) if (d.kind === 'td') { const pre = d.pl.slice(0, -1); let x = d.s, bad = false;
     pre.forEach(p => { x += p.y; if (x > 99 || x < 1) bad = true; });
@@ -533,9 +548,20 @@ function smNflScript(g, smp, R) {
   const ev = [], dirOf = (p, y) => { if (!LB) return ''; if (p.k === 'run') { const w = LB.run_dir.w[y <= 0 ? 0 : y <= 3 ? 1 : y <= 9 ? 2 : y <= 19 ? 3 : 4]; return LB.run_dir.labels[smPickW(R, w)]; }
     const w = p.k === 'inc' ? LB.pass_dir.inc : LB.pass_dir.w[y <= 4 ? 0 : y <= 9 ? 1 : y <= 19 ? 2 : 3]; return LB.pass_dir.labels[smPickW(R, w)]; };
   const done = [0, 0], gone = [false, false];
-  for (const d of order) {
-    if (d.kind === 'saf') { ev.push({ k: 'saf', j: d.j, pts: d.extra, t: clock }); continue; }
-    const s0 = d.s, D = downs(d, s0); ev.push({ k: 'start', j: d.j, los: s0, t: clock, dn: 1, tg: Math.min(10, 100 - s0) });
+  // v3.23: the opening kickoff (the home side kicks, the away side receives first), a kickoff after every score and to
+  // start the second half, and punts that come down and are returned to where the next drive starts
+  let kick = true, half = false;
+  const nextOf = k => { for (let x = k + 1; x < order.length; x++) if (order[x].kind !== 'saf') return order[x]; return null; };
+  order.forEach((d, oi) => {
+    if (d.kind === 'saf') { ev.push({ k: 'saf', j: d.j, pts: d.extra, t: clock }); kick = true; return; }
+    if (!half && clock >= 30) { half = true; ev.push({ k: 'half', j: d.j, t: clock }); kick = true; }
+    if (d.kind === 'rtd') {      // a return touchdown: a kickoff or punt run all the way back, or a fumble scooped and scored
+      const how = d.how === 'fum' ? 'fum' : kick ? 'kick' : 'punt';
+      ev.push({ k: 'rtd', j: d.j, how, i: d.i, yds: how === 'kick' ? Math.max(d.yds, 90) : how === 'punt' ? Math.min(d.yds, 85) : d.yds, t: clock += 60 / total, pts: 6 });
+      ev.push({ k: 'pat', j: d.j, pts: d.pat, t: clock }); kick = true; return; }
+    const s0 = d.s;
+    if (kick) { ev.push({ k: 'kick', j: 1 - d.j, to: s0, tb: s0 === 25 || s0 === 30 || s0 === 35, t: clock }); kick = false; }
+    const D = downs(d, s0); ev.push({ k: 'start', j: d.j, los: s0, t: clock, dn: 1, tg: Math.min(10, 100 - s0) });
     d.pl.forEach((p, i) => { const x = D.st[i], lastP = i === d.pl.length - 1, td = d.kind === 'td' && lastP, dir = dirOf(p, p.y);
       const deep = /deep/.test(dir), side = /left/.test(dir) ? -1 : /right/.test(dir) ? 1 : 0;
       const e = Object.assign({}, p, { los: x.los, dn: x.dn, tg: x.tg, fdl: x.fdl, t: clock += 60 / total, td, pts: td ? 6 : 0, dir, side });
@@ -547,12 +573,14 @@ function smNflScript(g, smp, R) {
       ev.push(e);
       if (e.exitAfter) ev.push({ k: 'note', j: d.j, t: clock, s: 'out', i: T[d.j].qb, los: Math.min(99, x.los + p.y) }); });
     const fin = D.los;
-    if (d.kind === 'td') ev.push({ k: 'pat', j: d.j, pts: d.pat, t: clock });
-    else if (d.kind === 'fg') ev.push({ k: 'fg', j: d.j, los: Math.min(fin, 83), pts: 3, t: clock += 60 / total, dn: D.dn, tg: D.tg });
+    if (d.kind === 'td') { ev.push({ k: 'pat', j: d.j, pts: d.pat, t: clock }); kick = true; }
+    else if (d.kind === 'fg') { ev.push({ k: 'fg', j: d.j, los: Math.min(fin, 83), pts: 3, t: clock += 60 / total, dn: D.dn, tg: D.tg }); kick = true; }
     else if (d.end === 'miss') ev.push({ k: 'fgx', j: d.j, los: Math.min(fin, 83), t: clock += 60 / total, dn: D.dn, tg: D.tg });
     else if (d.end === 'to' || d.end === 'downs') { /* the ball goes over where it stopped */ }
-    else ev.push({ k: 'punt', j: d.j, los: fin, t: clock += 60 / total, dn: D.dn, tg: D.tg });
-  }
+    else { const nx = nextOf(oi), to = nx && nx.j !== d.j && nx.kind !== 'rtd' ? nx.s : null;      // the receiving side's next drive starts where the return ends
+      const land = to == null ? Math.min(95, fin + 42) : Math.min(99, Math.max(fin + 25, 100 - to + Math.floor(R() * 11)));
+      ev.push({ k: 'punt', j: d.j, los: fin, land, to, t: clock += 60 / total, dn: D.dn, tg: D.tg }); }
+  });
   return { ev, qbOf: T.map(t => t.qb), final: smp.sc };
 }
 
@@ -562,11 +590,13 @@ class Arena {
     this.cx = this.live.getContext('2d'); this.toks = new Map(); this.fx = []; this.ball = { x: 47, y: 25, z: 3, vx: 0, vy: 0 }; this.playing = false; this.vis = true; this.dead = false;
     this.sprites = new Map();
     this.ro = new ResizeObserver(() => this.size()); this.ro.observe(this.stage);
-    this.io = new IntersectionObserver(es => { this.vis = es[0].isIntersecting; if (this.vis) this.kick(); }); this.io.observe(this.stage);
+    this.auto = !RM();       // v3.23: starts by itself the first time it comes into view (it used to need to be on screen at load)
+    this.io = new IntersectionObserver(es => { this.vis = es[0].isIntersecting; if (this.vis) this.kick();
+      if (this.vis && this.auto && !this.touched) { this.auto = false; setTimeout(() => { if (!this.dead && this.vis && !this.touched && !this.playing) this.play(); }, 450); } }); this.io.observe(this.stage);
     this.onVis = () => { if (!document.hidden) this.kick(); }; document.addEventListener('visibilitychange', this.onVis);
     this.load(ri, false);
     this.size();
-    this.touched = false; if (!RM()) setTimeout(() => { if (!this.dead && this.vis && !this.touched) this.play(); }, 650);      // starts by itself only if nobody has touched it
+    this.touched = false;      // starts by itself (see the observer above) only if nobody has touched it
   }
   destroy() { this.dead = true; this.playing = false; cancelAnimationFrame(this.raf); this.ro.disconnect(); this.io.disconnect(); document.removeEventListener('visibilitychange', this.onVis); }
   load(ri, autoplay) {
@@ -577,8 +607,8 @@ class Arena {
     if (autoplay && !RM()) this.play();
   }
   evDur(e) {      // milliseconds at 1x
-    if (this.lg === 'NBA') return e.k === 'to' ? 900 : e.k === 'ft' ? 1500 : e.k === 'miss' ? 1700 : e.a != null ? 2200 : 1800;
-    return { start: 700, run: 1500, pass: 1900, inc: 1500, pat: 900, fg: 1700, fgx: 1700, punt: 1500, saf: 1200, note: 1100 }[e.k] || 1000;
+    if (this.lg === 'NBA') return e.k === 'tip' ? 2000 : e.k === 'qtr' ? 1100 : e.k === 'to' ? 900 : e.k === 'ft' ? 1500 : e.k === 'miss' ? 1700 : e.a != null ? 2200 : 1800;
+    return { start: 700, run: 1500, pass: 1900, inc: 1500, pat: 900, fg: 1700, fgx: 1700, punt: 2300, saf: 1200, note: 1100, kick: 2400, rtd: 3000, half: 1200 }[e.k] || 1000;
   }
   frac() { return this.tot ? this.t / this.tot : 0; }
   // ---- playback
@@ -606,6 +636,8 @@ class Arena {
       else if (e.k === 'ft') { B[e.j][e.i].pts += e.pts; this.score[e.j] += e.pts; line = `${nm(e.j, e.i)} makes ${e.pts === 2 ? 'both free throws' : 'a free throw'}`; }
       else if (e.k === 'miss') { B[e.rj][e.ri].reb++; line = `${nm(e.j, e.i)} misses${e.three ? ' a three' : ''}, ${nm(e.rj, e.ri)} ${e.off ? 'grabs the offensive board' : 'rebounds'}`; }
       else if (e.k === 'to') line = `Turnover, ${T(e.j)}`;
+      else if (e.k === 'tip') line = `Tip-off: ${smLast(this.sc.teams[0][e.c[0]].name)} and ${smLast(this.sc.teams[1][e.c[1]].name)} go up, ${T(e.j)} win it`;
+      else if (e.k === 'qtr') line = `Start of the ${['', '1st', '2nd', '3rd', '4th'][e.q]} quarter, ${T(e.j)} ball`;
     } else {
       const q = e.q != null ? e.q : this.sc.qbOf[e.j], QB = q >= 0 ? nm(e.j, q) : 'The backup', QBs = q >= 0;
       const go = e.go ? 'On fourth down, ' : '', flag = e.pen ? '; flag on the defense, first down' : '';
@@ -619,13 +651,17 @@ class Arena {
       else if (e.k === 'pat') { this.score[e.j] += e.pts; line = e.pts === 2 ? 'Two-point try is good' : e.pts ? 'Extra point is good' : 'Extra point is no good'; }
       else if (e.k === 'fg') { this.score[e.j] += 3; line = `Field goal is good from ${100 - e.los + 17}, ${T(e.j)}`; }
       else if (e.k === 'fgx') line = `Field goal from ${100 - e.los + 17} is no good`;
-      else if (e.k === 'punt') line = `${T(e.j)} punts on 4th and ${e.tg}`;
+      else if (e.k === 'punt') line = `${T(e.j)} punts on 4th and ${e.tg}${e.to != null ? `, returned to the ${e.to <= 50 ? e.to : 'opp ' + (100 - e.to)}` : ''}`;
+      else if (e.k === 'kick') line = `${T(e.j)} kicks off${e.tb ? ', touchback' : `, returned to the ${e.to <= 50 ? e.to : 'opp ' + (100 - e.to)}`}`;
+      else if (e.k === 'half') line = 'Halftime';
+      else if (e.k === 'rtd') { this.score[e.j] += 6; const who = this.g.teams[e.j].players[e.i] ? nm(e.j, e.i) : T(e.j);
+        line = e.how === 'kick' ? `${who} takes the kickoff back ${e.yds} yards, TOUCHDOWN` : e.how === 'punt' ? `${who} returns the punt ${e.yds} yards, TOUCHDOWN` : `Fumble! ${T(e.j)} scoop it up and score from ${e.yds} yards out`; }
       else if (e.k === 'saf') { this.score[e.j] += e.pts; line = `Safety, ${T(e.j)}`; }
       else if (e.k === 'note') line = `${nm(e.j, e.i)} is out, the backup takes over`;
       else if (e.k === 'start') line = `${T(e.j)} ball at the ${e.los <= 50 ? e.los : 'opp ' + (100 - e.los)}`;
       if (e.downs && e.k !== 'inc') line += ', turnover on downs';
     }
-    if (line) this.log.push({ t: e.t, q: this.clockOf(e.t), s: line, j: e.j, big: (this.lg === 'NBA' && (e.k === '3')) || e.td || e.k === 'fg' });
+    if (line) this.log.push({ t: e.t, q: this.clockOf(e.t), s: line, j: e.j, big: (this.lg === 'NBA' && (e.k === '3')) || e.td || e.k === 'fg' || e.k === 'rtd' });
     if (!quiet) { this.paintScore(false, e.j); this.paintBox(false, e); this.paintTick(false); }
   }
   clockOf(t) { const L = this.lg === 'NBA' ? 12 : 15, q = Math.min(3, Math.floor(t / L)), rem = Math.max(0, L - (t - q * L)), m = Math.floor(rem), s = Math.floor((rem - m) * 60); return { q: q + 1, c: `${m}:${String(s).padStart(2, '0')}` }; }
@@ -809,6 +845,41 @@ class Arena {
     const num = p && p.num != null && p.num !== '' ? String(p.num) : (p ? (p.pos || '').slice(0, 2) : '');
     return { key: `${j}|${num}|${big ? 1 : 0}|${this.r}`, fill: col[0], ring: col[1], tn: lum(col[0]) < .3 ? '#fff' : '#111', text: num }; }
   // ---- NBA poses: where everyone stands at a moment of a play
+  // v3.23 special teams: kickoffs, punts that are returned, return touchdowns. j is the side that kicks (for a kickoff or a
+  // punt) or the side that scores (a return touchdown). X maps yards from the kicking side's own goal line onto the field.
+  nflKick(e, u) {
+    const toks = [], fx = [], mid = 26.65, G = this.g;
+    const ret = e.k === 'rtd', kj = ret ? 1 - e.j : e.j, rj = 1 - kj, X = y => kj ? 10 + y : 110 - y;
+    const small = (jj, n, x, y) => { const s = this.tokStyle(jj, 'x' + n, false); s.small = true; s.key = jj + '|s|' + this.r; s.text = ''; return Object.assign(s, { id: `${jj}|st${n}`, x, y }); };
+    const P = G.teams[rj].players, ri = ret ? e.i : P.map((p, i) => i).sort((a, b) => (((this.sc.qbOf || [])[rj] === a) - ((this.sc.qbOf || [])[rj] === b)))[1] ?? 0;
+    const rs = P[ri] ? Object.assign(this.tokStyle(rj, P[ri].id, true), { id: `${rj}|${P[ri].id}` }) : small(rj, 9, 0, mid);
+    if (e.k === 'half') {      // both sides off to the locker rooms: everyone drifts to the sideline
+      for (let n = 0; n < 6; n++) { toks.push(small(0, n, 40 + n * 4 + u * 3, 4 - u * 2)); toks.push(small(1, n, 40 + n * 4 + u * 3, 49.3 + u * 2)); }
+      return { toks, ball: { x: 60, y: mid, z: 0 }, fx, lines: [] };
+    }
+    const fum = ret && e.how === 'fum', punt = e.k === 'punt' || (ret && e.how === 'punt');
+    let kx, land, end, cy = mid + (Math.sin((e.t || 0) * 7) * 9);
+    if (fum) { const g0 = X(100 - e.yds); kx = g0; land = g0; end = X(100); }
+    else if (punt) { const los = ret ? 100 - (e.yds + 10) : e.los; kx = X(los - 13); land = X(ret ? Math.min(99, los + 42) : e.land); end = ret ? X(-0.5) : X(100 - e.to); }
+    else { kx = X(35); land = X(97 - ((e.t || 0) * 13 % 6)); end = ret ? X(-0.5) : X(100 - e.to); }
+    const dirk = kj ? 1 : -1;
+    // the cover team runs down, the return team sets up in front of the returner
+    for (let n = 0; n < 6; n++) { const y0 = 6 + n * 8.2, q = smEaseIO(Math.min(1, u / .7)), tx = smLerp(kx, (land + end) / 2, q * .85);
+      toks.push(small(kj, n, fum ? smLerp(land - dirk * 6, end - dirk * 4, smEaseIO(u)) : tx + Math.sin(n + u * 5) * .6, smLerp(y0, smLerp(y0, cy, .45), q))); }
+    for (let n = 0; n < 5; n++) { const y0 = 9 + n * 9, base = smLerp(land, end, .25) - dirk * 3;
+      toks.push(small(rj, n, fum ? smLerp(land, end, u * .6) - dirk * (3 + n) : base + Math.sin(n * 2 + u * 4) * .8, smLerp(y0, cy + (n - 2) * 3, Math.min(1, u * 1.2)))); }
+    const catchAt = fum ? .12 : punt ? .52 : .5, run = Math.max(0, (u - catchAt) / (1 - catchAt)), rq = smEaseIO(Math.min(1, run / .92));
+    rs.x = u < catchAt ? land : smLerp(land, end, rq); rs.y = u < catchAt ? cy : cy + Math.sin(rq * 3.2) * 4; rs.hot = u > catchAt;
+    if (fum) { rs.x = smLerp(land, end, smEaseIO(Math.min(1, u / .9))); rs.y = cy; rs.hot = true; }
+    toks.push(rs);
+    let ball;
+    if (fum) ball = { x: rs.x, y: rs.y, z: 1 };
+    else if (u < catchAt) { const q = u / catchAt; ball = { x: smLerp(kx, land, smEaseOut(q)), y: smLerp(mid, cy, q), z: Math.sin(q * Math.PI) * (punt ? 19 : 22) + 1, rot: q * 14 }; }
+    else ball = { x: rs.x, y: rs.y, z: 1 };
+    if (ret && u > .86) fx.push({ id: `g${this.i}`, k: 'glow', x: end > 60 ? 110 : 0, w: 10, d: .9, col: (TC.NFL[e.j ? G.home : G.away] || ['#fff'])[1] });
+    if (ret && u > .9) fx.push({ id: `y${this.i}`, k: 'txt', s: 'TD', x: rs.x, y: rs.y, d: .9, col: '#ffd65a' });
+    return { toks, ball, fx, lines: [] };
+  }
   nbaPose(e, u) {
     const sc = this.sc, slot = Math.min(sc.SL - 1, Math.floor((e ? e.t : 0) / 3)), off = e ? e.j : 0, toks = [], fx = [];
     const dir = j => j ? 1 : -1, bx = j => j ? 88.75 : 5.25, X = (j, x) => j ? x : 94 - x;
@@ -834,6 +905,21 @@ class Arena {
     // the ball
     let ball = null; const rim = [bx(off) + dir(off) * -0.0, 25];
     if (!e) return { toks, ball: { x: 47, y: 25, z: 3 } };
+    if (e.k === 'tip') {      // the centre circle: the two jumpers in the middle, everyone else around the ring on his own side
+      toks.length = 0;
+      for (const j of [0, 1]) { const ring = [[-7, -6.5], [-7, 6.5], [-9.5, 0], [-4, -9.5]], idx = sc.lineups[j][0].filter(i => i !== e.c[j]); let n = 0;
+        for (const i of [e.c[j], ...idx]) { const r = sc.teams[j][i], st = this.tokStyle(j, r.id, true), side = j ? 1 : -1, jump = i === e.c[j];
+          const p = jump ? [47 + side * 2.1, 25] : [47 + side * -ring[n][0], 25 + ring[n++][1]];
+          toks.push(Object.assign(st, { id: j + '|' + r.id, x: p[0] + (jump ? 0 : Math.sin(u * 4 + n) * .25), y: p[1], hot: jump && u > .28 && u < .6 })); } }
+      const win = e.j, mate = toks.find(t => t.id.startsWith(win + '|') && t.id !== win + '|' + sc.teams[win][e.c[win]].id), to = mate ? [mate.x, mate.y] : [47 + (win ? 6 : -6), 25];
+      let ball;
+      if (u < .42) { const q = smEaseOut(u / .42); ball = { x: 47, y: 25, z: 6 + q * 9 }; }
+      else if (u < .5) ball = { x: 47, y: 25, z: 15 - (u - .42) * 8 };
+      else { const q = smEaseIO(Math.min(1, (u - .5) / .4)); ball = { x: smLerp(47, to[0], q), y: smLerp(25, to[1], q), z: 14.4 - q * 11 + Math.sin(q * Math.PI) * 2 };
+        if (u < .62) fx.push({ id: `tp${this.i}`, k: 'ring', x: 47, y: 25, d: .5, col: 'rgba(255,214,90,1)' }); }
+      return { toks, ball };
+    }
+    if (e.k === 'qtr') { const hp0 = [X(off, 46 + u * 18), 25 + Math.sin(u * 3) * 2]; return { toks, ball: { x: hp0[0] + .9 * dir(off), y: hp0[1] + .4, z: 1.2 + Math.abs(Math.sin(u * 9)) * 2.4 } }; }
     const handler = e.a != null ? e.a : offIdx.find(i => i !== shooter) ?? shooter, hp = oT[handler] || oT[shooter], sp = oT[shooter] || hp;
     const dribble = (p, ph) => ({ x: p[0] + .9 * dir(off), y: p[1] + .4, z: 1.2 + Math.abs(Math.sin(ph * 9)) * 2.4 });
     if (e.k === 'to') { const q = smEaseIO(Math.min(1, u / .8)), tgt = oT[offIdx[1]] || hp; ball = { x: smLerp(hp[0], tgt[0], q) + (u > .5 ? (u - .5) * 6 * -dir(off) : 0), y: smLerp(hp[1], tgt[1], q), z: 3 + Math.sin(q * Math.PI) * 2, a: u > .85 ? 1 - (u - .85) / .15 : 1 }; }
@@ -855,6 +941,7 @@ class Arena {
   // ---- NFL poses
   nflPose(e, u) {
     const toks = [], fx = []; if (!e) return { toks, ball: { x: 60, y: 26.65, z: 0 } };
+    if (e.k === 'kick' || e.k === 'rtd' || e.k === 'half' || (e.k === 'punt' && e.to != null)) return this.nflKick(e, u);
     const j = e.j, dir = j ? 1 : -1, X = y => j ? 10 + y : 110 - y;      // y = yards from own goal line
     const los = e.los != null ? e.los : 25, L = X(los), mid = 26.65, P = this.g.teams[j].players, D = this.g.teams[1 - j].players;
     const R = smRng(Math.floor((e.t || 0) * 997) + 11);

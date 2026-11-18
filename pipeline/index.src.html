@@ -1784,6 +1784,8 @@ function confidence(pr, edgePts) {
   if (pr.lg === 'NFL' && /^rec/.test(pr.mkt) && cv(p.logs.tgt) > .5) { c *= .9; flags.push('Target volume has been uneven lately.'); }
   if (pr.lg === 'NFL' && /^rush/.test(pr.mkt) && cv(p.logs.car) > .5) { c *= .9; flags.push('Carry volume has been uneven lately.'); }
   if (p.missed) { c *= .8; flags.push('Missed his last game. His role on return is a guess.'); }
+  if (pr.lg === 'NBA' && p.lu === 'S' && !p.start) flags.push(`In tonight's starting five (${p.luc ? 'confirmed' : 'expected'} by the team) after coming off the bench last game. His minutes are projected about 21% higher for it.`);
+  if (pr.lg === 'NBA' && p.lu === 'B' && p.start) flags.push(`Not in tonight's starting five (${p.luc ? 'confirmed' : 'expected'} by the team) after starting last game. His minutes are projected about 15% lower for it.`);
   if (p.q) { c *= .8; flags.push('Listed questionable on today\'s injury report. The desk will not bet him.'); }
   if (pr.lg === 'NFL' && pr.e.side.qbnew && /^(pass|rec)/.test(pr.mkt)) { c *= .85; flags.push('New starting quarterback this week. Passing game numbers are less certain.'); }
   if (pr.lg === 'NFL') { const g = IDX.NFL.games[pr.e.side.game]; if (g && g.spread != null && Math.abs(g.spread) >= 9.5) { c *= .92; flags.push(`Spread is ${Math.abs(g.spread)} points. A blowout can cut or pad volume.`); } }

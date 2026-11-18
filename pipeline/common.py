@@ -24,6 +24,27 @@ def load_news(lg, dates, path="/home/claude/props/out/news.json"):
     return dict(out=set(n.get("out", [])), q=set(n.get("q", [])), inn=set(n.get("in", [])), qb_game=n.get("qb_game", {}), on=True)
 
 
+def load_lineups(lg, day, d="/home/claude/props/out/lineups/"):
+    """v3.24: the league's own starting lineups for one date (relay file lineups/<LG>_<date>.txt from nba.com). Returns
+    {team code: {"start": set of names, "inactive": set of names, "confirmed": bool}}; only teams with all five starters
+    listed. Empty when there is no file for that date, so a stale file can never set a lineup."""
+    out = {}
+    try:
+        rows = open(f"{d}{lg}_{day}.txt").read().splitlines()
+    except Exception:
+        return out
+    for ln in rows:
+        c = [x.strip() for x in ln.strip().strip("|").split("|")]
+        if len(c) < 5 or c[0].lower() in ("team", "") or set(c[0]) <= set("-: "):
+            continue
+        t = out.setdefault(c[0], {"start": set(), "inactive": set(), "conf": []})
+        if c[4].lower() == "inactive":
+            t["inactive"].add(norm(c[1]))
+        else:
+            t["start"].add(norm(c[1])); t["conf"].append(c[3].lower() == "confirmed")
+    return {k: dict(start=v["start"], inactive=v["inactive"], confirmed=bool(v["conf"]) and all(v["conf"])) for k, v in out.items() if len(v["start"]) == 5}
+
+
 def nb_k(mu, a, b):
     return np.clip(np.exp(a + b * np.log(np.maximum(mu, 1e-6))), 0.05, 400.0)
 

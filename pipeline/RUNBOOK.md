@@ -179,3 +179,8 @@ site_job.sh writes lineup news (daily.py news) for each league on every early, m
 - daily.py CFG bet_books: the books the desk may bet. It prices every side at each one's own line and price and takes the best value. CFG hold_edge: the model-alone hold by league (NBA 0.25, NFL 0.12). Changes to either are pick-policy changes: 200+ graded sides and a CHANGELOG entry.
 - The relay (relay_pull.py) pulls ten books: the seven sportsbooks plus Polymarket, Novig and Kalshi. Exchanges are display and market view only. site_job.sh prices a league when any of the seven sportsbooks has rows (it used to need Hard Rock).
 - The app's book picker reads out/books.json (books.py), the same pull as the feed. books.py drops quotes whose sides add to under 1.00 or over 1.12 in implied chance.
+
+## Starting lineups (v3.24)
+- The relay's lineups run (about 6:40 PM and 9:15 PM Eastern, plus the evening pass) saves lineups/NBA_<date>.txt from nba.com and a fresh ESPN injury report; free. site_job.sh mode lineups (and close) feeds them to the model, reruns run.sh and the sim, and reprices the board (FL_RUN=late). It never picks.
+- nba.py reads them with common.load_lineups (first slate day only, teams with all five listed). LINEUP_F holds the minutes factors; changing them is a model change: rerun lab lineup_bt.py and the walk-forward backtest, and keep node check.js under 1e-2.
+- Run it by hand: Actions, Fair Line daily, Run workflow, mode lineups.

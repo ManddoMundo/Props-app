@@ -258,6 +258,36 @@ def pull_news(lg):
          body, rows=len(body))
 
 
+NBA_CODE = {"GSW": "GS", "NYK": "NY", "SAS": "SA", "NOP": "NO", "UTA": "UTAH", "WAS": "WSH"}      # nba.com code -> the box-score code the model uses
+
+
+def pull_lineups():
+    """v3.24: the NBA's own starting lineups for today (nba.com, the file behind its Today's Lineups page). Each player is
+    "Expected" until the team confirms him, about 30 minutes before tip, and carries a roster status (Active or Inactive).
+    Free: no Odds API credits."""
+    url = f"https://stats.nba.com/js/data/leaders/00_daily_lineups_{NOW:%Y%m%d}.json"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+                                               "Referer": "https://www.nba.com/", "Origin": "https://www.nba.com", "Accept": "application/json, text/plain, */*"})
+    try:
+        with urllib.request.urlopen(req, timeout=45) as r:
+            j = json.load(r)
+    except Exception as x:
+        errors.append(f"NBA lineups: {type(x).__name__} {str(x)[:120]}")
+        return
+    cell = lambda v: " ".join(str(v if v is not None else "").replace("|", "/").split())
+    body, conf, n = [], 0, 0
+    for g in j.get("games") or []:
+        for side in ("awayTeam", "homeTeam"):
+            t = g.get(side) or {}; code = NBA_CODE.get(t.get("teamAbbreviation"), t.get("teamAbbreviation"))
+            for p in t.get("players") or []:
+                body.append("| " + " | ".join(cell(x) for x in (code, p.get("playerName"), p.get("position"), p.get("lineupStatus"), p.get("rosterStatus"))) + " |")
+                n += 1; conf += str(p.get("lineupStatus") or "").lower() == "confirmed"
+    if not body:
+        notes.append("NBA lineups: nba.com has no lineups posted for today yet"); return
+    save("lineups", "NBA", f"NBA_{TODAY}", f"Source: nba.com daily lineups, pulled {NOW:%Y-%m-%d %H:%M} ET by the relay. {conf} of {n} players confirmed.\n| team | player | pos | lineup | roster |\n|---|---|---|---|---|",
+         body, rows=len(body), confirmed=conf)
+
+
 def due():
     h = NOW.hour + NOW.minute / 60
     # GitHub starts scheduled runs late on busy days, sometimes by an hour or more, so each window is wide enough to catch
@@ -272,10 +302,16 @@ def due():
         return "evening"
     if NOW.weekday() == 6 and 12 <= h < 13.75 and ST["done"].get("close_early") != TODAY:      # Sunday: NFL 1 PM closing lines
         return "close"
+    # v3.24: lineups. About 6:40 PM (the 7 PM tips confirm their starters about 30 minutes before; NFL night inactives are
+    # out by then) and about 9:15 PM (the West coast games). No credits: nba.com lineups and the ESPN injury report.
+    if 18.5 <= h < 20.25 and ST["done"].get("evening") == TODAY and ST["done"].get("lineups_a") != TODAY:
+        return "lineups"
+    if 20.9 <= h < 23 and ST["done"].get("lineups_b") != TODAY:
+        return "lineups"
     return None
 
 
-KIND = MODE if MODE in ("early", "midday", "evening", "close", "test") else None if MODE == "none" else due()
+KIND = MODE if MODE in ("early", "midday", "evening", "close", "test", "lineups") else None if MODE == "none" else due()
 with open("/tmp/relay_kind", "w") as f:
     f.write(KIND or "none")
 TIER, CAP = "unknown", 0
@@ -302,16 +338,22 @@ elif KIND == "early":
     notes.append("Morning refresh: no lines pulled, they post later in the morning")
 elif KIND == "close" and TIER == "lite":
     notes.append("Closing lines are skipped on a small plan")
+elif KIND == "lineups":
+    pass                                        # lineups and injuries only: no lines, no credits
 else:
     for lg in ("NBA", "NFL"):
         pull_lines(lg)
         if KIND in ("midday", "evening", "test") and TIER == "full":
             pull_games(lg)
-if KIND in ("early", "midday", "evening", "test"):
+if KIND in ("early", "midday", "evening", "test", "lineups", "close"):
     for lg in ("NBA", "NFL"):
         pull_news(lg)
+if KIND in ("evening", "lineups", "test"):
+    pull_lineups()
 if KIND in ("early", "midday", "evening"):
     ST["done"][KIND] = TODAY
 elif KIND == "close":
     ST["done"]["close_early" if NOW.hour < 15 else "close_late"] = TODAY
+elif KIND == "lineups":
+    ST["done"]["lineups_a" if NOW.hour < 20 or (NOW.hour == 20 and NOW.minute < 54) else "lineups_b"] = TODAY
 finish(0)

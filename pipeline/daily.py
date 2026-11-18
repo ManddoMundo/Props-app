@@ -413,7 +413,7 @@ def cmd_relay(date):
         r = subprocess.run(["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-iter", "200000", "-md", "sha256", "-pass", "env:RELAY_PASS",
                             "-in", d + name + ".enc", "-out", d + name + ".tmp"], capture_output=True)
         os.remove(d + name + ".enc")
-        ok = r.returncode == 0 and open(d + name + ".tmp", errors="replace").readline().startswith(("# relay", "Source: ESPN"))
+        ok = r.returncode == 0 and open(d + name + ".tmp", errors="replace").readline().startswith(("# relay", "Source: ESPN", "Source: nba.com"))
         if not ok:
             print("  could not decrypt (wrong RELAY_PASS?):", f["path"])
             if os.path.exists(d + name + ".tmp"): os.remove(d + name + ".tmp")
@@ -471,9 +471,9 @@ def cmd_lines(date, lg, files):
     cur.update(feed)
     json.dump(cur, open(fp, "w"))
     os.makedirs(O + "priced", exist_ok=True)
-    sfx = "_pm" if os.environ.get("FL_RUN") == "pm" else ""      # v3.17: the evening pass keeps its own priced file; the audit grades the midday one
+    sfx = {"pm": "_pm", "late": "_late"}.get(os.environ.get("FL_RUN"), "")      # v3.17: the evening pass keeps its own priced file; the audit grades the midday one. v3.24: the lineups pass ("late") reprices the board only
     for b in priced:
-        if sfx: b["run"] = "pm"
+        if sfx: b["run"] = sfx[1:]
     json.dump(priced, open(O + f"priced/{lg}_{date}{sfx}.json", "w"))
     chk2 = sum(1 for v in feed.values() if v["nb"] >= CFG["min_books"])
     print(f"{lg} {date}: {len(feed)} lines matched, {chk2} with a market check from {CFG['min_books']}+ other books, {len(priced)} sides priced, {len(miss)} unmatched")

@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 from scipy import stats
 import simcore
-from common import norm, nb_k
+from common import norm, nb_k, load_lineups
 
 O = "/home/claude/props/out/"
 DT = "/home/claude/props/data/"
@@ -241,6 +241,9 @@ def stat_of(lg, box, k):
     return box[k]
 
 
+LUD = {}
+
+
 def run_game(lg, x, rng, lines, disp, slate_day):
     g = x["g"]
     if lg == "NBA":
@@ -288,7 +291,8 @@ def run_game(lg, x, rng, lines, disp, slate_day):
                 k = "pass_yds" if inp["qb"][i] else ("rush_yds" if inp["mu"]["rush_att"][i] >= inp["mu"]["tgt"][i] else "rec_yds")
                 v = box[k][:, i].astype(float)
                 cond = dict(k=k, behind=round(float(v[lead <= -10].mean()), 1) if (lead <= -10).any() else None, ahead=round(float(v[lead >= 10].mean()), 1) if (lead >= 10).any() else None)
-            T["players"].append(dict(id=p["id"], name=p["name"], pos=p.get("pos"), st=st, cond=cond))
+            on5 = lg == "NBA" and p.get("lu") and T["team"] in LUD.setdefault(g.get("day"), load_lineups("NBA", g.get("day")))      # v3.24: only a game the league has posted a lineup for
+            T["players"].append(dict(id=p["id"], name=p["name"], pos=p.get("pos"), st=st, cond=cond, **({"lu": p["lu"], "luc": p.get("luc")} if on5 else {})))
             # props: book lines where there are any; on a day with no lines yet, a sim line at the median for the main stats
             nk = norm(p["name"])
             for bm, mk in MKT[lg].items():

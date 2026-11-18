@@ -3,7 +3,7 @@ Walk-forward: every feature for a game is built only from games played before it
 import json, os
 from collections import defaultdict, deque
 import numpy as np, pandas as pd
-from common import fit_dispersion, score, norm, load_news
+from common import fit_dispersion, score, norm, load_news, load_lineups
 
 D = "/home/claude/props/data/"
 OUT = "/home/claude/props/out/"
@@ -14,6 +14,11 @@ DM, DR, DT = 0.5 ** (1 / HLM), 0.5 ** (1 / HLR), 0.5 ** (1 / HLT)
 PM0 = 15.0  # pseudo-minutes of positional prior in each rate
 MW0 = 0.05    # pseudo-games of a 14-minute prior in the minutes average
 CARRY = 0.6   # weight kept on last season's per-minute rates when a new season starts
+# v3.24: the league's starting lineups. A player starting tonight after coming off the bench in his last game plays about
+# 21% more than his minutes average says, one back on the bench after starting about 15% less (fitted on 2024-25; scored
+# on 2025-26 and 2026-27: points CRPS +3.3% and +6.5%, rebounds +3.1% and +3.5%, assists +2.4% and +3.3% on those players,
+# lab lineup_bt.py). Applied to his minutes before the team is rebalanced to 240, so his teammates absorb it.
+LINEUP_F = {"promoted": 1.21, "demoted": 0.853}
 ROT_T = 250.0       # live lineup with no news: fill the rotation by minutes to this team total (walk-forward tested, CHANGELOG v1.3)
 ROT_T_NEWS = 246.0  # with lineup news. v3.16: replayed 2025-26 as the desk sees it at noon (last game's roster, the official
                     # injury report at noon). Tuned on games to Jan 31: 236 under-projected points by 0.23 a player, 246 by 0.10;
@@ -200,6 +205,9 @@ def main():
     up = up[up.gd.isin(days)]
     cur = d[d.season == 2027]
     news = load_news("NBA", days[:1])     # only news dated the first slate day counts
+    LU = load_lineups("NBA", days[0]) if days else {}      # v3.24: the league's starting fives, first slate day only
+    LUF = {}
+    print("starting lineups:", f"{len(LU)} teams ({sum(v['confirmed'] for v in LU.values())} confirmed)" if LU else "none posted yet")
     print("lineup news:", "on, %d out, %d questionable, %d with a book line" % (len(news["out"]), len(news["q"]), len(news["inn"])) if news["on"] else "none for " + (days[0] if days else "?") + ", lineup is whoever played last game")
     games, sides, prow, trow, players, seen = [], [], [], [], {}, set()
     for r in up.itertuples():
@@ -230,16 +238,27 @@ def main():
                 elif nm in news["inn"]: active = True
                 # one night off is rest, not a role question; two straight absences is
                 missed = (x.pid not in played_last) and ((x.pid not in played_prev) or not news["on"])
-                pool.append([x, L, pf, nm, active, missed])
+                lu = None
+                if x.pid in LUF and r.gd != days[0]: pf = dict(pf, m=pf["m"] * LUF[x.pid])      # a role change tonight carries to tomorrow (the page uses one number a player)
+                if t in LU and r.gd == days[0]:      # v3.24: the starting five the league lists for tonight
+                    T5 = LU[t]
+                    if nm in T5["inactive"]: active = False
+                    elif nm in T5["start"]:
+                        active, lu = True, "S"
+                        if not list(L["start"])[-1]: pf = dict(pf, m=pf["m"] * LINEUP_F["promoted"]); LUF[x.pid] = LINEUP_F["promoted"]
+                    elif active:
+                        lu = "B"
+                        if list(L["start"])[-1]: pf = dict(pf, m=pf["m"] * LINEUP_F["demoted"]); LUF[x.pid] = LINEUP_F["demoted"]
+                pool.append([x, L, pf, nm, active, missed, lu])
             # Rotation fill: after a blowout or a rest night the last box score lists 12 to 14 players. Keeping them all
             # squeezes the starters' minutes. Fill by minutes until the team total reaches ROT_T; the deep bench sits.
             cum = 0.0
-            for z in sorted([z for z in pool if z[4]], key=lambda z: -z[2]["m"]):
-                if cum >= (ROT_T_NEWS if news["on"] else ROT_T) and z[3] not in news["inn"]:
+            for z in sorted([z for z in pool if z[4]], key=lambda z: (z[6] != "S", -z[2]["m"])):      # a listed starter always plays
+                if cum >= (ROT_T_NEWS if news["on"] else ROT_T) and z[3] not in news["inn"] and z[6] != "S":
                     z[4] = False
                 else:
                     cum += z[2]["m"]
-            for x, L, pf, nm, active, missed in pool:
+            for x, L, pf, nm, active, missed, lu in pool:
                 if active:
                     prow.append(dict(game_id=gid, team=t, opp=o, pid=x.pid, name=x.name, pos=x.pos, **pf))
                 if x.pid in seen:
@@ -250,6 +269,7 @@ def main():
                             **{b: [int(v) for v in L[b]] for b in BASE})
                 players[x.pid] = dict(id=x.pid, name=x.name, pos=x.posr, grp=x.pos, team=t, active=bool(active), missed=bool(missed), q=bool(nm in news["q"]),
                                       n=int(pf["n"]), m=round(pf["m"], 3), start=bool(list(L["start"])[-1]),
+                                      **({"lu": lu, "luc": bool(LU[t]["confirmed"])} if lu else {}),
                                       r={b: round(pf["r_" + b], 5) for b in BASE}, logs=logs)
     upr, utr = pd.DataFrame(prow), pd.DataFrame(trow)
     proj = project(upr, utr, MF)
