@@ -1,6 +1,6 @@
 """NFL prop model: team volume x player share x efficiency, negative binomial distributions.
 Walk-forward: every feature for a game is built only from games played before it."""
-import json, os, sys
+import datetime, json, os, sys
 from types import SimpleNamespace
 from collections import defaultdict, deque
 import numpy as np, pandas as pd
@@ -317,7 +317,11 @@ def main():
         last_game[r.home_team] = r.game_id; last_game[r.away_team] = r.game_id
     recent = pw[pw.season == 2026].sort_values("week")
     prow, trow, meta, qbnew = [], [], {}, {}
-    news = load_news("NFL", [str(x) for x in up.gameday])
+    # v3.19: also take a report dated today. NFL games are days apart, so Tuesday's injury report has to count for
+    # Thursday's game; before, only a report dated on a game day did, and the desk priced injured players clean all week.
+    from zoneinfo import ZoneInfo
+    today_et = str(datetime.datetime.now(ZoneInfo("America/New_York")).date())
+    news = load_news("NFL", [str(x) for x in up.gameday] + [today_et])
     print("lineup news:", "on, %d out, %d questionable, %d with a book line, book QBs %s" % (len(news["out"]), len(news["q"]), len(news["inn"]), news["qb_game"]) if news["on"] else "none this week, lineup is whoever played last game")
     for r in up.itertuples():
         qb = {r.home_team: r.home_qb_name, r.away_team: r.away_qb_name}
@@ -399,7 +403,7 @@ def main():
     check = {r.player_id: {k: round(float(getattr(r, "mu_" + k)), 4) for k in list(STATS) + ["td", "tgt"]} | {"f_pass": round(float(r.f_pass), 4), "f_rush": round(float(r.f_rush), 4)} for r in proj.itertuples()}
     out = dict(league="NFL", label=f"Week {wk}", data_through=f"2026 Week {wk - 1}", games=games, teams=teams, players=players,
                model=dict(beta=MF["beta"], tpa=P["lg"]["tpa"], cal=MF["cal"], lin=MF["lin"], disp={k: list(v) for k, v in MF["disp"].items()}),
-               backtest=bt, backtest_note="Fit on the 2023 and 2024 seasons, scored on 2025 and 2026 games it never saw, including games a player was on the field with no stat line. These scores know who played each week, so they run a little better than live.")
+               backtest=bt, backtest_note="Fit on the 2023 and 2024 seasons, scored on 2025 and 2026 games it never saw, including games a player was on the field with no stat line. These scores know who played each week, so they run a little better than live. The game spread and total in them are closing numbers; swapped for the openers the miss rises 0.05% to 0.3% by market, and the desk picks in between.")
     import os; os.makedirs(OUT, exist_ok=True)
     json.dump(out, open(OUT + "nfl.json", "w"))
     json.dump(check, open(OUT + "nfl_check.json", "w"))

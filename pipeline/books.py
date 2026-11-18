@@ -41,7 +41,15 @@ def build(D):
             continue
         L = D[lg]
         head = open(f).readline().strip()
-        sides = {s["team"]: s for s in L["sides"]}
+        # v3.27: a team can have two games on the slate (the NBA board runs three days). The pull is for one day, so tie each
+        # team to its game on the file's date, else to its next game. Before, the last game won, and tonight's lines were filed
+        # under a game two days out (the hit rates then listed the player twice).
+        gday = {g["id"]: g.get("day") for g in L["games"]}
+        fd = re.search(r"_(\d{4}-\d\d-\d\d)", os.path.basename(f))
+        sides = {}
+        for s in L["sides"]:
+            if s["team"] not in sides or (fd and gday.get(s["game"]) == fd.group(1) and gday.get(sides[s["team"]]["game"]) != fd.group(1)):
+                sides[s["team"]] = s
         byname = {}
         for p in L["players"]:
             if p["team"] in sides:

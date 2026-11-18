@@ -74,7 +74,8 @@ def nba():
     tg = d.groupby(["team", "season"]).apply(lambda x: sorted(set(zip(x.gd, x.game_id))), include_groups=False).to_dict()
     roster = {}
     for p in L["players"]: roster.setdefault(p["team"], []).append(p)
-    sides = {s["team"]: s for s in L["sides"]}
+    sides = {}
+    for s in L["sides"]: sides.setdefault(s["team"], s)      # v3.27: each team's next game (the last one on the slate used to win)
     by, pairs = {}, []
     for t, rs in roster.items():
         side = sides.get(t)

@@ -11,6 +11,7 @@ Definitions worth knowing (they are printed on the page too):
   early       a team's first two offensive drives of a game.
 Run after the downloads in run.sh. Nothing here feeds the pricing model or the pick policy."""
 import json, datetime, sys, os
+from zoneinfo import ZoneInfo      # v3.19: real Eastern time (a fixed UTC-5 was an hour off in daylight time)
 import numpy as np, pandas as pd
 from common import norm
 
@@ -33,7 +34,7 @@ def shrink(x, n, prior, k):
 
 
 def main(today=None):
-    today = today or datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d")
+    today = today or datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
     # ---------------- load ----------------
     pbp = pd.read_parquet(DATA + "nfl_play_by_play_2026.parquet")
     pbp = pbp[pbp.season_type == "REG"].copy()

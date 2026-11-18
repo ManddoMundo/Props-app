@@ -832,6 +832,171 @@ body.morph .memo{transition:none!important}
 @keyframes bump{30%{transform:translateY(-3px);text-shadow:0 0 14px currentColor}}
 .wr.in .wr-t{animation:slip .4s var(--ease) backwards}
 .wr.in .wr-t:nth-child(2){animation-delay:60ms}.wr.in .wr-t:nth-child(3){animation-delay:120ms}.wr.in .wr-t:nth-child(4){animation-delay:180ms}
+/* v3.31 dragons (dragonHtml). Sprite sheets from dragon_sprites.py as data URIs between the DRAGON markers.
+   Dragon frames, 56 x 54 pixels each: 0-5 wing beat, 6 landing, 7 perched, 8 perched breathing in, 9 rearing, 10 breathing out. */
+/*DRAGON:start*/:root{
+  --drg-fire:url(data:image/png;base64,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);
+  --drg-fire-b:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAAaCAYAAABYSIIvAAAFg0lEQVR42u1cu3EbMRAFPBqnYuBQkUtg4GEFHAdXiEcVOHABrkCjGhxfoGEFGgUsQZFDBWSqBA5E0CC4f+CO9+ElInUH8Pbt7ltgsYB3wPW0vAvft3+9m9n1tLwL1P05YnK9pn15ieFP3fgl8s+NCKSYzIUUczymIrfXGP8Ula11/qkbvhWPKWJiwWJsGHirkFMZLudyrL59Bp97fnkXyYjhMnQ8Shx/iiQwFyI8OrLG8DmHwdoMEZhU0RgGUiykOA4NB8jYOSwoXLgAMTYylGLB6XiI0wj/tLwLEgFzJWsMJO8jFfzSCUeOAKVEYGkPyR3efgb/5bcfurFzuEjIdOwBQUoClI9dGge/+/E1aIUrMRLNtXh89X0ovC95JMqH9GHBQUokpQbfBQZjGwHVDJZ92DxJALfN4vh53+7YDtLn80vS/tKAUPJbZanRR19YUARA6VYqE9RH3iYnAS4o1cRB6vwcFlLdSv0ryphjUdsGTghAoiytgWB9aY0LEzx9fws4UgKgsCjBweIwNQ0BmwJpZNLqVUse+3Z38rkmBhICkMpk8RVNkNXagWQUeCQAreFrjT7tqwsjSZ9dPL4e5eKMhCNAybuB7VbrQ3jb6Nsy2HGGtm93YueACMCiW61eaxBqqu9Unxpi4HJApTJZsdTiYCVDmABWa53hRmM/mwxt6F/H2jFtz4yNeF/nnPPN1mOGwRIA0zfq9JBs2n40bThFN1svzYGc4ZCTGUNurI5L8czaU+QT5Q7tMkA4UNONqjiUYAHhAGAQA1/63qm8EAY3WudTMRqmNMrxBU5w2yzO+yCMJbTL4FZrF5pNkDhFsdNSz0D9UW1zHDAjhN47uRdaF1RyWwiwFAesH0zXBzmPNgn89lHuw73QuqCSvxZGGh1LcMj6u3UbF5plyN8pOj2GwU3JEA51lgiIxBgsRhV/Z3Hv3O7h469zH5+Pk6PDvdh2ce/c6vReaF1Ih2wiDLQOUeIomCxQ+4hBxCGV27n/smdOsf/1hyZ4SNaoWw4LygYk8ke5oe8QJrlNxGdX6xMcwtv6IxJm82NS91Yi5PyAIjcOh9TuoXZR7hSziMGBBD4VG6xmWBONRhppU6M+ESDrY/dwClD6fN5HYc5BTGzPGzzaa4kxV34qU/wen4l/42/nuBB4FAcACoccC4kz5e9OyZLjwrXVyi6J8JBuseBVMr2T4JCSAzU91mTBpQkudZTTTg/yoTD0PgJi8s2WLIRik3tpVJAO4yxGph1RQTgk/0uTRmgOhIt4GL5c/gLDrPbI8tAGGtWlU4B8zmweARjzWdX8RJl3ihiAhUAoIJbkVM+JMWoYD2VLJZWAYMITm49TTlwTh9wYkKQQlvyqsQoiylH0kRgT6BpbFWIJQJsElpCghgTyQFOQAIYwYEuBLUt2LKDKTK50qG5ZCpFWwnUyPK68NGZZDpKMAK3r/CVLnpp3yOsENBiIRwCFS561ltOlxUPS5WBfYx20VDBtxSG0/usuXAlWw2koUuuqOo5bBuxSt9rimC6q4yR1MDVs3VIx2XUR2Nl2YC0JaEtbIebmSkLToh4MgJINNNSutS5KY0uru9yA9kLULo/lHN91XAreRbkvZueW/QZd4IBu28SiIAVCyWahS28K0eDgRr4BqnQ3pCvYIBN13Ge9v2YK5HrY/ATtBMXeo2scfC3Dt26RHdq20Jo7w6Dtsc8v72f9XRIDy4EoVtuAZMwN34qFdRRoJQALHhQO7pJnApZEQOgwCEmkGSIYNbbKSk8OGvvJN9ozJIaKgXYKZDkUZsg4eGsUlDq+ux4NNWkZx46DNPBJT7ka25FwvoZRzP2U3CnIrz0Zeip4zP0QVD93w79euN6vx59PP+hdHfh6XS/jKGgK1z/EqqnTvkusXQAAAABJRU5ErkJggg==);
+  --drg-fire-p:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAcklEQVR42mNgIBEwogusWLLlPzI/IsYHRQ0TPsXYxFiQOZcuXcLqjBVLtvyH2cSEz3RsNjEhc/T09DAUoouxYHPKvXv3GBgYGBiUlJQw5FiwWa+kpITTaVg1wGxA8cOaOYwo8RARkoLT0zDFWAE+jWQBAJgmLYpXl4sMAAAAAElFTkSuQmCC);
+  --drg-fire-l:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAAAOCAYAAACvtwvjAAAAyUlEQVR42u2WsQ2AMAwEkadhEmaipmIiSiZgAGpmoILCNIAURGwnsUKE/BVCb+I/vSKqymQymUy/FU4N4tSgkaDZgArEurWCMYK/Q6CASH0a5QLNcLnb44XzhOCDIvUpCLLDWUfnvdRX0vUUUyov6K2r8e35FUJBAalrIsYnLtU6IsUPfMYvmyDxUUUo8a8KVBoz905gKQRtWPc3zn3Y/Rhf0BkMP0gNsg9LGoRIWDnEFcHJzuwH90BgECnglNnLF3OWdDbljJA8By2JCU6kertxAAAAAElFTkSuQmCC);
+  --drg-ice:url(data:image/png;base64,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);
+  --drg-ice-b:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAAaCAYAAABYSIIvAAAFdElEQVR42u1cu05cMRC1s0tqCqqViLZORb2KEEU+gHI/IR/AN6TKB/AJW6ZKRYEQot6KGgmJKpHoAd0UiVdmdsbzsO/7umFfNnfOnDl+je0dUk4vrqqbH1+9G1k5vbiqUt+PEZOpDLt4CfGHTn6J/WMTAikmYxFFiMdQ7PYa8g/R2drgHzrxrXgMERMLFn3DwFuNHMpwGdrx+csJ+rv7263IRgqXruORE/hDFIGxCOEukDXE5wKGqtNFYGJHUxhIsZDi2DUcMLJzWKRw4TqIvomhFAvOx12cRvjTi6tKYiB0soYgsI3Y8LYXHDkBlAqBpT5md1VVlffed53sHC4SMe17hyAVgVSMtY2D//bzd6U1LockmnJ5fuSbcHhT9kicj/nDgoNUSHIJXwcGfRsBlewsm+B8UgDOTg53r6+3z2wD8e9hkdRvG5CU/VZbSrTRFBYpAUj5VmoT1gasA0WA65RK4iANfg4LqW+l8RVshFiU5sA7AZA4S0sQqi0tuSjD4+e3gCMVgBQWOThYAqYkEagpkMYmrV+14nG9fX73uiQGEgGQ2mSJFU0nq+WBZBS4EwAt8bWkj9uqgyTxby/Pj3Z2cSThBFDybFi91WLmnHPu7ulNXZfDjiPa9fZZHByYAFh8q/VrCUGN/R37UyMM3BpQrk1WLLU4WMUQFYDVYqYibiA7LFQbXD2uLiRb6nmdc269nHuKGJwAcG1TQY/Zpm1HU4cr6+XcS9dAIA5QzDhx43yciyesnxKfYPfm4bXCcEhNN0rikIMFhgOGQej44ueO7cUwmGuDT6NolNNSgS8JgrOTw702UmTZPLxWq8XMnf0HgAuK3KBN/QZrL1UX2kKREHvu+LtNZLvEbosA5uJAtUP5OtgZOIn972B3+G7z8Fpp7C+FkcbHEhz22zt8x+/wTBvwGcTA5wyBU8qYUm0JSbigXC1m7vjAuccX544P/n3++LL/XSjx+/D67ulNPWSTBDE1ApAELlagLdRvQoF2w8/iZ/j+649J4KmeSIqDxW7Mh1Sd2MeBDxCHTx+9mP+Y3yWBm4tBCgfMplRdGCfr5dx/yFV2zbBmtZippgsxqeP3sI3HF5oMsI3cNQepQ++e3kih0BICOj+2KbwPvwl/w/+GuKTwsHYAEhwgFpJRBXz2lC0QF66u1nZJD4/5Fr6P27FO7yQ4wGA3bQNq1d8yHLSMDuBQGHseiTCtl/NkIhS3uBf3CtJhnIVk2IhKi2f8WbxoRPWA3LCWwpdbv6Awk9ijwSHUwdYH4ikAnDNbh/nW9axScaJdd0KnAJwIWBanml4YSy0IYaulkkxAbMGTmo+ngrgkDpAM1KIQtfhVYhdEskbRxMKYxNfUrhAnANpFYIkIakQAdjQ5C8AYBmwqsGXLjgNUu5IrHapbtkKkmXB1DI9Lb41ZtoMkI0DrPn/OlqfmGWCegAYD6Qggd8uz1Ha6NHlIuh3sS+yD5hqmzTjE9n9dy5lgJYImJWp1Zcdx24B1+labHFNHdpwkD6YE1y0Zk3Unge0dB9aKgDa1FVNux6SExkk9FAA5B2hSp9bqSI3Nze5yHToLUTo9lgt8V3MqeB3pvhTPLecN6sCBPLZJ9YIpEHIOC7V9KESDg+v5Aajc05Au44BM8HGT+f6aKZBr4PATdhKUeo66cfCliG89Itu1Y6ElT4Zhx2Pvb7d77bWJgeVCFCs3MBsh8a1YWEeBVgGw4JHCwbV5J2BOD4hdBiHpaboIRomjstKbg/p+8432DomuYqCdAlkuhekyDt7aC0oD301XQw3axr7jIO34pLdc9e1KOF+CFGO/JXcI9mtvhh4KHmO/BNWPnfhTof0+XX8+/E5vCuCpTMU4ChpC+QsIEBtS1QLx1wAAAABJRU5ErkJggg==);
+  --drg-ice-p:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAc0lEQVR42mNgIBEwogt8+/P/PzKfi4URRQ0TPsXYxFiQOTfe/cXqjG9//v+H2cSEz3RsNjEhczSEmDEUoouxYHPKpUcfGBgYGBj05AQw5FiwWa8nJ4DTaVg1wGxABgkmIowo8bDgzBucnoYpxgrwaSQLAAAv8DKMHJqNfQAAAABJRU5ErkJggg==);
+  --drg-ice-l:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAAAOCAYAAACvtwvjAAAAlUlEQVR42u2WQQ6AIAwE4Qc+yLd54G0eeA3hB+uJxBgxaS0QcfdUkmanh6XgHEVRFEV9RGHPGOITE0zAUp9fcWMCAOAtXOrz1C9JioQb9oxzvzbZap/akK2TMi3XKilWO65V4jS7VXOzq/MxcY25I3eTVVIs34CWbw9/Fz24pbEk8s5AUlv5zFb763Xc1sX3OvdkjWYf9LIkhV+gbGQAAAAASUVORK5CYII=);
+}/*DRAGON:end*/
+.drg{--fw:calc(56px * var(--ds,1.1));position:absolute;width:var(--fw);height:calc(54px * var(--ds,1.1));z-index:2}
+.drg i{position:absolute;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.drg-b{inset:0;will-change:transform}
+.drg-s{inset:0;background:var(--drg-fire) 0 0 / calc(616px * var(--ds,1.1)) 100% no-repeat;background-position-x:calc(var(--fw) * -7)}
+.drg.cold .drg-s{background-image:var(--drg-ice)}
+.drg-f{right:calc(100% - 1.5px * var(--ds,1.1));top:calc(27px * var(--ds,1.1) - 13px * var(--ds,1.1));width:var(--fl,70px);height:calc(26px * var(--ds,1.1));transform-origin:100% 50%;opacity:0;
+  background:var(--drg-fire-b) 0 0 / 400% 100% no-repeat}
+.drg.cold .drg-f{background-image:var(--drg-ice-b)}
+.drg-p{left:var(--tx,0);top:var(--ty,0);width:calc(12px * var(--ds,1.1));height:calc(12px * var(--ds,1.1));opacity:0;background:var(--drg-fire-p) 0 0 / 100% 100% no-repeat}
+.drg.cold .drg-p{background-image:var(--drg-ice-p)}
+.drg:not(.go):not(.done) .drg-b{opacity:0}
+.drg.go .drg-s{animation:drgFrames 3s steps(1,end) both}
+.drg.go .drg-b{animation:drgFly 3s linear both}
+.drg.go .drg-f{animation:drgBreath 3s linear both,drgFlick .24s steps(4,end) 1.48s 4}
+.drg.go .drg-p{animation:drgPuff 3s ease-out both;animation-delay:calc(var(--k) * 110ms)}
+.drg-on .drg.done .drg-s{animation:drgIdle 3.4s steps(1,end) infinite}
+@keyframes drgFrames{0.00%{background-position-x:calc(var(--fw) * -0)}2.33%{background-position-x:calc(var(--fw) * -1)}4.67%{background-position-x:calc(var(--fw) * -2)}7.00%{background-position-x:calc(var(--fw) * -3)}9.33%{background-position-x:calc(var(--fw) * -4)}11.67%{background-position-x:calc(var(--fw) * -5)}14.00%{background-position-x:calc(var(--fw) * -0)}16.33%{background-position-x:calc(var(--fw) * -1)}18.67%{background-position-x:calc(var(--fw) * -2)}21.00%{background-position-x:calc(var(--fw) * -3)}23.33%{background-position-x:calc(var(--fw) * -4)}25.67%{background-position-x:calc(var(--fw) * -5)}28.00%{background-position-x:calc(var(--fw) * -0)}30.33%{background-position-x:calc(var(--fw) * -1)}32.67%{background-position-x:calc(var(--fw) * -2)}33.33%{background-position-x:calc(var(--fw) * -6)}37.33%{background-position-x:calc(var(--fw) * -7)}43.33%{background-position-x:calc(var(--fw) * -9)}49.33%{background-position-x:calc(var(--fw) * -10)}76.67%{background-position-x:calc(var(--fw) * -7)}100.00%{background-position-x:calc(var(--fw) * -7)}}
+@keyframes drgIdle{0%{background-position-x:calc(var(--fw) * -7)}78%{background-position-x:calc(var(--fw) * -8)}92%{background-position-x:calc(var(--fw) * -7)}}
+@keyframes drgFly{0%{transform:translate(190px,-50px);animation-timing-function:cubic-bezier(.4,.1,.6,.9)}14%{transform:translate(138px,-40px)}26%{transform:translate(78px,-24px)}
+  33.3%{transform:translate(16px,-6px);animation-timing-function:cubic-bezier(.2,.8,.3,1)}38%{transform:translate(0,1px)}41%{transform:none;animation-timing-function:ease-in-out}
+  45%{transform:translate(3px,-2px)}49.3%{transform:translate(-2px,0)}76%{transform:translate(-2px,0);animation-timing-function:ease-out}82%,100%{transform:none}}
+@keyframes drgBreath{0%,49%{opacity:0;transform:rotate(var(--fa,0deg)) scaleX(0)}51%{opacity:1;transform:rotate(var(--fa,0deg)) scaleX(.3)}55%{opacity:1;transform:rotate(var(--fa,0deg)) scaleX(1)}
+  75%{opacity:1;transform:rotate(var(--fa,0deg)) scaleX(1)}80%,100%{opacity:0;transform:rotate(var(--fa,0deg)) scaleX(1.05)}}
+@keyframes drgFlick{from{background-position-x:0}to{background-position-x:133.333%}}
+@keyframes drgPuff{0%,74%{opacity:0;transform:translate(-50%,-50%) scale(.3)}79%{opacity:1;transform:translate(-50%,-50%) scale(.85)}100%{opacity:0;transform:translate(calc(-50% + var(--k) * 10px - 10px),calc(-50% - 26px)) scale(1.6)}}
+/* the number after the breath: lit, with flames licking along its foot and embers rising (cold: crystals glint, flakes drift) */
+.drg-t{position:relative;z-index:0;transition:color .4s,text-shadow .4s}
+.drg-t.hot.lit{color:#f06a14!important;text-shadow:0 0 8px rgba(255,120,30,.5)}
+.drg-t.cold.lit{color:#3e9be6!important;text-shadow:0 0 8px rgba(120,200,255,.55)}
+.drg-t.lit::before{content:"";position:absolute;z-index:-1;left:-2px;right:-2px;bottom:-4px;height:calc(10px * var(--ds,1.1));image-rendering:pixelated;image-rendering:crisp-edges;
+  background:var(--drg-fire-l) 0 0 / 300% 100% repeat-x;opacity:.7;pointer-events:none}
+.drg-t.cold.lit::before{background-image:var(--drg-ice-l);bottom:-4px;opacity:.9}
+.drg-t.lit::after{content:"";position:absolute;left:30%;bottom:60%;width:2px;height:2px;pointer-events:none;opacity:0;
+  box-shadow:0 0 0 #ffd36a,9px 4px 0 #ff9a3c,-7px 7px 0 #ffe7a0,16px 9px 0 #ff7a2a}
+.drg-t.cold.lit::after{box-shadow:0 0 0 #fff,10px -3px 0 #d6f2ff,-8px 2px 0 #fff,17px 1px 0 #bfe6ff}
+.drg-on .drg-t.hot.lit::before{animation:drgLick .45s steps(3,end) infinite}
+.drg-on .drg-t.cold.lit::before{animation:drgLick 1.6s steps(3,end) infinite}
+.drg-on .drg-t.hot.lit::after{animation:drgEmber 1.9s steps(10,end) infinite}
+.drg-on .drg-t.cold.lit::after{animation:drgFlake 3.2s steps(12,end) infinite}
+.drg-t.hot.lit{animation:drgIgnite .9s ease-out}
+.drg-t.cold.lit{animation:drgFreeze .9s ease-out}
+@keyframes drgLick{from{background-position-x:0}to{background-position-x:150%}}
+@keyframes drgEmber{0%{opacity:0;transform:translateY(4px)}15%{opacity:1}100%{opacity:0;transform:translateY(-20px)}}
+@keyframes drgFlake{0%{opacity:0;transform:translate(0,-10px)}20%{opacity:1}100%{opacity:0;transform:translate(4px,12px)}}
+@keyframes drgIgnite{0%{color:#fff1b8;text-shadow:0 0 18px #ffb347,0 0 4px #fff}100%{}}
+@keyframes drgFreeze{0%{color:#ffffff;text-shadow:0 0 18px #cfefff,0 0 4px #fff}100%{}}
+.trs-t .drg{position:relative;flex:0 0 auto;align-self:flex-end;margin:-18px 0 -6px 0}
+.trs-c.l10.hot{border-color:#f06a14}.trs-c.l10.cold{border-color:#3e9be6}
+@media (prefers-reduced-motion:reduce){.drg *,.drg-t,.drg-t::before,.drg-t::after{animation:none!important;transition:none!important}}
+/* v3.31 the Hit rates card: who and when, the bet, how often he cleared it, his last ten against the line, the small facts */
+.row.hrc{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;padding:12px 14px 13px 18px}
+.hrc-h{display:flex;align-items:center;gap:10px;min-width:0;padding-right:66px}
+.hrc-who{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hrc-who b{font:700 17px/1.2 var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrc-who small{display:flex;align-items:center;gap:6px;font:12.5px var(--mono);color:var(--mute);white-space:nowrap}
+.hrc-bet{position:relative;display:flex;flex-direction:column;gap:2px;padding:8px 12px 9px;border-radius:9px;background:var(--tote);border:1px solid var(--tote-rule);min-height:58px;justify-content:center;padding-right:84px}
+.hrc-bet>small{font:600 9px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--led-mute)}
+.hrc-bl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hrc-bl b{font:800 24px/1 var(--dot);color:var(--led);letter-spacing:.02em;white-space:nowrap}
+.hrc-bl b .num{font-family:inherit}
+.hrc-bl>span{font:600 13.5px/1.2 var(--mono);color:var(--chalk)}
+.hrc-bet .drg{right:4px;bottom:-1px}
+.hrc-hl{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hrc-hl b{font:800 28px/1 var(--mono);letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
+.hrc-hl.hot b,.hrc-hl.warm b{color:var(--good)}.hrc-hl.cold b,.hrc-hl.cool b{color:var(--bad)}
+.hrc-hl>span{font:13px/1.3 var(--mono);color:var(--mute)}
+.hrc-ch{position:relative;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;height:50px;margin:14px 0 14px;padding-right:30px;border-bottom:1.5px solid var(--rule)}
+.hb{position:relative;height:100%}
+.hb i{position:absolute;left:0;right:0;bottom:0;height:var(--h);min-height:2px;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--mute) 45%,transparent);transform-origin:bottom}
+.hb.o i{background:var(--good)}
+.heat-hot .hb.o i{background:linear-gradient(180deg,#ffb347,#f06a14)}
+.hb b{position:absolute;left:0;right:0;bottom:calc(var(--h) + 2px);text-align:center;font:600 9.5px var(--mono);color:var(--mute)}
+.hb.o b{color:var(--ink)}
+.hb small{position:absolute;left:-4px;right:-4px;top:calc(100% + 3px);text-align:center;font:9px var(--mono);color:var(--mute);letter-spacing:-.02em;white-space:nowrap;overflow:hidden}
+.hrc-ln{position:absolute;left:-2px;right:-2px;bottom:var(--l);height:0;border-top:1.5px dashed var(--ink);z-index:1;opacity:.7}
+.hrc-ln em{position:absolute;right:0;top:-8px;font:700 9.5px var(--mono);font-style:normal;color:var(--ink);background:var(--panel);padding:0 3px;border-radius:3px}
+#rsBody.in .rs-led .hrc.in .hb i{animation:hbUp .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*22ms + var(--j,0)*28ms + 160ms)}
+@keyframes hbUp{from{transform:scaleY(0)}}
+.hrc-f{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding-top:2px}
+.hrc-f span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hrc-f small{font:600 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrc-f b{font:700 14px var(--mono);white-space:nowrap}
+.hrc-f b.mut{font-weight:500;color:var(--mute)}
+@media(min-width:720px){.row.hrc{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:22px}.hrc-h,.hrc-f{grid-column:1/-1}.hrc-bet,.hrc-hl{grid-column:1}.hrc-ch{grid-column:2;grid-row:2/4;align-self:center}}
+@media(max-width:350px){.hrc-f{grid-template-columns:repeat(2,minmax(0,1fr))}.hrc-hl b{font-size:24px}}
+@media (prefers-reduced-motion:reduce){#rsBody.in .rs-led .hrc.in .hb i{animation:none}}
+
+/* v3.27 the VCR set: every four-counter panel plays on it (vcrHtml). A small wood-cabinet TV with a curved tube, scanlines
+   and a glare, knobs and a grille down the side; the deck underneath with its slot, a VFD window and a replay button.
+   Sized to sit where the old counter strip sat. The set fills its panel's width (a container query reads that width,
+   so it must never be left to shrink to its content: that collapsed it to a sliver in v3.27's first cut). */
+.vcr{container-type:inline-size;position:relative;width:100%;max-width:560px;justify-self:center;margin:0 auto;--vfd:#62f0d2;--wood:#74461f;--wood-2:#9b6334}
+.tv{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 22px;gap:7px;padding:7px 7px 7px 7px;border-radius:12px;
+  background:repeating-linear-gradient(93deg,rgba(0,0,0,.10) 0 2px,transparent 2px 7px,rgba(255,255,255,.05) 7px 8px,transparent 8px 14px),linear-gradient(180deg,var(--wood-2),var(--wood) 55%,#57311a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 -2px 0 rgba(0,0,0,.35),0 12px 18px -14px rgba(0,0,0,.8)}
+.tv-bz{min-width:0;padding:5px;border-radius:9px;background:linear-gradient(180deg,#2b2d2c,#151716);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 2px 5px rgba(0,0,0,.6)}
+.tv-scr{position:relative;overflow:hidden;border-radius:14px/11px;background:radial-gradient(120% 95% at 50% 45%,#14231c,#050907 78%);box-shadow:inset 0 0 0 2px #000,inset 0 0 26px rgba(0,0,0,.9);isolation:isolate}
+.tv-scr::before{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+.tv-scr::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 45% at 26% 10%,rgba(255,255,255,.1),transparent 62%)}
+.tv-in{position:relative;z-index:1;padding:7px 10px 9px}
+.tv-osd{display:flex;justify-content:space-between;gap:8px;font:400 7px/1.2 "Press Start 2P",var(--mono);color:#ecf7ef;text-shadow:0 0 5px rgba(150,255,195,.55),1px 1px 0 rgba(0,0,0,.7);margin-bottom:6px;white-space:nowrap}
+.tv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px}
+@container (min-width:500px){.tv-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tv-t{min-width:0}
+.tv-t small{display:block;font:600 8px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--led-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-t b{display:block;font:800 22px/1.05 var(--dot);color:var(--led);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 10px rgba(255,184,51,.4)}
+.tv-t.show b{color:var(--led-good);text-shadow:0 0 10px rgba(134,227,154,.4)}
+.tv-t.cold b{color:#8fc8ff;text-shadow:0 0 10px rgba(143,200,255,.4)}
+.tv-t.nil b{color:var(--led-mute);text-shadow:none}
+.tv-t em{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:1px;font:500 9.5px/1.25 var(--mono);font-style:normal;color:var(--led-mute)}
+.tv-side{display:flex;flex-direction:column;align-items:center;gap:6px;padding:3px 0}
+.kb{position:relative;flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e2ddcf,#8f8a7c 55%,#47443e);box-shadow:0 1px 2px rgba(0,0,0,.55),inset 0 -1px 2px rgba(0,0,0,.3)}
+.kb::after{content:"";position:absolute;left:50%;top:2px;width:2px;height:6px;margin-left:-1px;border-radius:1px;background:#36332e;transform-origin:50% 7px;transform:rotate(-38deg)}
+.kb.s{width:14px;height:14px}.kb.s::after{height:4px;transform-origin:50% 5px;transform:rotate(52deg)}
+.gr{flex:1 1 auto;width:16px;min-height:20px;border-radius:4px;background:repeating-linear-gradient(180deg,rgba(25,14,6,.85) 0 2px,transparent 2px 5px)}
+.deck{position:relative;display:flex;align-items:center;gap:8px;width:86%;height:26px;margin:0 auto;padding:0 5px 0 9px;border-top:2px solid #0a0b0b;border-radius:0 0 8px 8px;background:linear-gradient(180deg,#323534,#1c1e1d 70%,#121413);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 8px 12px -10px rgba(0,0,0,.9)}
+.dk-slot{position:relative;flex:0 0 42%;height:7px;border-radius:2px;background:#050606;box-shadow:inset 0 1px 2px #000,0 1px 0 rgba(255,255,255,.09)}
+.dk-slot::after{content:"";position:absolute;left:2px;right:2px;top:1px;height:3px;border-radius:1px;background:linear-gradient(180deg,#3d403f,#222423)}
+.dk-mouth{position:absolute;left:9px;bottom:13px;width:calc((100% - 14px) * .42);height:30px;overflow:hidden;pointer-events:none}
+.dk-tape{position:absolute;left:10%;right:10%;bottom:0;height:22px;border-radius:2px;transform:translateY(102%);
+  background:linear-gradient(180deg,transparent 0 3px,#efe6cf 3px 10px,#c8322a 10px 11px,transparent 11px),#141414;box-shadow:inset 0 0 0 1px #2c2c2c}
+.dk-tape i{position:absolute;bottom:3px;width:8px;height:8px;border-radius:50%;border:2px solid #d8d2c4;background:#141414}
+.dk-tape i:first-child{left:22%}.dk-tape i+i{right:22%}
+.dk-vfd{position:relative;margin-left:auto;flex:0 0 auto;width:58px;height:15px;border-radius:2px;background:#040706;box-shadow:inset 0 0 0 1px #000,inset 0 0 6px rgba(98,240,210,.08)}
+.dk-vfd b{position:absolute;inset:0;display:grid;place-items:center;font:400 6.5px/1 "Press Start 2P",var(--mono);color:var(--vfd);text-shadow:0 0 5px rgba(98,240,210,.75)}
+.dk-vfd .a{opacity:0}
+.dk-btn{position:relative;flex:0 0 auto;display:grid;place-items:center;width:30px;height:19px;border:0;border-radius:4px;background:linear-gradient(180deg,#505453,#2b2e2d);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 0 #0a0b0b;color:#d6dcd7;transition:transform .12s var(--ease)}
+.dk-btn::before{content:"";position:absolute;inset:-9px -6px}
+.dk-btn svg{width:11px;height:11px;fill:currentColor}
+.dk-btn:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.dk-btn:focus-visible{outline:2px solid var(--vfd);outline-offset:2px}
+.tv-pw{position:absolute;inset:0;z-index:5;pointer-events:none;background:#f3fff7;opacity:0}
+.tv-nz{position:absolute;inset:-40%;z-index:2;pointer-events:none;opacity:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.tv-roll{position:absolute;left:0;right:0;top:0;height:22%;z-index:2;pointer-events:none;opacity:0;background:linear-gradient(180deg,transparent,rgba(235,255,245,.12) 35%,rgba(235,255,245,.3) 50%,rgba(235,255,245,.12) 65%,transparent)}
+.vcr.load .dk-tape{animation:vcrTape .62s cubic-bezier(.6,0,.4,1) both}
+.vcr.load .dk-slot::after{animation:vcrFlap .3s .48s ease-out both}
+.vcr.load .dk-vfd .a{animation:vfdA .7s steps(1,end) both}
+.vcr.load .dk-vfd .b{animation:vfdB .16s .7s both}
+.vcr.load .tv-pw{animation:vcrPw .42s .62s both}
+.vcr.load .tv-in{animation:vcrPic .5s .78s both}
+.vcr.load .tv-nz{animation:vcrNz .9s .78s,vcrGrain .16s steps(3,end) .78s 6}
+.vcr.load .tv-roll{animation:vcrRoll .65s .86s cubic-bezier(.4,0,.6,1) both}
+@keyframes vcrTape{0%,22%{transform:translateY(-3px)}100%{transform:translateY(102%)}}
+@keyframes vcrFlap{40%{transform:translateY(2px) scaleY(.6)}}
+@keyframes vfdA{0%{opacity:1}30%{opacity:.25}45%{opacity:1}100%{opacity:0}}
+@keyframes vfdB{from{opacity:0}}
+@keyframes vcrPw{0%{opacity:1;transform:scale(.03,.008)}35%{opacity:1;transform:scale(1,.01)}70%{opacity:.8;transform:scale(1,1)}100%{opacity:0;transform:scale(1,1)}}
+@keyframes vcrPic{0%{opacity:0}18%{opacity:.75}32%{opacity:.25}55%{opacity:.95}72%{opacity:.6}100%{opacity:1}}
+@keyframes vcrNz{0%{opacity:.6}100%{opacity:0}}
+@keyframes vcrGrain{to{transform:translate(9%,-7%)}}
+@keyframes vcrRoll{0%{opacity:1;transform:translateY(-110%)}100%{opacity:1;transform:translateY(470%)}}
+@container (max-width:300px){.tv-t b{font-size:19px}.tv-in{padding:6px 8px 8px}.tv-grid{gap:6px 9px}}
+@media (prefers-reduced-motion:reduce){.vcr.load *,.vcr.load .dk-slot::after{animation:none!important}.dk-btn{transition:none}}
 .wr-note{margin:0;padding:9px 12px;border-radius:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px dashed color-mix(in srgb,var(--accent) 55%,transparent);font:italic 400 14.5px/1.5 var(--text);color:var(--ink)}
 .wr-note b{font-style:normal;color:var(--accent)}
 .seg{position:relative;isolation:isolate;display:flex;gap:2px;padding:3px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);overflow-x:auto;scrollbar-width:none;max-width:100%}
@@ -1292,7 +1457,7 @@ body.memo-open .verdict .seal.shine::after{animation:shine .9s cubic-bezier(.23,
 .trs-bar{display:block;width:80px;height:8px;border-radius:4px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
 .trs-bar i{display:block;height:100%;width:calc(var(--q)*100%);background:var(--ink);border-radius:4px;transform-origin:0 50%}
 details[open] .trs-bar i{animation:flowin .5s var(--ease) backwards}
-@media(max-width:620px){.trs-bar{width:44px}.trs-d th,.trs-d td{padding:5px 8px}}
+@media(max-width:620px){.trs-bar{width:40px}.trs-d th,.trs-d td{padding:5px 7px}.trs-d table{font-size:12.5px}.trs-d td:first-child{white-space:normal}}
 /* ---------- v3.5 speed: the browser skips laying out and painting cards that are off screen ---------- */
 /* v3.13.1: content-visibility removed. WebKit (Safari, iOS) left some of these cards unpainted after scrolling, worst on the unfolded screen */
 .mast{contain:paint}
@@ -1790,7 +1955,7 @@ function confidence(pr, edgePts) {
   if (pr.lg === 'NFL' && pr.e.side.qbnew && /^(pass|rec)/.test(pr.mkt)) { c *= .85; flags.push('New starting quarterback this week. Passing game numbers are less certain.'); }
   if (pr.lg === 'NFL') { const g = IDX.NFL.games[pr.e.side.game]; if (g && g.spread != null && Math.abs(g.spread) >= 9.5) { c *= .92; flags.push(`Spread is ${Math.abs(g.spread)} points. A blowout can cut or pad volume.`); } }
   if (!pr.binary && pr.mu < 2) { c *= .92; flags.push('Low count prop. One play swings it.'); }
-  if (edgePts != null && edgePts > MAX_EDGE) flags.push('The model and the book are too far apart to trust. A gap this wide is usually news or a role change the model has not seen. On hold until you check.');
+  if (edgePts != null && edgePts > MAX_EDGE) flags.push('The model and the book are too far apart to trust. That is usually news or a role change the model has not seen. On hold until you check.');
   else if (edgePts != null && edgePts >= .10) { c *= .85; flags.push('An edge this large often means news the model has not seen. Check the injury report first.'); }
   return { c, flags };
 }
@@ -1820,7 +1985,7 @@ function assess(pr) {
   if (anch) cf.flags.unshift(`Odds use a market-anchored projection of ${am.toFixed(1)}${moved ? ` (${(+ln.m).toFixed(1)} before your lineup change, moved ${am > ln.m ? '+' : ''}${(am - ln.m).toFixed(1)} by it)` : ''}: the model alone says ${(+pr.mu).toFixed(1)}, ${ln.nb ? ln.nb + ' other book' + (ln.nb === 1 ? '' : 's') + ' imply ' : 'this book implies '}${(+ln.mm).toFixed(1)}.${ln.nb < 2 ? ' Fewer than two other books quote it, so the desk will not bet it.' : ''}`);
   let t = TIERS.find(t => adj >= t[0]);
   const far = anch && ln.hold === best.side;      // desk feed: the model on its own is more than MAX_EDGE from the market
-  if (far) cf.flags.push('The model on its own is too far from the market on this one. A gap this wide is usually news or a role change the model has not seen. On hold until you check.');
+  if (far) cf.flags.push('The model on its own is too far from the market to trust. That is usually news or a role change the model has not seen. On hold until you check.');
   const qh = !!(pr.e && pr.e.p && pr.e.p.q);      // v3.16.2: questionable today. The desk will not bet him, so the memo does not approve him either
   const hold = best.edge > MAX_EDGE || far || qh; if (hold) t = [adj, 'HOLD', 'w', 'Hold'];
   const st = S.store.settings;
@@ -1948,13 +2113,12 @@ function l10Svg(b) {
 
 /* ---------- board ---------- */
 /* ---------- rooms: each tab has its own sign over the door, and its own way of arriving ---------- */
-const KICK = { sim: 'The booth · every game run ten thousand times', desk: 'Studio 1 · the card and the record', board: 'Room 2 · draft night, every prop ranked', games: 'The scoreboard · who wins, who covers', research: 'Room 3 · matchup sheets', stress: 'Room 4 · what if he sits', book: 'Room 5 · your own bets', model: 'Room 6 · does the model earn its say' };
 const ART = { desk: '', board: '', games: '',
   research: `<svg viewBox="0 0 300 110" preserveAspectRatio="xMaxYMid meet"><path class="pp" style="--j:0" d="M93 9l10 10M103 9l-10 10"/><path class="pp" style="--j:1" d="M173 9l10 10M183 9l-10 10"/>${[68, 108, 148, 188].map((x, i) => `<path class="pp" style="--j:${i + 2}" d="M${x} 42l10 10M${x + 10} 42l-10 10"/>`).join('')}${[22, 62, 96, 164, 198, 262].map((x, i) => `<circle class="pp" style="--j:${i + 6}" cx="${x}" cy="80" r="6"/>`).join('')}<path class="pp" style="--j:12" d="M124 74h12v12h-12z"/><circle class="pp" style="--j:13" cx="130" cy="101" r="6"/><path class="dr" pathLength="1" style="--j:0" d="M22 72V34L58 13"/><path class="dr" pathLength="1" style="--j:0" d="M49 13l9 0-4 8"/><path class="dr" pathLength="1" style="--j:1" d="M262 72V46h28"/><path class="dr" pathLength="1" style="--j:1" d="M284 40l7 6-7 6"/><path class="dr" pathLength="1" style="--j:2" d="M138 101c30 0 52-10 62-31"/><path class="dr" pathLength="1" style="--j:2" d="M191 74l9-4 2 9"/></svg>`,
   stress: `<svg viewBox="0 0 150 92"><path d="M23 80A52 52 0 0 1 49 35" fill="none" stroke="var(--led-good)" stroke-width="8"/><path d="M49 35A52 52 0 0 1 101 35" fill="none" stroke="var(--hazard)" stroke-width="8"/><path d="M101 35A52 52 0 0 1 127 80" fill="none" stroke="var(--led-bad)" stroke-width="8"/><path d="M11 80A64 64 0 0 1 139 80" fill="none" stroke="var(--chalk)" stroke-width="2"/><g class="needle"><path d="M75 80V31" stroke="var(--chalk)" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="75" cy="80" r="6" fill="var(--chalk)"/></svg>`,
   book: `<svg viewBox="0 0 132 20"><rect x="18" y="4" width="92" height="12" fill="var(--pencil)" stroke="var(--note-ink)" stroke-width="1.5"/><path d="M110 4l18 6-18 6z" fill="var(--note)" stroke="var(--note-ink)" stroke-width="1.5"/><path d="M122 8l6 2-6 2z" fill="var(--note-ink)"/><rect x="4" y="4" width="14" height="12" rx="3" fill="var(--note-red)" stroke="var(--note-ink)" stroke-width="1.5"/></svg>`,
   model: `<svg viewBox="0 0 92 104"><path d="M30 60l-10 40 14-8 8 12 8-34z" fill="var(--seal-2)"/><path d="M62 60l10 40-14-8-8 12-8-34z" fill="var(--seal-2)"/><circle cx="46" cy="42" r="35" fill="none" stroke="var(--seal)" stroke-width="10" stroke-dasharray="7.3 6.44"/><circle cx="46" cy="42" r="33" fill="var(--seal)"/><circle cx="46" cy="42" r="24" fill="none" stroke="var(--cert)" stroke-width="1.5"/><path d="M35 43l8 8 15-17" fill="none" stroke="var(--cert)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>` };
-const mast = (tab, title, sub) => `<header class="mast m-${tab} lg-${S.lg.toLowerCase()}${S.enter ? ' in' : ''}">${tab === 'research' ? coachHtml(S.lg) : ''}<div class="mast-art" aria-hidden="true">${ARTX[tab] ? ARTX[tab](S.lg) : ART[tab]}</div><div class="mast-t"><span class="mast-k">${KICK[tab]} · ${S.lg}</span><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div></header>`;
+const mast = (tab, title, sub) => `<header class="mast m-${tab} lg-${S.lg.toLowerCase()}${S.enter ? ' in' : ''}">${tab === 'research' ? coachHtml(S.lg) : ''}<div class="mast-art" aria-hidden="true">${ARTX[tab] ? ARTX[tab](S.lg) : ART[tab]}</div><div class="mast-t"><span class="mast-k">${S.lg}</span><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div></header>`;
 /* coaches for the research masthead: football coach in a headset with his call sheet, basketball coach in a suit with a marker */
 function coachHtml(lg) {
   const nfl = lg === 'NFL', sk = nfl ? '#b77b52' : '#8a5a3c', top = nfl ? '#ece6d6' : '#1f2c48', trim = nfl ? '#1d2a44' : '#f3f1ea';
@@ -2161,17 +2325,15 @@ function boardHtml() {
   const gopts = lg === 'NBA' ? days.map(dy => `<optgroup label="${dy}">${L.games.filter(g => g.day === dy).map(g => `<option value="${g.id}"${S.game === g.id ? ' selected' : ''}>${esc(gameLabel(lg, g))}</option>`).join('')}</optgroup>`).join('')
     : L.games.map(g => `<option value="${g.id}"${S.game === g.id ? ' selected' : ''}>${esc(gameLabel(lg, g))}</option>`).join('');
   const rated = PROPS.filter(p => getLine(p.key) && assess(p)).length, mks = Object.keys(MK[lg]);
-  const tick = (n, k, lbl, sub, cls) => `<div class="wr-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${S.enter ? 0 : n.toLocaleString()}</b><em>${sub}</em></div>`;
+  const tick = (n, k, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${S.enter ? 0 : n.toLocaleString()}</b><em>${sub}</em></div>`;
   return `${mast('board', 'The big board')}
   <section class="spot${S.enter ? ' in' : ''}" id="spot" aria-label="Spotlight: tonight's top picks" aria-roledescription="carousel" tabindex="0">${spotHtml(a.slice(0, 7))}</section>
   <section class="wr${S.enter ? ' in' : ''}" aria-label="Scouting console">
     <div class="wr-head"><span class="wr-dot" aria-hidden="true"></span><b>War room</b><span>${esc(lg)} · ${esc(L.label.replace(/ \/ /g, ', '))}</span></div>
-    <div class="wr-stats">
-      ${tick(L.games.length, 'games', 'On the slate', L.games.length === 1 ? 'game' : 'games')}
-      ${tick(PROPS.length, 'props', 'Scouted', 'props priced by the model')}
-      ${tick(nl, 'lines', 'Lines in', nl ? 'book prices on file' : 'waiting on the books', nl ? '' : 'nil')}
-      ${tick(a.length, 'showing', 'On the board', 'after your filters', 'show')}
-    </div>
+    ${vcrHtml('board|' + lg, lg + ' board counts', tick(L.games.length, 'games', 'On the slate', L.games.length === 1 ? 'game' : 'games')
+      + tick(PROPS.length, 'props', 'Scouted', 'props priced by the model')
+      + tick(nl, 'lines', 'Lines in', nl ? 'book prices on file' : 'waiting on the books', nl ? '' : 'nil')
+      + tick(a.length, 'showing', 'On the board', 'after your filters', 'show'), vcrTime(lg))}
     ${ns ? `<div class="banner"><span>Stress scenario on: ${ns} lineup change${ns > 1 ? 's' : ''}. Every number below reflects it.</span><button class="btn ghost sm" data-act="resetScen">Clear scenario</button></div>` : ''}
     ${nl ? '' : `<p class="wr-note"><b>Mock board.</b> Every prop has a fair line, but none is graded until a book price lands with the late morning pull. Tap any prop to enter your book's line and the desk grades it AAA to C on the spot.</p>`}
     <div class="seg mk" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-fm="${k}" aria-pressed="${S.mkt === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
@@ -2409,7 +2571,7 @@ function bookHtml() {
         <td><span class="rate ${b.cls}">${esc(b.rating)}</span></td><td>${odds(b.odds)}</td><td>${money(b.stake)}</td><td>${pct(b.p)}</td>
         <td>${b.status === 'open' ? '<span class="mut">open</span>' : esc(b.status) + (b.result != null ? ' (' + b.result + ')' : '')}</td><td class="${pl(b) > 0 ? 'pos' : pl(b) < 0 ? 'neg' : ''}">${b.status === 'open' ? '·' : money(pl(b))}</td>
         <td>${b.status === 'open' ? `<button class="btn ghost sm" data-set="${b.id}|won">W</button> <button class="btn ghost sm" data-set="${b.id}|lost">L</button> <button class="btn ghost sm" data-set="${b.id}|push">P</button> ` : `<button class="btn ghost sm" data-set="${b.id}|open">Reopen</button> `}<button class="btn ghost sm" data-del="${b.id}" aria-label="Delete ticket">Del</button></td></tr>`).join('')}
-      </tbody></table>` : '<p class="prose" style="margin:0">No tickets yet. Open a prop on the Board, enter the book line, and use the Log button on its memo. Log every play before the game starts, including the ones you only paper trade. That record is how you find out whether the model beats your book.</p>'}</div>`;
+      </tbody></table>` : '<p class="prose" style="margin:0">No tickets yet. Open a prop on the Board, enter the book line, and tap Log on its memo before the game starts. Log paper trades too, so the record shows whether the model beats your book.</p>'}</div>`;
 }
 
 /* ---------- the desk: the model's own bets, each with its case file ---------- */
@@ -2423,7 +2585,7 @@ function closeHtml(b) {
   const px = b.alt ? null : b.side === 'Over' ? c.o : c.u, up = c.move != null && c.move >= 0;
   return `<div class="clv"><span class="lbl">Later line check · ${esc(c.t)}</span>
     <span>${b.alt ? 'An alternate line: the later price is tracked on the main line only.' : `At that pull ${esc(bkn(b.book || 'hardrockbet', 1))} had the ${esc(b.side)} ${c.line != null ? c.line : b.line} at <b class="num">${px != null ? odds(px) : 'off the board'}</b>.`} The desk holds <b class="num">${odds(b.odds)}</b>. Then ${c.nb} books made this a <b class="num">${pct(c.fair)}</b> shot${c.move != null ? `, ${up ? 'up' : 'down'} ${Math.abs(c.move * 100).toFixed(1)} points since the bet` : ''}.</span>
-    <span>Line value <b class="num ${c.clv >= 0 ? 'pos' : 'neg'}">${sgn(c.clv * 100)}%</b>. ${c.clv >= 0 ? 'The desk beat the later line.' : 'The later line beat the desk. One bet proves nothing either way. The average over many bets is the number that matters.'} This is the last pull before tip (the 6 PM evening pass), not the final closing number.</span></div>`;
+    <span>Line value <b class="num ${c.clv >= 0 ? 'pos' : 'neg'}">${sgn(c.clv * 100)}%</b>. ${c.clv >= 0 ? 'The desk beat the later line.' : 'The later line beat the desk. One bet proves nothing; the average over many does.'} This is the last pull before tip (the 6 PM evening pass), not the final closing number.</span></div>`;
 }
 function caseHtml(b) {
   const w = b.why; if (!w) return '<div class="file"><p class="prose" style="margin:0">This bet was logged before the desk kept case files.</p></div>';
@@ -2503,13 +2665,13 @@ function deskHtml() {
       : `<div class="srow"><div class="row">${inner}</div></div>`; };
   const settled = all.filter(b => st(b) !== 'open').reverse();
   return `${mast('desk', 'The desk', `Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at the best price across seven books. Paper only.`)}<section class="tote" aria-label="Desk record">
-      <div class="tote-h"><span>The board · desk record, NBA and NFL</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ` · tickets before Nov 17 at ${money(DESK.legacy_unit || .5)} a unit` : ''}</span></div>
+      <div class="tote-h"><span>Desk record, NBA and NFL</span><span>one unit ${money(DESK.unit || 25)} · $${(DESK.bankroll || 500).toLocaleString()} a lane · paper only${DESK.bets.some(b => !b.unit) ? ` · tickets before Nov 17 at ${money(DESK.legacy_unit || .5)} a unit` : ''}</span></div>
       <div class="tote-g">${tc('rec')}${tc('hit')}${tc('units')}${tc('clv')}</div>
-      <div class="tape${S.tapePaused ? ' paused' : ''}" id="tape"><span class="tape-live" aria-hidden="true"><i></i>Live</span><button class="tape-b" data-act="tape" aria-pressed="${S.tapePaused}">${S.tapePaused ? 'Run' : 'Hold'}</button><div class="tape-w"><div class="tape-r"><div class="tape-s">${tape}</div><div class="tape-s" aria-hidden="true">${tape}</div></div></div></div>
+      <div class="tape${S.tapePaused ? ' paused' : ''}" id="tape"><button class="tape-b" data-act="tape" aria-pressed="${S.tapePaused}">${S.tapePaused ? 'Run' : 'Hold'}</button><div class="tape-w"><div class="tape-r"><div class="tape-s">${tape}</div><div class="tape-s" aria-hidden="true">${tape}</div></div></div></div>
     </section>
     <div class="hd"><h2>${open.length ? 'Tonight\'s card' : 'No open tickets'}</h2><span>${eveTxt ? `<b class="eve ${eveMiss ? 'neg' : ''}">${eveTxt}</b> · ` : ''}${dd.map(d => `${esc(d.lg)}: ${d.sides_priced} sides priced, ${d.cleared_bar} cleared every test, ${d.picks} bet${d.conf ? `, ${d.conf.picks} confident of ${d.conf.quotes} likely quotes` : ''}`).join(' · ')}</span></div>
     ${open.length ? `<div class="cards">${open.slice().sort((a, b) => (b.best ? 1 : 0) - (a.best ? 1 : 0)).map(ticketHtml).join('')}</div>` : '<p class="prose">The next daily run posts the card here. A night with no bet is a normal night.</p>'}
-    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at the best price among seven sportsbooks (Hard Rock only before Nov 19) and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10. About 6 PM an <b>evening pass</b> reprices the games still to come with fresh lines and injuries, under the same rules; it never adds a second ticket on a player and never changes a midday ticket.${cenTxt}</p>
+    <p class="prose" style="margin-top:14px">Logged before ${S.lg === 'NFL' ? 'kickoff' : 'tip'} at the best price among seven sportsbooks (Hard Rock only before Nov 18) and graded from the box score. Two lanes. <b>Edge plays</b> need two other books quoting the same prop, an edge of 3 points after the market check, and no open question about the player. <b>Confident plays</b> are outcomes the other books rate at least 72% likely (main or alternate line), that the model agrees with on its own, at a price no worse than that fair chance: heavy prices are fine, overpaying is not. Up to three a league a day, kept on their own record. <b>Stakes</b>: one unit is $25 and each lane has $500. Edge plays: AAA 1½ units, AA 1, A ¾, BBB ½, plus ½ on the day's best bet. Confident plays: ½ to 2 units, more when the price beats the books' fair chance by more and the books rate it more likely. If the lanes log fewer than two bets, the best remaining positive sides go on as <b>leans</b> at a quarter unit; nothing below break-even is ever bet. No bet over 2 units, no day over 10. About 6 PM an <b>evening pass</b> reprices the games still to come with fresh lines and injuries, under the same rules; it never adds a second ticket on a player and never changes a midday ticket.${cenTxt}</p>
     ${movesHtml}
     ${passed.length ? `<div class="hd"><h2>Passed on</h2><span>the closest calls from ${esc(lastDate)} and the test each one failed${B.some(b => b.lean && b.date === lastDate) ? '. Leans are the exception to the 3-point bar: on a day nothing clears it, the desk logs its top one or two edges of 1 point or more at a quarter unit, so a lean can sit below the bar while a smaller edge here is passed' : ''}</span></div><div class="passes">${passed.map(passHtml).join('')}</div>` : ''}
     <div class="hd"><h2>The ledger</h2><span>${(() => { const g = settled.filter(b => !b.superseded && (st(b) === 'won' || st(b) === 'lost')).length, rp = settled.filter(b => b.superseded).length, ot = settled.length - g - rp; return `${settled.length} settled: ${g} graded${ot ? `, ${ot} push or void` : ''}${rp ? `, ${rp} replaced by a later ticket` : ''}`; })()}</span></div>
@@ -2530,9 +2692,9 @@ function modelHtml() {
   const cal = Object.entries(DATA.calib || {}).filter(([k, v]) => k.startsWith(lg + '|') && v.n);
   const LD = DESK.days.filter(d => d.lg === lg), lastDate = LD.length ? LD[LD.length - 1].date : null, dd = LD.filter(d => d.date === lastDate), priced = sum(dd.map(d => d.sides_priced || 0)), bet = sum(dd.map(d => d.picks || 0));      // v3.14.2: this league's slate
   return `${mast('model', 'The model audit')}${storyHtml()}<p class="prose" id="audit">${esc(String(L.backtest_note).replace('Fit on 2023-24 seasons', 'Fit on the 2023 and 2024 seasons'))} Every projection in the test used only games played before it. Data through ${esc(L.data_through)}.</p>
-  <div class="card" style="margin-bottom:16px"><div class="sec"><h3><span>Standing orders: how the desk runs if it has to earn its keep</span></h3></div>
+  <div class="card" style="margin-bottom:16px"><div class="sec"><h3><span>Standing orders</span></h3></div>
     <ol class="orders">
-      <li><b>Price before prediction.</b><span>The desk takes each side at whichever of seven books pays the most for it (since Nov 19; Hard Rock only before). Shopping alone was worth about 4 cents a dollar on the same lines last season. The lever is still to pass unless a price is out of line with the other books, or the model disagrees about one player by more than it does about the rest.</span></li>
+      <li><b>Price before prediction.</b><span>The desk takes each side at whichever of seven books pays the most for it (since Nov 18; Hard Rock only before). Shopping alone was worth about 4 cents a dollar on the same lines last season. The lever is still to pass unless a price is out of line with the other books, or the model disagrees about one player by more than it does about the rest.</span></li>
       <li><b>Judge the desk by the closing line.</b><span>Wins and losses take hundreds of bets to mean anything. Whether the price taken beat the closing price shows up in weeks. ${cl.length ? `Tracked on ${cl.length} bet${cl.length === 1 ? '' : 's'} so far.` : 'Tracking starts with the next card.'}</span></li>
       <li><b>Pass most of the time.</b><span>${priced ? `On ${esc(lastDate)} the desk priced ${priced} ${lg} sides and bet ${bet}.` : 'Most sides priced are never bet.'} That ratio is the job, not a slow night.</span></li>
       <li><b>Sized stakes, no chasing.</b><span>A quarter unit to two units, set by the grade before the bet, never after a result. No doubling after a loss and no extra bets to get even.</span></li>
@@ -2876,12 +3038,12 @@ function gamesHtml() {
       <div class="gp-r"><small>Spread</small><span class="gp-pk"><b>${atsT ? `${side(g, atsT)} ${lineTxt(atsT === g.home ? -spr : spr)}${tr ? `<span class="gp-tg t-${tr.toLowerCase()}">${tr === 'Strong' ? 'Edge' : tr}</span>` : ''}${chip(cov)}` : '<span class="gp-nl">no line on file</span>'}</b>${atsT ? `<em>Closing ${esc(spr > 0 ? g.home : g.away)} ${lineTxt(-Math.abs(spr))}</em>` : ''}</span><span></span></div>
       <div class="gp-r"><small>Total</small><span class="gp-pk"><b>${ou ? `${ou} ${tot}${chip(ouh)}` : `<span class="gp-nl">${tot != null ? tot : 'no line on file'}</span>`}</b><em>Model ${g.pt != null ? (+g.pt).toFixed(1) : '-'} · final ${g.fin[0] + g.fin[1]}</em></span><span></span></div>`;
     return `<article class="gp gp-fin${S.fresh && i < 12 ? ' in' : ''}" style="--i:${i}">${top}${rows}</article>`; };
-  const tick = (n, lbl, sub, cls) => `<div class="wr-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b>${n}</b><em>${sub}</em></div>`;
+  const tick = (n, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b>${n}</b><em>${sub}</em></div>`;
   const hd = lg === 'NFL' ? `Week ${G.week} · ${G.games.length} games` : `${(G.days || []).map(dlab).join(', ')} · ${G.games.length} games`;
   const fsum = fin ? (() => { const su = games.filter(g => g.su != null), w = su.filter(g => g.su).length; return `<span><small>Winners</small><b>${w}-${su.length - w}</b></span>`; })() : '';
   return `${mast('games', 'Game picks', hd)}
     <section class="wr fr2 gpw" aria-label="Game picks record">
-      <div class="wr-stats">${tick(th.su_mkt != null ? pct(th.su_mkt) : pct(th.su || 0), 'Winners, this season', th.su_mkt != null ? `the line's favourite · our ratings ${pct(th.su || 0)}` : `${th.n || 0} games, our ratings`)}${tick(pc(tats.All) || 'New', 'Spread, this season', tats.All && tats.All[0] + tats.All[1] ? `${rec(tats.All)} our ratings vs the line` : 'starts with the daily game lines')}${lg === 'NFL' ? tick(pc(ats.Strong) || 'New', 'Edge spots since 2015', ats.Strong ? `${rec(ats.Strong)} · needs 52.4%` : '', 'show') : tick(pc(ats.All) || 'New', 'Spread, tested', ats.All ? `${rec(ats.All)} since 2025-26 · needs 52.4%` : '', '')}${tick(pw + pl ? `${pw}-${pl}` : String(PL), pw + pl ? 'Logged picks, to win' : 'Logged picks', cw + cl ? `spread ${cw}-${cl}` : 'graded as games finish')}</div>
+      ${vcrHtml('games|' + lg, lg + ' game picks record', tick(th.su_mkt != null ? pct(th.su_mkt) : pct(th.su || 0), 'Winners, this season', th.su_mkt != null ? `the line's favourite · our ratings ${pct(th.su || 0)}` : `${th.n || 0} games, our ratings`) + tick(pc(tats.All) || 'New', 'Spread, this season', tats.All && tats.All[0] + tats.All[1] ? `${rec(tats.All)} our ratings vs the line` : 'starts with the daily game lines') + (lg === 'NFL' ? tick(pc(ats.Strong) || 'New', 'Edge spots since 2015', ats.Strong ? `${rec(ats.Strong)} · needs 52.4%` : '', 'show') : tick(pc(ats.All) || 'New', 'Spread, tested', ats.All ? `${rec(ats.All)} since 2025-26 · needs 52.4%` : '', '')) + tick(pw + pl ? `${pw}-${pl}` : String(PL), pw + pl ? 'Logged picks, to win' : 'Logged picks', cw + cl ? `spread ${cw}-${cl}` : 'graded as games finish'), esc(lg))}
       <div class="seg so" data-seg="gm-view" role="group" aria-label="Day">${'<span class="seg-ink" aria-hidden="true"></span>'}${views.map(([v, n]) => `<button data-gm="view:${v}" aria-pressed="${H.view === v}">${esc(n)}</button>`).join('')}</div>
       <div class="gp-slate"><span><small>Games</small><b>${all.length}</b></span><span><small>Edges</small><b class="g">${nEdge}</b></span><span><small>Leans</small><b class="h">${nLean}</b></span>${big ? `<span><small>Biggest gap</small><b>${esc(big.ats)} ${Math.abs(big.gap).toFixed(1)}</b></span>` : ''}${fsum}</div>
       <div class="wr-row">
@@ -2950,6 +3112,12 @@ function loadSplits(lg) {
     .then(() => { if (S.tab === 'research' && S.lg === lg && rsTool() === 'split') rsPaint(); });
 }
 const dayGap = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+function teamLastGame(lg, team) {      // newest game date among the club's players' logs in the page's data (NBA logs carry MM-DD)
+  if (lg !== 'NBA') return null; const thru = String(DATA[lg].data_through || ''); if (!/^\d{4}-\d\d-\d\d$/.test(thru)) return null;
+  let best = null; for (const p of DATA[lg].players) { if (p.team !== team || !p.logs || !p.logs.d || !p.logs.d.length) continue; const md = p.logs.d[p.logs.d.length - 1];
+    const y = +thru.slice(0, 4) - (md > thru.slice(5) ? 1 : 0), dt = `${y}-${md}`; if (!best || dt > best) best = dt; }
+  return best;
+}
 function restB(lg, r) { if (r == null) return null; return lg === 'NBA' ? (r <= 0 ? 'b2b' : r === 1 ? 'r1' : 'r2') : (r <= 5 ? 'short' : r <= 8 ? 'norm' : 'long'); }
 const RESTN = { b2b: 'Back to back', r1: '1 day rest', r2: '2+ days rest', short: 'Short week', norm: 'Normal week', long: 'Extra rest' };
 const tierOf = (rk, n) => rk == null ? null : rk <= 10 ? 'soft' : rk > n - 10 ? 'tough' : 'mid';
@@ -2961,7 +3129,9 @@ function splitData(pr, Z) {
   const val = r => parts.reduce((s, k) => s + (r[ix[k]] || 0), 0);
   const nT = lg === 'NBA' ? 30 : 32, rk = (season, opp) => { const t = (d.rank[String(season)] || {})[opp]; return t ? t[rkKey] : null; };
   const G = rows.map(r => ({ v: val(r), home: r[ix.home], rest: restB(lg, r[ix.rest]), tier: tierOf(rk(r[ix.season], r[ix.opp]), nT), start: r[ix.start], opp: r[ix.opp], date: r[ix.date] }));
-  const side = pr.e.side, g = IDX[lg].games[side.game], last = d.last[pr.e.p.team];
+  // v3.29: a club's last game is the later of the splits file's date and the newest box score in the page's own data, so a
+  // stale splits file cannot turn a back-to-back into "2+ days rest" (Barnes, Nov 18: the file said TOR last played Nov 15).
+  const side = pr.e.side, g = IDX[lg].games[side.game], last = [d.last[pr.e.p.team], teamLastGame(lg, pr.e.p.team)].filter(Boolean).sort().pop();
   const restT = last && g && g.day ? (lg === 'NBA' ? dayGap(last, g.day) - 1 : dayGap(last, g.day)) : null;
   const orank = rk(d.cur, side.opp);
   const tn = { home: side.home ? 1 : 0, rest: restB(lg, restT), tier: tierOf(orank, nT), start: pr.e.p.start ? 1 : 0 };
@@ -2987,7 +3157,7 @@ function splitHtml() {
   let rows = base.filter(pr => (H.hg === 'all' || pr.e.side.game === H.hg) && (H.hm === 'all' || pr.mkt === H.hm) && (!q || pr.e.p.name.toLowerCase().includes(q))).map(pr => splitData(pr, Z)).filter(r => r && r.tw >= 3);
   rows.sort((a, b) => (H.sp === 'under' ? 1 : -1) * (a.lean - b.lean));
   const G = IDX[lg].games, over = rows.filter(r => r.lean >= .15).length, under = rows.filter(r => r.lean <= -.15).length;
-  const tick = (n, k, lbl, sub, cls) => `<div class="wr-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n}</b><em>${sub}</em></div>`;
+  const tick = (n, k, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n}</b><em>${sub}</em></div>`;
   const pcx = x => Math.round(x * 100) + '%';
   const bar = r => { const q = r.n ? r.h / r.n : 0; return `<span class="trs-bar" style="--q:${q}"><i></i></span>`; };
   const card = (r, i) => { const pr = r.pr, p = pr.e.p, M = MK[lg][pr.mkt], L = r.ln.line, tq = r.tw ? r.th / r.tw : 0;
@@ -2995,11 +3165,12 @@ function splitHtml() {
     return `<article class="trs${S.fresh && i < 12 ? ' in' : ''}" style="--i:${i};${tcol(lg, p.team)}">
       <button class="trs-h" data-open="${esc(pr.key)}">${jersey(lg, p)}<span class="trs-n"><b>${esc(p.name)}</b><small>${esc(M.n)} over ${L}${r.ln.src ? ' · books' : ''} · ${esc(gameLabel(lg, G[pr.e.side.game]))}</small></span>
         <span class="trs-q ${r.lean >= .1 ? 'hi' : r.lean <= -.1 ? 'lo' : ''}"><small>Tonight's spots</small><b>${pcx(tq)}</b><em>${r.lean >= 0 ? '+' : ''}${Math.round(r.lean * 100)} vs all</em></span></button>
-      <div class="trs-t">${r.tonight.map(chip).join('')}<span class="trs-c all"><small>${esc(r.all.lab)}</small><b>${r.all.h}<i>/${r.all.n}</i></b></span></div>
-      <details class="trs-d"><summary>Every split</summary><div class="scroll"><table><thead><tr><th>Split</th><th>Games</th><th>Over ${L}</th><th></th><th>Avg</th></tr></thead><tbody>
-        ${r.rows.map(x => `<tr class="${x.now ? 'now' : ''}"><td>${esc(x.lab)}${x.now ? ' <span class="trs-tn">tonight</span>' : ''}</td><td>${x.n}</td><td>${x.n ? x.h + ' of ' + x.n : '·'}</td><td>${bar(x)}</td><td class="${x.n && x.avg > L ? 'pos' : x.n ? 'neg' : ''}">${x.n ? f1(x.avg) : '·'}</td></tr>`).join('')}</tbody></table></div></details></article>`; };
+      <div class="trs-t">${r.tonight.map(chip).join('')}<span class="trs-c all"><small>${esc(r.all.lab)}</small><b>${r.all.h}<i>/${r.all.n}</i></b></span>${(() => { const t = r.rows.find(x => x.k === 'l10'), hk = t ? heatOf(t.h, t.n) : '', dk = 'split|' + pr.key;
+        return hk ? `<span class="trs-c l10 ${hk}"><small>Last ${t.n}</small><b class="${drgT(hk, dk).trim()}">${t.h}<i>/${t.n}</i></b></span>${dragonHtml(hk, dk, t.h, t.n)}` : ''; })()}</div>
+      <details class="trs-d"><summary>Every split</summary><div class="scroll"><table><thead><tr><th>Split</th><th>Over ${L}</th><th></th><th>Avg</th></tr></thead><tbody>
+        ${r.rows.map(x => `<tr class="${x.now ? 'now' : ''}"><td>${esc(x.lab)}${x.now ? ' <span class="trs-tn">tonight</span>' : ''}</td><td>${x.n ? x.h + ' of ' + x.n : '·'}</td><td>${bar(x)}</td><td class="${x.n && x.avg > L ? 'pos' : x.n ? 'neg' : ''}">${x.n ? f1(x.avg) : '·'}</td></tr>`).join('')}</tbody></table></div></details></article>`; };
   return `<section class="wr fr2" aria-label="Split controls">
-      <div class="wr-stats">${tick(rows.length, 'sp-n', 'Props split', 'with 3+ games in tonight\'s spots')}${tick(over, 'sp-o', 'Spots lean over', '15+ points above his usual', 'show')}${tick(under, 'sp-u', 'Spots lean under', '15+ points below his usual', 'cold')}${tick(Z.d.p ? Object.keys(Z.d.p).length : 0, 'sp-p', 'Players on file', `games through ${esc(Z.d.asof)}`)}</div>
+      ${vcrHtml('split|' + lg, lg + ' trends by split', tick(rows.length, 'sp-n', 'Props split', 'with 3+ games in tonight\'s spots') + tick(over, 'sp-o', 'Spots lean over', '15+ points above his usual', 'show') + tick(under, 'sp-u', 'Spots lean under', '15+ points below his usual', 'cold') + tick(Z.d.p ? Object.keys(Z.d.p).length : 0, 'sp-p', 'Players on file', `games through ${esc(Z.d.asof)}`), vcrTime(lg))}
       <div class="seg mk" data-seg="rs-smkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
       <div class="wr-row">
         <div class="seg so" data-seg="rs-ssort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="sp:over" aria-pressed="${H.sp !== 'under'}">Leans over</button><button data-rs="sp:under" aria-pressed="${H.sp === 'under'}">Leans under</button></div>
@@ -3082,7 +3253,7 @@ function gradeHtml() {
   if (H.gs === 'off') rows = rows.filter(r => r.v.off);
   rows.sort((a, b) => (H.gs === 'worst' ? 1 : -1) * ((a.v.ge ?? -9) - (b.v.ge ?? -9)) || a.p.name.localeCompare(b.p.name));
   const graded = all.filter(r => r.v.g), good = graded.filter(r => r.v.g === 'A' || r.v.g === 'B').length, off = all.filter(r => r.v.off).length, nb = all.length ? all.reduce((s, r) => s + r.v.nb, 0) / all.length : 0;
-  const tick = (n, k, lbl, sub, cls, dp) => `<div class="wr-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}"${dp ? ` data-dp="${dp}"` : ''}>${dp ? n.toFixed(dp) : n.toLocaleString()}</b><em>${sub}</em></div>`;
+  const tick = (n, k, lbl, sub, cls, dp) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}"${dp ? ` data-dp="${dp}"` : ''}>${dp ? n.toFixed(dp) : n.toLocaleString()}</b><em>${sub}</em></div>`;
   const pc = e => e == null ? '·' : (e >= 0 ? '+' : '') + (e * 100).toFixed(1) + '%';
   const row = (r, i) => { const v = r.v, M = MK[lg][r.mkt], bin = !!M.binary, h = v.q.find(z => z[0] === 'hardrockbet');
     const bo = v.q.filter(z => z[4] != null).sort((a, b) => b[4] - a[4])[0], bu = v.q.filter(z => z[5] != null).sort((a, b) => b[5] - a[5])[0];
@@ -3100,7 +3271,7 @@ function gradeHtml() {
         ${bin ? '' : `<span class="cell"><small>Best under</small><span>${bu ? bkn(bu[0]) + ' ' + price(bu, 'u') : '·'}</span></span>`}</span>
       <span class="mg-b">${v.q.map(chip).join('')}</span></button>`; };
   return `<section class="wr fr2" aria-label="Market grade controls">
-      <div class="wr-stats">${tick(all.length, 'mg-n', 'Props quoted', `across ${new Set(all.flatMap(r => r.v.q.map(z => z[0]))).size} books`)}${tick(good, 'mg-good', 'Hard Rock A or B', 'priced at or better than the books', 'show')}${tick(off, 'mg-off', 'Off market', 'Hard Rock line out of step', 'cold')}${tick(nb, 'mg-nb', 'Books a prop', 'average quotes per prop', '', 1)}</div>
+      ${vcrHtml('grade|' + lg, lg + ' market grades', tick(all.length, 'mg-n', 'Props quoted', `across ${new Set(all.flatMap(r => r.v.q.map(z => z[0]))).size} books`) + tick(good, 'mg-good', 'Hard Rock A or B', 'priced at or better than the books', 'show') + tick(off, 'mg-off', 'Off market', 'Hard Rock line out of step', 'cold') + tick(nb, 'mg-nb', 'Books a prop', 'average quotes per prop', '', 1), vcrTime(lg))}
       <div class="seg mk" data-seg="rs-gmkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
       <div class="wr-row">
         <div class="seg so" data-seg="rs-gsort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="gs:best" aria-pressed="${H.gs === 'best' || !H.gs}">Best at Hard Rock</button><button data-rs="gs:worst" aria-pressed="${H.gs === 'worst'}">Worst</button><button data-rs="gs:off" aria-pressed="${H.gs === 'off'}">Off market</button></div>
@@ -3112,24 +3283,97 @@ function gradeHtml() {
     <p class="note"><b>Reading a grade.</b> A: Hard Rock's better side is at least 2 points better than the other books' fair price. B: better than fair. C: a normal margin, about what a -110 side costs. D: a heavy margin. F: well out of line. Off market: Hard Rock's line implies a number more than 8% from the other books, or sits 1.5 or more off their middle line. Green chip: the best over across the books; blue: the best under. A grade is about price, not about whether the bet wins, and it does not change the desk's picks.</p>`;
 }
 
+/* v3.31 dragons. A player over the line in 7+ of his last 10 is hot; 3 or fewer of 10 is ice cold (the TV counters' rule).
+   A hot card gets a fire dragon: it flies in on a six-frame wing beat, lands, rears back and breathes fire on the number,
+   which catches; the flame breaks into smoke and small flames and embers stay on the number. A cold card gets an ice drake
+   whose frost leaves the number glinting with crystals and drifting flakes. Original pixel art from dragon_sprites.py.
+   Crisp: each sprite pixel is a whole number of screen pixels (--ds is set from the screen's pixel ratio). Cheap: the
+   flight plays once per card per visit, a few at a time, and the lingering loops run only while the card is on screen;
+   with reduced motion the creature is simply perched and the number lit. */
+const heatOf = (h, n) => n >= 3 ? (h / n >= .7 ? 'hot' : h / n <= .3 ? 'cold' : '') : '';
+const DRG_DONE = new Set();
+function dragonHtml(kind, key, h, n) {
+  if (!kind) return '';
+  const done = DRG_DONE.has(key) || RM(), lab = kind === 'hot' ? `Running hot: over in ${h} of his last ${n}` : `Ice cold: over in only ${h} of his last ${n}`;
+  return `<span class="drg ${kind}${done ? ' done' : ''}" data-dk="${esc(key)}" role="img" aria-label="${lab}" title="${lab}"><i class="drg-f"></i><i class="drg-p" style="--k:0"></i><i class="drg-p" style="--k:1"></i><i class="drg-p" style="--k:2"></i><i class="drg-b"><i class="drg-s"></i></i></span>`;
+}
+const drgT = (kind, key) => kind ? ` drg-t ${kind}${DRG_DONE.has(key) || RM() ? ' lit' : ''}` : '';
+const drgBox = d => d.closest('.row, article');
+const drgScale = css => { const r = window.devicePixelRatio || 1; return (Math.max(1, Math.round(css * r)) / r).toFixed(4); };
+const DRG_IO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { let k = 0;
+  es.forEach(e => { if (!e.isIntersecting) return; DRG_IO.unobserve(e.target); const d = e.target; setTimeout(() => drgPlay(d), (k++) * 300); }); }, { threshold: .75 }) : null;
+const DRG_VIS = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('drg-on', e.isIntersecting)), { rootMargin: '40px' }) : null;
+function drgPlay(d) {
+  if (!d.isConnected || d.classList.contains('done') || d.classList.contains('go')) return;
+  const box = drgBox(d), t = box && box.querySelector('.drg-t'), r = d.getBoundingClientRect(), s = r.width / 56;
+  const mx = r.left + 1.5 * s, my = r.top + 27 * s;      // the mouth, in the breathing frame
+  if (t) { const q = t.getBoundingClientRect(), cx = q.left + q.width * .55, cy = q.top + q.height * .5, dx = cx - mx, dy = cy - my;
+    d.style.setProperty('--fl', Math.max(30, Math.hypot(dx, dy) + 8).toFixed(0) + 'px'); d.style.setProperty('--fa', (Math.atan2(dy, dx) * 180 / Math.PI - 180).toFixed(1) + 'deg');
+    d.style.setProperty('--tx', (cx - r.left).toFixed(0) + 'px'); d.style.setProperty('--ty', (cy - r.top).toFixed(0) + 'px'); }
+  d.classList.add('go'); DRG_DONE.add(d.dataset.dk);
+  setTimeout(() => { if (t) t.classList.add('lit'); }, 1650);
+  setTimeout(() => { d.classList.remove('go'); d.classList.add('done'); }, 3050);
+}
+new MutationObserver(() => document.querySelectorAll('.drg:not([data-w])').forEach(d => { d.dataset.w = '1';
+  const box = drgBox(d); if (box) { box.style.setProperty('--ds', drgScale(box.matches('article') ? 1 : 1.15)); if (DRG_VIS) DRG_VIS.observe(box); }
+  if (d.classList.contains('done')) return;
+  if (RM() || !DRG_IO) { d.classList.add('done'); const t = box && box.querySelector('.drg-t'); if (t) t.classList.add('lit'); DRG_DONE.add(d.dataset.dk); }
+  else DRG_IO.observe(d); })).observe(document.documentElement, { childList: true, subtree: true });
+
+/* v3.27 the hit rate counters play on a tape. The set: a wood cabinet TV over a VCR. Arriving at the sheet (or pressing
+   the deck's replay button) loads it: the cassette drops into the slot, the deck reads LOAD then PLAY, the tube warms from a dot
+   to a line to a picture, a tracking band rolls through the static, and the counters roll up. A filter change only repaints the
+   numbers. Transform and opacity only; with reduced motion the set is simply on. */
+function vcrHtml(key, label, tiles, right) {      // key: which panel this is (the tape loads when it first appears); right: the screen's corner text
+  const load = !document.querySelector(`.vcr[data-k="${key}"]`) && !RM();
+  return `<div class="vcr${load ? ' load' : ''}" data-k="${esc(key)}" role="group" aria-label="${esc(label)}">
+    <div class="tv"><div class="tv-bz"><div class="tv-scr">
+      <div class="tv-in"><div class="tv-osd" aria-hidden="true"><span>&#9654; PLAY</span><span>${right || ''}</span></div><div class="tv-grid">${tiles}</div></div>
+      <i class="tv-nz" aria-hidden="true"></i><i class="tv-roll" aria-hidden="true"></i><i class="tv-pw" aria-hidden="true"></i></div></div>
+      <div class="tv-side" aria-hidden="true"><i class="kb"></i><i class="kb s"></i><span class="gr"></span></div></div>
+    <div class="deck"><span class="dk-mouth" aria-hidden="true"><span class="dk-tape"><i></i><i></i></span></span><span class="dk-slot" aria-hidden="true"></span>
+      <span class="dk-vfd" aria-hidden="true"><b class="a">LOAD</b><b class="b">PLAY &#9654;</b></span>
+      <button class="dk-btn" type="button" data-vcr="replay" aria-label="Replay the tape"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6L3 12l8 6zM21 6l-8 6 8 6z"/></svg></button></div></div>`;
+}
+const vcrTime = lg => { const b = BKS(lg); const t = b && b.asof ? (String(b.asof).match(/\d{1,2}:\d\d/) || [''])[0] : ''; return t ? `${lg} &middot; ${t}` : lg; };
+function vcrPlay(v, fresh) {      // run the load, then roll each counter up from zero once the picture is on
+  if (!v) return;
+  v.dataset.run = '1'; if (fresh !== false) { v.classList.remove('load'); void v.offsetWidth; v.classList.add('load'); }
+  v.querySelectorAll('.tick[data-k]').forEach((el, i) => { el.dataset.now = 0; el.textContent = '0'; setTimeout(() => rollTo(el, +el.dataset.to), 1150 + i * 120); });
+}
+new MutationObserver(() => document.querySelectorAll('.vcr.load:not([data-run])').forEach(v => vcrPlay(v, false))).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener('click', e => { const b = e.target.closest('[data-vcr="replay"]'); if (!b) return; const v = b.closest('.vcr');
+  if (RM()) return; vcrPlay(v); });
 function hitHtml() {
   const lg = S.lg, H = S.rs;
   if (H.hg !== 'all' && !IDX[lg].games[H.hg]) H.hg = 'all';
   if (H.hm !== 'all' && !MK[lg][H.hm]) H.hm = 'all';
-  const base = PROPS.filter(pr => !pr.binary && hitLine(pr)), mks = [...new Set(base.map(p => p.mkt))], gms = [...new Set(base.map(p => p.e.side.game))];
+  // v3.27: one row per player and market, on his next game. The same line and the same ten games shown under two games read as two plays.
+  const gk = pr => { const g = IDX[lg].games[pr.e.side.game] || {}; return (g.day || '') + ' ' + (g.time || ''); }, seenHR = new Set();
+  const base = PROPS.filter(pr => !pr.binary && hitLine(pr)).sort((a, b) => gk(a).localeCompare(gk(b))).filter(pr => { const k = pr.e.p.id + '|' + pr.mkt; if (seenHR.has(k)) return false; seenHR.add(k); return true; }),
+    mks = [...new Set(base.map(p => p.mkt))], gms = [...new Set(base.map(p => p.e.side.game))];
   const rows = base.filter(pr => (H.hg === 'all' || pr.e.side.game === H.hg) && (H.hm === 'all' || pr.mkt === H.hm)).map(pr => {
     const ln = hitLine(pr), v = logVals(pr).slice(-10), opp = pr.e.p.logs.opp.slice(-10), tg = logTags(pr).slice(-10), hit = a => a.filter(x => x > ln.line).length, l5 = v.slice(-5), vo = v.filter((x, i) => opp[i] === pr.e.side.opp), a = assess(pr);
     return { pr, ln, v, opp, tg, h5: hit(l5), n5: l5.length, h10: hit(v), n10: v.length, a10: avg(v), vo, ho: hit(vo), po: a ? a.sp.over : null }; }).filter(r => r.n10 >= 3);
   rows.sort((a, b) => (H.hs === 'under' ? 1 : -1) * (a.h10 / a.n10 - b.h10 / b.n10) || b.n10 - a.n10 || a.pr.e.p.name.localeCompare(b.pr.e.p.name));
-  const row = (r, i) => { const pr = r.pr, p = pr.e.p, M = MK[lg][pr.mkt], q = r.h10 / r.n10;
-    return `<button class="row pl${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}" style="--i:${i};${tcol(lg, p.team)}" data-open="${esc(pr.key)}">${ctlHtml(pr.key)}${whoHtml(pr, 'over ' + r.ln.line + ' ' + M.s)}
-      <span class="cells hr"><span class="cell"><small>Last ${r.n5}</small><span>${r.h5} of ${r.n5}</span></span><span class="cell"><small>Last ${r.n10}</small><span class="${q >= .7 ? 'pos' : q <= .3 ? 'neg' : ''}">${r.h10} of ${r.n10}</span></span><span class="cell"><small>Average</small><span>${f1(r.a10)}</span></span>
-      <span class="cell"><small>vs ${esc(pr.e.side.opp)}</small><span class="${r.vo.length ? '' : 'mut'}">${r.vo.length ? r.ho + ' of ' + r.vo.length : '·'}</span></span><span class="cell"><small>Desk over</small><span>${r.po == null ? '·' : pct(r.po)}</span></span>
-      <span class="cell"><small>Oldest to latest</small><span class="punch" role="img" aria-label="Over the line in ${r.h10} of the last ${r.n10}">${r.v.map((x, j) => `<i style="--pj:${j}" class="${x > r.ln.line ? 'h' : ''}" title="${esc(r.tg[j])} ${esc(r.opp[j])}: ${x}"></i>`).join('')}</span></span></span></button>`; };
+  // v3.31 the card reads top to bottom as a sentence: who and when; the bet; how often he has cleared it; his last ten games
+  // drawn against the line; then the small facts. (Before, the bet sat at the end of a grey line after his position and number.)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const when = g => !g ? '' : lg === 'NFL' ? `${g.wd ? g.wd.slice(0, 3) + ' ' : ''}${t12(g.time)}` : `${g.day === today ? 'Tonight' : new Date(g.day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })} ${t12(g.time)}`;
+  const row = (r, i) => { const pr = r.pr, p = pr.e.p, M = MK[lg][pr.mkt], L = r.ln.line, hk = heatOf(r.h10, r.n10), dk = 'hit|' + pr.key, side = pr.e.side, g = IDX[lg].games[side.game];
+    const mx = Math.max(...r.v, L * 1.5, 1), y = v => (v / mx * 100).toFixed(1);
+    const bars = r.v.map((x, j) => `<span class="hb${x > L ? ' o' : ''}" style="--h:${y(x)}%;--j:${j}" title="${esc(r.tg[j])} ${esc(r.opp[j])}: ${x}"><b>${x}</b><i></i><small>${esc(r.opp[j])}</small></span>`).join('');
+    const q = r.h10 / r.n10, tone = hk || (q >= .6 ? 'warm' : q <= .4 ? 'cool' : '');
+    return `<button class="row pl hrc${hk ? ' has-drg heat-' + hk : ''}${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}" style="--i:${i};${tcol(lg, p.team)}" data-open="${esc(pr.key)}">${ctlHtml(pr.key)}
+      <span class="hrc-h">${jersey(lg, p)}<span class="hrc-who"><b>${esc(p.name)}</b><small>${teamTag(lg, p.team)}${side.home ? 'vs' : '@'} ${esc(side.opp)}${g ? ' · ' + when(g) : ''}</small></span></span>
+      <span class="hrc-bet"><small>The bet</small><span class="hrc-bl"><b>Over <span class="num">${L}</span></b><span>${esc(M.n.toLowerCase())}</span></span>${dragonHtml(hk, dk, r.h10, r.n10)}</span>
+      <span class="hrc-hl ${tone}"><b class="num${drgT(hk, dk)}">${r.h10} of ${r.n10}</b><span>times he went over ${L} in his last ${r.n10} games</span></span>
+      <span class="hrc-ch" role="img" aria-label="His last ${r.n10} games, oldest first: ${r.v.join(', ')}. The line is ${L}."><span class="hrc-ln" style="--l:${y(L)}%"><em>${L}</em></span>${bars}</span>
+      <span class="hrc-f"><span><small>Last ${r.n5}</small><b>${r.h5} of ${r.n5}</b></span><span><small>Average</small><b>${f1(r.a10)}</b></span><span><small>vs ${esc(side.opp)}</small><b class="${r.vo.length ? '' : 'mut'}">${r.vo.length ? r.ho + ' of ' + r.vo.length : 'no games'}</b></span><span><small>Desk says</small><b class="${r.po == null ? 'mut' : ''}">${r.po == null ? 'none' : pct(r.po)}</b></span></span></button>`; };
   const G = IDX[lg].games, hot = rows.filter(r => r.h10 / r.n10 >= .7).length, cold = rows.filter(r => r.h10 / r.n10 <= .3).length, agree = rows.filter(r => r.po != null && ((r.h10 / r.n10 >= .6 && r.po > .5) || (r.h10 / r.n10 <= .4 && r.po < .5))).length;
-  const tick = (n, k, lbl, sub, cls) => `<div class="wr-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n.toLocaleString()}</b><em>${sub}</em></div>`;
+  const tick = (n, k, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n.toLocaleString()}</b><em>${sub}</em></div>`;
   return `<section class="wr fr2" aria-label="Hit rate controls">
-      <div class="wr-stats">${tick(rows.length, 'hr-n', 'On the tape', 'props with a line on file')}${tick(hot, 'hr-hot', 'Running hot', 'over in 7+ of the last 10', 'show')}${tick(cold, 'hr-cold', 'Ice cold', 'over in 3 or fewer of 10', 'cold')}${tick(agree, 'hr-agree', 'Desk agrees', 'streak and desk lean the same way')}</div>
+      ${vcrHtml('hit|' + lg, lg + ' hit rates', tick(rows.length, 'hr-n', 'On the tape', 'props with a line on file') + tick(hot, 'hr-hot', 'Running hot', 'over in 7+ of the last 10', 'show') + tick(cold, 'hr-cold', 'Ice cold', 'over in 3 or fewer of the last 10', 'cold') + tick(agree, 'hr-agree', 'Desk agrees', 'streak and desk lean the same way'), vcrTime(lg))}
       <div class="seg mk" data-seg="rs-mkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
       <div class="wr-row">
         <div class="seg so" data-seg="rs-sort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="hs:over" aria-pressed="${H.hs !== 'under'}">Hottest first</button><button data-rs="hs:under" aria-pressed="${H.hs === 'under'}">Coldest first</button></div>
@@ -3139,7 +3383,7 @@ function hitHtml() {
       <p class="wr-src">The line is Hard Rock's where it has one, otherwise the middle line across the other books in the ${BKS(lg) ? esc(BKS(lg).asof) : 'latest'} pull, plus any you entered on the Board.</p>
     </section>
     ${H.hv === 'grid' ? gridHtml(rows, lg) : `<div class="ledger rs-led">${rows.slice(0, 60).map(row).join('') || `<div class="row"><span class="mut">No ${lg} lines on file for this slate yet. They land with the late morning pull, or enter a book line on the Board and the prop shows up here.</span></div>`}`}</div>
-    <p class="note">Each mark is one game, oldest on the left. A filled mark went over today's line. The book has seen the same ten games and set the line with them in mind, so a streak on its own is not an edge. The desk column is the chance after the model and the other books are weighed. Where the streak and the desk disagree, open the memo before leaning on either.${lg === 'NFL' ? ' NFL marks can reach back into last season.' : ''}</p>`;
+    <p class="note">Each bar is one of his last ten games, oldest on the left, with the opponent under it; the dashed line is tonight's line, and a bar that clears it is lit. The book has seen the same ten games and set the line with them in mind, so a streak on its own is not an edge. The desk column is the chance after the model and the other books are weighed. Where the streak and the desk disagree, open the memo before leaning on either.${lg === 'NFL' ? ' NFL marks can reach back into last season.' : ''}</p>`;
 }
 
 function rsGaps() {
@@ -3177,7 +3421,7 @@ function researchHtml() {
   return `${mast('research', 'Research room')}
     <section class="wr fr${S.enter ? ' in' : ''}" aria-label="Film room console">
       <div class="wr-head"><span class="wr-dot" aria-hidden="true"></span><b>Film room</b><span>${lg === 'NFL' ? 'Matchups, trends and hit rates' : 'Hit rates against tonight\'s lines'}</span></div>
-      <p class="wr-lede">Context for reading a price, not a second opinion on the bet. Nothing in this room changes what the desk picks.</p>
+      <p class="wr-lede">Context for reading a price. Nothing in this room changes what the desk picks.</p>
       ${toolBar(tool)}
     </section>
     <div id="rsBody">${rsBody()}</div>${rsGaps()}`;
@@ -3410,7 +3654,8 @@ function placeSeg(seg, animate) {
   if (seg.scrollWidth > seg.clientWidth) seg.scrollTo({ left: Math.max(0, x - (seg.clientWidth - w) / 2), behavior: RM() ? 'auto' : 'smooth' });
 }
 function rollTicks(root, fresh) {      // each counter rolls from the value it last showed to its new one
-  (root || document).querySelectorAll('.tick[data-k]').forEach((el, i) => { const k = el.dataset.k, to = +el.dataset.to, from = fresh ? 0 : (TICKS[k] ?? to);
+  // v3.27: a loading tape rolls its own counters, once the picture is on
+  (root || document).querySelectorAll('.tick[data-k]').forEach((el, i) => { if (el.closest('.vcr.load')) { TICKS[el.dataset.k] = +el.dataset.to; return; } const k = el.dataset.k, to = +el.dataset.to, from = fresh ? 0 : (TICKS[k] ?? to);
     TICKS[k] = to; el.dataset.now = from; el.textContent = +el.dataset.dp ? from.toFixed(+el.dataset.dp) : from.toLocaleString(); if (from !== to) setTimeout(() => rollTo(el, to), fresh ? 140 + i * 100 : 0); });
 }
 function segPress(t) { const seg = t.closest('.seg'); seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === t)); placeSeg(seg, true); }
@@ -3437,7 +3682,7 @@ function typeHints() {
 function boardEnter() {
   document.querySelectorAll('.wr .seg').forEach(sg => placeSeg(sg, false));
   if (S.tab !== 'board') return;
-  document.querySelectorAll('.wr.in .tick').forEach((el, i) => { el.dataset.now = 0; setTimeout(() => rollTo(el, +el.dataset.to), 160 + i * 110); });
+  document.querySelectorAll('.wr.in .tick').forEach((el, i) => { if (el.closest('.vcr.load')) return; el.dataset.now = 0; setTimeout(() => rollTo(el, +el.dataset.to), 160 + i * 110); });
   typeHints();
 }
 
@@ -3651,7 +3896,7 @@ function storyHtml() {
       <div class="st-caps">
         ${cap(0, 'The tape', lg === 'NFL' ? 'Every box score.|Every week.' : 'Every box score.|Every night.', `${games.toLocaleString()} ${lg} player games tested. ${L.players.length} players on ${lg === 'NFL' ? 'this week\'s' : 'tonight\'s'} slate.`)}
         ${cap(1, 'One player', esc(p.name), `His last ${v.length} in ${esc(M.n.toLowerCase())}, against ${lg === 'NFL' ? 'this week\'s' : 'tonight\'s'} line of ${line}.`)}
-        ${cap(2, 'Three parts', 'Three parts.|One number.', 'The model, the books, and the weight history earned between them.')}
+        ${cap(2, 'Three parts', 'Three parts.|One number.', 'The model, the books, and how much weight each has earned.')}
         ${cap(3, 'Priced', 'Every outcome|at once.', ln ? `${pct(sp.over)} over ${line}. Hard Rock asks ${odds(ln.o)}.` : `No book line yet. Fair line ${line}.`)}
       </div>
       <div class="st-ctl">

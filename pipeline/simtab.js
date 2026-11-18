@@ -43,7 +43,7 @@ const smAm = dec => dec >= 2 ? Math.round((dec - 1) * 100) : Math.round(-100 / (
 /* ---------- the page ---------- */
 function simHtml() {
   const lg = S.lg, z = SMD[lg]; loadSim(lg);
-  const head = mast('sim', 'Every game, ten thousand times', z.st === 'ready' ? `${z.d.runs.toLocaleString()} runs a game · simulated ${esc(z.d.asof)}` : 'Each game played out from the tip, with the players moving together');
+  const head = mast('sim', 'Every game, ten thousand times', z.st === 'ready' ? `Simulated ${esc(z.d.asof)}` : 'Each game played out from the tip, with the players moving together');
   if (z.st === 'error') return head + `<div class="banner"><span>The simulator file did not load.</span><button class="btn ghost sm" data-sm="retry">Try again</button></div>`;
   if (z.st !== 'ready') return head + `<div class="card"><span class="lbl">Running the games</span><div class="wait"><i></i><i></i><i></i></div></div>`;
   const d = z.d, g = smGame(lg);
@@ -174,33 +174,47 @@ function smPropRows(lg, g) {
 function smPropsHtml(lg, g) {
   const rows = smPropRows(lg, g), anyBook = g.props.some(r => r.book);
   const mk = SM_MK[lg].filter(([k]) => k === 'all' || g.props.some(r => r.mkt === k));
-  const bar = (v, cls) => v == null ? `<span class="sm-pb none">·</span>` : `<span class="sm-pb ${cls}" style="--v:${v}"><i></i><b class="num">${(v * 100).toFixed(0)}</b></span>`;
-  const row = (r, i) => { const p = IDX[lg].byId[r.pid] || { name: '?', team: '', pos: '' }, team = r.t === 1 ? g.home : g.away, M = MK[lg][r.mkt] || { s: r.mkt };
-    const ln = r.mkt === 'any_td' ? 'Anytime TD' : `${M.s} ${r.line}`, lv = r.pk != null ? r.p - r.pk : null, open = S.sm.open === r.pid + '|' + r.mkt;
-    const st = smStat(g, r), k = `P|${r.pid}|${r.mkt}`;
+  // v3.27: one card says one thing. The line sits in a scoreboard box; below it, the chance of the over from the sim, the desk and
+  // the books on one shared scale (35% to 65%, 50% marked), each with its number, and the lean in words. Before, three unlabelled
+  // bars and a lean in "pts" (percentage points that read as points scored).
+  const SC = v => Math.max(0, Math.min(100, (v - .35) / .30 * 100));
+  const mrow = (cls, lab, v, sc) => { const x = v == null ? 50 : (sc || SC)(v);
+    return `<span class="sm-mr ${cls}${v == null ? ' nil' : ''}"><span class="sm-mrl">${lab}</span><span class="sm-mrt">${v == null ? '' : `<em style="left:${Math.min(x, 50).toFixed(1)}%;width:${Math.abs(x - 50).toFixed(1)}%"></em><i style="left:${x.toFixed(1)}%"></i>`}</span><b class="num">${v == null ? 'none' : (v * 100).toFixed(0) + '%'}</b></span>`; };
+  const row = (r, i) => { const p = IDX[lg].byId[r.pid] || { name: '?', team: '', pos: '' }, team = r.t === 1 ? g.home : g.away, M = MK[lg][r.mkt] || { s: r.mkt, n: r.mkt };
+    const td = r.mkt === 'any_td', lv = r.pk != null ? r.p - r.pk : null, open = S.sm.open === r.pid + '|' + r.mkt;
+    const st = smStat(g, r), side = td ? 'scores' : 'over ' + r.line, sc = td ? (v => Math.max(0, Math.min(100, v * 100))) : null;      // a touchdown is a long shot: its own 0 to 100 scale
+    const vd = lv == null ? `<span class="sm-vd">Sim only, no book line</span>` : Math.abs(lv) < .02 ? `<span class="sm-vd ev"><b>Even</b> with the books</span>`
+      : `<span class="sm-vd ${lv > 0 ? 'o' : 'u'}"><b>Lean ${td ? (lv > 0 ? 'yes' : 'no') : (lv > 0 ? 'over' : 'under')}</b> ${lv > 0 ? '+' : '−'}${(Math.abs(lv) * 100).toFixed(1)}% vs books</span>`;
+    const px = r.book ? `${esc(bookName(r.book))}${r.o != null ? ` <span class="num">${td ? 'Yes' : 'O'} ${odds(r.o)}</span>` : ''}${r.u != null ? ` <span class="num">${td ? 'No' : 'U'} ${odds(r.u)}</span>` : ''}` : 'No book line yet: the sim\'s own median';
     return `<li class="sm-pr${open ? ' open' : ''}" style="--i:${i};${tcol(lg, team)}">
-      <button class="sm-ph" data-sm="open:${r.pid}|${r.mkt}" aria-expanded="${open}">${jersey(lg, Object.assign({}, p, { team }))}<span class="sm-pn"><b>${esc(p.name)}</b><small>${esc(team)} · ${esc(ln)}${r.book ? ` · ${esc(bookName(r.book))} ${r.o != null ? odds(r.o) : ''}${r.u != null ? '/' + odds(r.u) : ''}` : ' · sim line, no book line yet'}</small></span>
-        <span class="sm-bars">${bar(r.p, 's')}${bar(r.pm, 'm')}${bar(r.pk, 'k')}</span>${lv == null ? '<span class="sm-lv"></span>' : `<span class="sm-lv ${lv >= 0 ? 'o' : 'u'}"><b>${lv >= 0 ? 'Over' : 'Under'}</b><small>${(Math.abs(lv) * 100).toFixed(1)} pts</small></span>`}</button>
+      <button class="sm-ph" data-sm="open:${r.pid}|${r.mkt}" aria-expanded="${open}">${jersey(lg, Object.assign({}, p, { team }))}<span class="sm-pn"><b>${esc(p.name)}</b><small>${esc(team)} · ${esc(M.n)}</small></span>
+        <span class="sm-ln" aria-label="${td ? 'Anytime touchdown' : 'Line ' + r.line}"><small>${td ? 'TD' : esc(M.s)}</small><b class="num">${td ? 'YES' : r.line}</b></span>
+        <span class="sm-mt" role="img" aria-label="Chance of ${esc(side)}: sim ${pct(r.p)}${r.pm != null ? ', desk ' + pct(r.pm) : ''}${r.pk != null ? ', books ' + pct(r.pk) : ''}">
+          <span class="sm-mh"><span>Chance ${esc(side)}</span>${vd}</span>${mrow('s', 'Sim', r.p, sc)}${mrow('m', 'Desk', r.pm, sc)}${mrow('k', 'Books', r.pk, sc)}</span>
+        <span class="sm-pxl"><span>${px}</span><i aria-hidden="true"></i></span></button>
       <div class="sm-pd"><div><div class="sm-pdi">${st ? smRange(st, r.line, r.mkt) : ''}<div class="sm-pl">${smPropLegs(lg, g, r, p)}</div></div></div></div></li>`; };
   return `<section class="sm-props"><div class="hd"><h2>Props, priced by the runs</h2><span>${anyBook ? 'Each line the books post, and how often the runs clear it' : 'No book lines yet for this game: sim lines at each player\'s median'}</span></div>
     <div class="sm-pf-row"><div class="seg sm-mk" data-seg="smmk"><span class="seg-ink"></span>${mk.map(([k, t]) => `<button data-sm="mk:${k}" aria-pressed="${S.sm.mkt === k}">${t}</button>`).join('')}</div>
       <div class="seg sm-so" data-seg="smso"><span class="seg-ink"></span>${[['lean', 'Biggest lean'], ['over', 'Most likely over'], ['under', 'Most likely under']].map(([k, t]) => `<button data-sm="so:${k}" aria-pressed="${S.sm.sort === k}">${t}</button>`).join('')}</div></div>
     ${(g.fit || []).filter(f => f.k < .5).map(f => `<div class="banner sm-fitnote"><span><b>${esc(f.t ? g.home : g.away)}</b>: the ${f.n} players with a points line add up to ${f.quoted.toFixed(1)} on the desk's numbers, against a team total of ${f.total.toFixed(1)} from the books. Every run has to land on a real team score, so ${esc(f.t ? g.home : g.away)}'s scorers lean under here. That is the sim siding with the team total, not a read on any one player.</span></div>`).join('')}
-    <div class="sm-key"><span><i class="s"></i>Sim, over</span><span><i class="m"></i>Desk, one at a time</span><span><i class="k"></i>Books, no vig</span><span class="r">Lean = sim minus books</span></div>
     <ol class="sm-pl-list">${rows.slice(0, S.sm.lim).map(row).join('') || '<li class="prose">No props in this market.</li>'}</ol>
     ${rows.length > S.sm.lim ? `<button class="btn ghost sm sm-more" data-sm="more">Show ${Math.min(30, rows.length - S.sm.lim)} more of ${rows.length - S.sm.lim}</button>` : ''}
-    <p class="note">Sim is the share of ${(SMD[lg].d.runs).toLocaleString()} runs that went over the line. Desk, one at a time is the desk's own number for that player priced on its own, the way the board prices it. Books is the no-vig chance from the books quoting the same line. Tap a prop for its range and to add it to a parlay. Display only: the desk's bets still come from its own rules.</p></section>`;
+    <p class="note"><b>Sim</b> is the share of ${(SMD[lg].d.runs).toLocaleString()} runs that went over the line. <b>Desk</b> is the desk's own number for that player priced on his own, the way the Board prices it. <b>Books</b> is the no-vig chance from the books quoting the same line. <b>Lean</b> is sim minus books. Open a card for his range and to add a leg to a parlay. Display only: the desk's bets still come from its own rules.</p></section>`;
 }
 function smPropLegs(lg, g, r, p, cls) { const M = MK[lg][r.mkt] || { s: r.mkt }, k = `P|${r.pid}|${r.mkt}`, mini = cls === 'mini';
   return smLegBtn(lg, g, k + '|o', `${smLast(p.name)} ${r.mkt === 'any_td' ? 'scores' : 'over ' + r.line + ' ' + (M.s || '').toLowerCase()}`, r.p, r.b, false, r.book && r.o != null ? r.o : null, cls, mini ? (r.mkt === 'any_td' ? 'Scores' : 'Over ' + r.line) : null)
     + (r.mkt === 'any_td' ? '' : smLegBtn(lg, g, k + '|u', `${smLast(p.name)} under ${r.line} ${(M.s || '').toLowerCase()}`, 1 - r.p, r.b, true, r.book && r.u != null ? r.u : null, cls, mini ? 'Under ' + r.line : null)); }
-const bookName = b => ({ hardrockbet: 'Hard Rock', draftkings: 'DK', fanduel: 'FD', betmgm: 'MGM', williamhill_us: 'Caesars', betrivers: 'BetRivers', fanatics: 'Fanatics' })[b] || b;
+const bookName = b => ({ hardrockbet: 'Hard Rock', draftkings: 'DK', fanduel: 'FD', betmgm: 'MGM', williamhill_us: 'Caesars', betrivers: 'BetRivers', fanatics: 'Fanatics', novig: 'Novig', polymarket: 'Polymarket', kalshi: 'Kalshi' })[b] || b;
 function smStat(g, r) {
   const base = r.mkt === 'any_td' ? 'td' : r.mkt; for (const T of g.teams) for (const p of T.players) if (p.id === r.pid) return p.st[base] ? { q: p.st[base] } : null; return null;
 }
 function smRange(st, line, mkt) {      // 10th to 90th percentile, the middle half thicker, the median ticked, the line marked
-  const q = st.q, lo = Math.min(q[1], line) , hi = Math.max(q[5], line), span = Math.max(hi - lo, 1), X = v => 4 + (v - lo) / span * 92;
-  return `<div class="sm-rg" aria-label="Middle 80% of runs ${q[1]} to ${q[5]}, median ${q[3]}"><span class="lbl">Middle 80% of runs</span><div class="sm-rgb"><i class="w" style="left:${X(q[1])}%;width:${X(q[5]) - X(q[1])}%"></i><i class="m" style="left:${X(q[2])}%;width:${X(q[4]) - X(q[2])}%"></i><i class="d" style="left:${X(q[3])}%"></i>${mkt === 'any_td' ? '' : `<i class="l" style="left:${X(line)}%"><b>${line}</b></i>`}</div><div class="sm-rgl num"><span>${q[1]}</span><span>median ${q[3]} · average ${q[0].toFixed(1)}</span><span>${q[5]}</span></div></div>`;
+  // v3.27: own class (sm-dist). It shared "sm-rg" with the replay's row headings (v3.25), whose flex row squeezed the bar to
+  // nothing and ran the numbers together ("3median 7 · average 7.412").
+  const q = st.q, lo = Math.min(q[1], line), hi = Math.max(q[5], line), span = Math.max(hi - lo, 1), X = v => 4 + (v - lo) / span * 92, td = mkt === 'any_td';
+  return `<div class="sm-dist" role="img" aria-label="Middle 80% of runs ${q[1]} to ${q[5]}, median ${q[3]}${td ? '' : ', line ' + line}"><div class="sm-dh"><span class="lbl">Where his runs land</span><span class="num">median ${q[3]} · average ${q[0].toFixed(1)}</span></div>
+    <div class="sm-rgb"><i class="w" style="left:${X(q[1])}%;width:${X(q[5]) - X(q[1])}%"></i><i class="m" style="left:${X(q[2])}%;width:${X(q[4]) - X(q[2])}%"></i><i class="d" style="left:${X(q[3])}%"></i>${td ? '' : `<i class="l" style="left:${X(line)}%"><b>line ${line}</b></i>`}</div>
+    <div class="sm-rgl num"><span style="left:${X(q[1])}%">${q[1]}</span><span class="c">middle 80% of runs</span><span style="left:${X(q[5])}%">${q[5]}</span></div></div>`;
 }
 function smScriptHtml(lg, g) {
   const rows = [];
@@ -223,7 +237,7 @@ function smTestHtml(lg, d) {
     : `<div class="sm-rec"><span class="lbl">Live record</span><p>Every prop the sim prices before tip is logged with the model's own price and the books' price, and graded the next morning. Nothing graded yet.</p></div>`;
   return `<section class="sm-test"><div class="hd"><h2>Did it earn its say?</h2><span>Tested on games it never saw</span></div>
     <div class="two w"><div class="card"><span class="lbl">One prop at a time · CRPS gain over pricing each prop alone</span><table class="sm-tt"><tbody>${mg}</tbody></table><p class="note">Plus is better. Prop by prop the sim lands about level with the desk's own curve, ${lg === 'NBA' ? 'better on points and assists, about even on rebounds, and still a touch worse on threes' : 'better on the quarterback\'s attempts, completions and yards and on receiving yards, about even on catches and the run game'}. Level is the expected result: the averages are the same model's. ${B.was ? `"Was" is v${esc(B.was)} on the same games, before the v${esc(B.ver)} fixes.` : ''}</p></div>
-      <div class="card"><span class="lbl">Two legs from the same game · how often both hit</span><table class="sm-tt j sm-rsp"><thead><tr><th></th><th>Pairs</th><th>Actual</th><th>Sim</th><th>Legs multiplied</th><th>Log loss</th></tr></thead><tbody>${jt}</tbody></table><p class="note">This is where the runs earn their keep. Multiplying two legs assumes they have nothing to do with each other; ${lg === 'NBA' ? 'a scorer and his team winning, or his points and rebounds,' : 'a quarterback and his own receiver'} hit together far more often than that, and the runs see it.</p></div></div>
+      <div class="card"><span class="lbl">Two legs from the same game · how often both hit</span><table class="sm-tt j sm-rsp"><thead><tr><th></th><th>Pairs</th><th>Actual</th><th>Sim</th><th>Legs multiplied</th><th>Log loss</th></tr></thead><tbody>${jt}</tbody></table><p class="note">Multiplying two legs assumes they have nothing to do with each other; ${lg === 'NBA' ? 'a scorer and his team winning, or his points and rebounds,' : 'a quarterback and his own receiver'} hit together far more often than that, and the runs see it.</p></div></div>
     ${rec}<p class="note">${esc(B.test || '')} Display and tracking only: it gets a say in the desk's prices only if the weekly review finds it beating them on 200+ graded props.</p></section>`;
 }
 

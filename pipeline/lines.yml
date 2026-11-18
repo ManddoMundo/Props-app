@@ -8,12 +8,13 @@ on:
     # the relay step decides what is due, and a run with nothing due exits.
     - cron: "27 15,16 * * *"   # about 11:30 AM Eastern: lines, injuries, model, picks, rebuild
     - cron: "57 21,22 * * *"   # about 6 PM Eastern: evening pass, fresh lines and injuries, closing numbers for the midday bets, a second look, line moves
-    - cron: "37 23 * * *"      # backup for a late or dropped evening run (window closes 7:45 PM Eastern)
+    - cron: "37 22,23 * * *"   # about 6:40 PM Eastern: starting lineups (v3.24), or the evening pass if it was late
+    - cron: "12 1,2 * * *"     # about 9:15 PM Eastern: starting lineups for the West coast games (v3.24)
     - cron: "30 16,17 * * 0"   # Sunday midday Eastern: NFL closing lines for the afternoon games
   workflow_dispatch:
     inputs:
       mode:
-        description: "build (rebuild the app, no credits, no picks), early, midday, evening, close, test or auto"
+        description: "build (rebuild the app, no credits, no picks), early, midday, evening, close, lineups, test or auto"
         required: false
         default: "build"
 permissions:

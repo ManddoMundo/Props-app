@@ -6,6 +6,7 @@ Writes out/games.json: {lg: {games: [...], bt: {...}, season: {...}, cfg: {...}}
 by daily.py; they are not staked. Market numbers: NFL from the nflverse schedule (consensus spread and moneylines), and for
 both leagues Hard Rock and the other books from the relay's game odds pull when it is on file (out/games/{LG}_{date}.txt)."""
 import json, math, os, glob, datetime
+from zoneinfo import ZoneInfo      # v3.19: real Eastern time (a fixed UTC-5 was an hour off in daylight time)
 import numpy as np, pandas as pd
 from scipy.stats import norm
 
@@ -498,7 +499,7 @@ def nba():
     sch = pd.read_parquet(D + "nba_sched_2027.parquet")
     sch["gd"] = sch.game_date.astype(str)
     up = sch[(sch.gd > str(h.gd.max().date())) & (sch.status_type_name == "STATUS_SCHEDULED")].sort_values("game_date_time")
-    today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5))).strftime("%Y-%m-%d")      # Eastern; a stale data day never lists a game already played
+    today = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")      # Eastern; a stale data day never lists a game already played
     up = up[up.gd >= today]
     days = sorted(up.gd.unique())[:3]; up = up[up.gd.isin(days)]
     rk = ranks(el.E, set(h[h.season == cur].home))
