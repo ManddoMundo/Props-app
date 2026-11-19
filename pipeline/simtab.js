@@ -138,7 +138,7 @@ function smOddsHtml(lg, g) {
 }
 function smLegBtn(lg, g, key, label, p, b64, neg, px, cls, show) {
   const on = smLegsOf(lg).some(l => l.g === g.id && l.key === key);
-  return `<button class="sm-leg${on ? ' on' : ''}${cls ? ' ' + cls : ''}" data-sm="leg" data-g="${esc(g.id)}" data-k="${esc(key)}" data-b="${b64}" data-n="${neg ? 1 : 0}" data-l="${esc(label)}" data-p="${p}"${px != null ? ` data-px="${px}"` : ''} aria-pressed="${on}"${show ? ` aria-label="${esc(label)}, ${pct(p)}"` : ''}><span>${esc(show || label)}</span><b class="num">${pct(p)}</b>${px != null ? `<em class="num">${odds(px)}</em>` : ''}<i aria-hidden="true"></i></button>`;
+  return `<button class="sm-leg${on ? ' on' : ''}${cls ? ' ' + cls : ''}" data-sm="leg" data-g="${esc(g.id)}" data-k="${esc(key)}" data-b="${b64}" data-n="${neg ? 1 : 0}" data-l="${esc(label)}" data-p="${p}"${px != null ? ` data-px="${px}"` : ''} aria-pressed="${on}"${show ? ` aria-label="${esc(label)}, ${pct(p)}"` : ''}><span class="slp"><span>${esc(show || label)}</span><b class="num">${pct(p)}</b>${px != null ? `<em class="num">${odds(px)}</em>` : ''}<i aria-hidden="true"></i></span></button>`;
 }
 // the books' price for a game leg: the consensus moneyline, spreads and totals at the standard -110
 function smGamePx(lg, g, k) { const G = ((DATA.games || {})[lg] || {}).games || [], x = G.find(y => y.id === g.id), ml = x && x.ml_mkt;
@@ -195,8 +195,8 @@ function smPropsHtml(lg, g) {
         <span class="sm-pxl"><span>${px}</span><i aria-hidden="true"></i></span></button>
       <div class="sm-pd"><div><div class="sm-pdi">${st ? smRange(st, r.line, r.mkt) : ''}<div class="sm-pl">${smPropLegs(lg, g, r, p)}</div></div></div></div></li>`; };
   return `<section class="sm-props"><div class="hd"><h2>Props, priced by the runs</h2><span>${anyBook ? 'Each line the books post, and how often the runs clear it' : 'No book lines yet for this game: sim lines at each player\'s median'}</span></div>
-    <div class="sm-pf-row"><div class="seg sm-mk" data-seg="smmk"><span class="seg-ink"></span>${mk.map(([k, t]) => `<button data-sm="mk:${k}" aria-pressed="${S.sm.mkt === k}">${t}</button>`).join('')}</div>
-      <div class="seg sm-so" data-seg="smso"><span class="seg-ink"></span>${[['lean', 'Biggest lean'], ['over', 'Most likely over'], ['under', 'Most likely under']].map(([k, t]) => `<button data-sm="so:${k}" aria-pressed="${S.sm.sort === k}">${t}</button>`).join('')}</div></div>
+    <div class="hrk sm-pf-row" role="group" aria-label="Prop filters"><div class="hrk-r"><small>Market</small><div class="hrk-sc"><div class="seg sm-mk" data-seg="smmk"><span class="seg-ink"></span>${mk.map(([k, t]) => `<button data-sm="mk:${k}" aria-pressed="${S.sm.mkt === k}">${t}</button>`).join('')}</div></div></div>
+      <div class="hrk-r"><small>Order</small><div class="hrk-sc"><div class="seg sm-so" data-seg="smso"><span class="seg-ink"></span>${[['lean', 'Biggest lean'], ['over', 'Most likely over'], ['under', 'Most likely under']].map(([k, t]) => `<button data-sm="so:${k}" aria-pressed="${S.sm.sort === k}">${t}</button>`).join('')}</div></div></div></div>
     ${(g.fit || []).filter(f => f.k < .5).map(f => `<div class="banner sm-fitnote"><span><b>${esc(f.t ? g.home : g.away)}</b>: the ${f.n} players with a points line add up to ${f.quoted.toFixed(1)} on the desk's numbers, against a team total of ${f.total.toFixed(1)} from the books. Every run has to land on a real team score, so ${esc(f.t ? g.home : g.away)}'s scorers lean under here. That is the sim siding with the team total, not a read on any one player.</span></div>`).join('')}
     <ol class="sm-pl-list">${rows.slice(0, S.sm.lim).map(row).join('') || '<li class="prose">No props in this market.</li>'}</ol>
     ${rows.length > S.sm.lim ? `<button class="btn ghost sm sm-more" data-sm="more">Show ${Math.min(30, rows.length - S.sm.lim)} more of ${rows.length - S.sm.lim}</button>` : ''}
@@ -247,7 +247,7 @@ function smBuildHtml(lg, d) {
   return `<section class="sm-build" id="smBuild"><div class="hd"><h2>${S.tab === 'parlay' ? 'Pick your legs' : 'Build a parlay'}</h2><span>Any game on the slate, its lines and its props</span></div>
     <div class="sm-bf"><div class="seg sm-bt" data-seg="smbt"><span class="seg-ink"></span>${[['games', 'Game lines'], ['props', 'Props']].map(([k, t]) => `<button data-sm="bt:${k}" aria-pressed="${S.sm.bt === k}">${t}</button>`).join('')}</div>
       <label class="sm-bs fld"${S.sm.bt === 'games' ? ' hidden' : ''}><span class="sr">Find a player</span><input id="smBq" type="search" inputmode="search" autocomplete="off" placeholder="Find a player" value="${esc(S.sm.bq)}"></label></div>
-    ${S.sm.bt === 'props' ? `<div class="seg sm-bm" data-seg="smbm"><span class="seg-ink"></span>${SM_MK[lg].filter(([k]) => k === 'all' || d.games.some(g => g.props.some(r => r.mkt === k))).map(([k, t]) => `<button data-sm="bm:${k}" aria-pressed="${S.sm.bm === k}">${t}</button>`).join('')}</div>` : ''}
+    ${S.sm.bt === 'props' ? `<div class="hrk-sc sm-bmw"><div class="seg sm-bm" data-seg="smbm"><span class="seg-ink"></span>${SM_MK[lg].filter(([k]) => k === 'all' || d.games.some(g => g.props.some(r => r.mkt === k))).map(([k, t]) => `<button data-sm="bm:${k}" aria-pressed="${S.sm.bm === k}">${t}</button>`).join('')}</div></div>` : ''}
     <div id="smBl" class="sm-bl">${smBuildList(lg, d)}</div>
     <p class="note">Each leg shows the share of runs it hit in and the books' price where there is one (moneylines are the consensus, spreads and totals the standard -110). Legs from one game are priced together from that game's runs; legs from different games are multiplied.</p></section>`;
 }
@@ -342,8 +342,20 @@ function smPropsPaint() {     // repaint the props list only, keeping the replay
   const lg = S.lg, g = smGame(lg), sec = document.querySelector('.sm-props'); if (!g || !sec) return;
   const y = scrollY; sec.outerHTML = smPropsHtml(lg, g); window.scrollTo(0, y); document.querySelectorAll('.sm-props .seg').forEach(sg => placeSeg(sg, false));
 }
+// v3.42: in the Parlay tab a copy of the slip just added flies to the belt (or off the top of the screen when the press is
+// scrolled away), shrinking as it goes. Transform and opacity only; the copy is removed when it lands. Skipped under Reduce Motion.
+function smTkFly(b) {
+  if (RM() || S.tab !== 'parlay' || !b.animate) return; const r = b.getBoundingClientRect(); if (!r.width || r.bottom < 0 || r.top > innerHeight) return;
+  const belt = $('#pkLegs'); let tx = innerWidth / 2, ty = -30;
+  if (belt) { const q = belt.getBoundingClientRect(); if (q.top >= innerHeight) return; if (q.bottom > 60) { tx = q.left + Math.min(q.width, 320) / 2; ty = Math.max(70, q.top + Math.min(q.height, 60) / 2); } }
+  const c = b.cloneNode(true); c.removeAttribute('data-sm'); c.removeAttribute('aria-pressed'); c.setAttribute('aria-hidden', 'true'); c.tabIndex = -1; c.classList.add('tk-fly');
+  Object.assign(c.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: 0, zIndex: 60, pointerEvents: 'none', transition: 'none' });
+  document.body.appendChild(c); const dx = tx - (r.left + r.width / 2), dy = ty - (r.top + r.height / 2);
+  const a = c.animate([{ transform: 'translate(0,0) rotate(-1deg) scale(1)', opacity: 1 }, { transform: `translate(${dx * .45}px,${dy * .5 - 22}px) rotate(-9deg) scale(.82)`, opacity: 1, offset: .5 }, { transform: `translate(${dx}px,${dy}px) rotate(5deg) scale(.34)`, opacity: 0 }], { duration: 540, easing: 'cubic-bezier(.3,.7,.2,1)' });
+  a.onfinish = a.oncancel = () => c.remove();
+}
 function smLegSync() { if (S.tab === 'parlay' && PK.busy && PK.sig !== pkSig(smLegsOf(S.lg))) pkReset(S.lg, true);
- document.querySelectorAll('[data-sm="leg"]').forEach(b => { const on = smLegsOf(S.lg).some(l => l.g === b.dataset.g && l.key === b.dataset.k); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); smTray(); if (S.tab === 'parlay') pkPaint(S.lg); const dg = $('#smDgT'); if (dg) dg.textContent = smDgT(smLegsOf(S.lg).length); }
+ let fly = null; document.querySelectorAll('[data-sm="leg"]').forEach(b => { const on = smLegsOf(S.lg).some(l => l.g === b.dataset.g && l.key === b.dataset.k); if (on && !b.classList.contains('on') && !fly && b.offsetParent) fly = b; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); if (fly) smTkFly(fly); smTray(); if (S.tab === 'parlay') pkPaint(S.lg); const dg = $('#smDgT'); if (dg) dg.textContent = smDgT(smLegsOf(S.lg).length); }
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-sm]'); if (!t || !smOn()) return;
   const v = t.dataset.sm, i = v.indexOf(':'), key = i < 0 ? v : v.slice(0, i), val = i < 0 ? '' : v.slice(i + 1), lg = S.lg;

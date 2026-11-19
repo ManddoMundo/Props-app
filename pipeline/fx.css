@@ -56,7 +56,7 @@ html:not(.fx-foil) .fx-foil-l,html:not(.fx-foil) .fx-spec{display:none}
 .fx-curl{position:absolute;right:-2px;bottom:-2px;width:calc(var(--curl,0)*46px);height:calc(var(--curl,0)*46px);pointer-events:none;border-radius:11px 0 9px 0;
   background:linear-gradient(135deg,color-mix(in srgb,var(--panel) 80%,#000) 0,color-mix(in srgb,var(--panel) 96%,#fff) 46%,var(--desk) 50%,var(--desk) 100%);box-shadow:-3px -3px 6px -3px rgba(0,0,0,.45);opacity:calc(var(--curl,0)*1.4)}
 html:not(.fx-paper) .fx-curl{display:none}
-.fx-spike{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);align-items:center;gap:14px 20px;margin:4px 0 18px;padding:18px 16px 16px;background:var(--panel);border:2px solid var(--ink);border-radius:11px;box-shadow:var(--lift)}
+.fx-spike{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));align-items:center;gap:14px 20px;margin:4px 0 18px;padding:18px 16px 16px;background:var(--panel);border:2px solid var(--ink);border-radius:11px;box-shadow:var(--lift)}
 .fxs-stack{position:relative;height:calc(var(--n)*7px + 64px);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fxs-slip{position:absolute;left:0;right:auto;width:min(100%,360px);bottom:calc(var(--i)*7px);height:36px;display:flex;align-items:center;gap:8px;padding:0 10px 0 30px;background:var(--note,#fbf6e4);color:#1c2530;border:1.5px solid #1c2530;border-left-width:7px;border-radius:4px;
   font:600 11.5px/1.1 var(--mono);white-space:nowrap;overflow:hidden;transform:translateX(var(--dx)) rotate(var(--r));box-shadow:0 2px 0 rgba(0,0,0,.18);transform-origin:22px 50%}
@@ -75,7 +75,9 @@ html:not(.fx-paper) .fx-curl{display:none}
 @keyframes fxs-drop{from{opacity:0;transform:translate(var(--dx),-70px) rotate(calc(var(--r)*4))}}
 .fx-spike.riffle .fxs-slip{animation:fxs-riffle .62s cubic-bezier(.3,.9,.3,1) both;animation-delay:calc(var(--i)*45ms)}
 @keyframes fxs-riffle{35%{transform:translate(calc(var(--dx) + 10px),-16px) rotate(calc(var(--r) - 9deg))}}
-@media (max-width:430px){.fx-spike{grid-template-columns:1fr}}
+/* v3.40: the spike card stacks by its own width, not the screen's. On the folded Duo the screen is 449 wide but the page is
+   371 once the camera rail is taken out, so the old 430px test left the caption in a 40px column, spilling out of the card. */
+.fxs-stack{max-width:380px}
 /* 6. Fire and frost */
 .fx-fire-cv{position:absolute;left:-9px;bottom:-3px;width:calc(100% + 18px);height:170%;z-index:-1;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges;opacity:.9}
 .fx-fire .drg-t.hot.lit::before{display:none}

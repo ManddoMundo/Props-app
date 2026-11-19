@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026-11-19 v3.42 legs are bet slips (asked for by Armanddo; display only, nothing in the model or pick policy changed)
+- Every leg you can add, in the Parlay tab and the Sim, is now a paper bet slip instead of a pill: cream stock with faint rules (the same paper the press prints its ticket on), a strip down the left edge, and a tear-off end past a dashed perforation with a notch punched top and bottom. The notches are real holes, so the card shows through.
+- Adding a leg validates the slip: an IN stamp slams onto the tear-off end, the strip and the chance turn stamp green, and the slip lifts and sits slightly crooked, like paper put down by hand. Each slip leans its own way. Tapping again lifts the stamp and lays it flat.
+- In the Parlay tab a copy of the slip you just added flies up to the belt, shrinking as it goes (or off the top of the screen when the press is scrolled away), so the slips you pick are visibly the ones the press joins into the ticket.
+- Slips line up in even columns sized by their card: the two moneylines side by side, then the two sides of the spread, then the total. A slip that also shows a book price gets a wider column. A label too long for its slip takes a second line; nothing on a slip is cut.
+- Motion: transform and opacity only, springy on the way in, skipped under Reduce Motion. The fly-up copy is removed when it lands.
+- Tested: Sim and Parlay, both leagues, at the folded and unfolded Duo, 320, 360, 393, 440, 768 and 1440, light and dark, plus the interaction pass with legs added and a parlay packed. No page errors, nothing past the screen, no cut text. Chromium only; judge the stamp and the fly-up on the phones.
+- Files: simtab.js, simtab.css, CHANGELOG.md, VERSION.
+
+## 2026-11-19 v3.41 the console system: every pill toggle redesigned (asked for by Armanddo; display only, nothing in the model or pick policy changed)
+- Every pill toggle in the app is now the same piece of equipment in nine finishes. The same everywhere: a recessed black slot, keys in condensed capitals, one key down and lit, the same liquid slide between keys, engraved labels, and a steel housing with two screws and a line in the tab's colour wherever a tab groups several controls.
+- What changes by tab is the key itself:
+  - The desk: amber tote lamp.
+  - Board: green phosphor with scan lines, the war room's screen.
+  - Games: brushed steel deck key with a teal lamp under the label.
+  - Sim: square lime arcade button with hard pixel edges; the lit key sits a pixel proud.
+  - Parlay: brass plate with a rivet at each end, to match the press.
+  - Research: amber lamp; the hit-rate order switch still runs amber for Hottest and ice for Coldest.
+  - Stress test: orange breaker with hazard stripes on its ends.
+  - Your book: ledger paper with a red rule.
+  - Model: violet glass with a streak of light.
+- Consoles: Board (Market, Order, Prices at, Game, search), Games (Day, Show, Order; the count tiles now sit under it), Research hit rates, splits and grades, and the Sim's prop filters each sit in one labelled housing. Pickers and the search box inside a console read like a display in the tab's lamp colour. Rows that scroll sideways open on the chosen key and show a shade at an end that has more.
+- Single toggles (Parlay's Game lines and Props, the Sim's replay speed, Research's lens and period chips) take the same slot and key without a housing.
+- Fix found on the way: a toggle measured before its font weight had loaded left the lit key off its label. Toggles are measured again whenever a font finishes loading.
+- Motion is unchanged in kind: the slide is on transform, a key dips a pixel on press, colour changes cross-fade on opacity, reduced motion skips them.
+- Tested: every tab and every Research sheet, both leagues, at the folded Duo (449 with the camera rail), unfolded Duo, 320, 360, 393, 440, 768 and 1440, light and dark, effects on and off, plus the interaction pass. No page errors, nothing past the screen, no cut text. Chromium only; check the lit keys on the phones.
+- Files: index.src.html, simtab.js, simtab.css, CHANGELOG.md, VERSION.
+
+## 2026-11-19 v3.40 Research console and fixes from the folded Duo (asked for by Armanddo; display only, nothing in the model or pick policy changed)
+- Research, hit rates: the four stacked pill toggles are now one console under the TV. A dark steel panel with a labelled row for each control: Market (keys that light amber when down; the row opens on the chosen key and a shade shows when there is more to scroll to), Order (a switch that glows amber for Hottest and ice blue for Coldest, the dragons' two colours), Show as (List or Grid), and Game (a readout in the TV's amber). The source note sits at the foot in small print. Same buttons and behaviour as before; the sliding highlight is the one the app already used. Sized by its own width, so it fits the folded Duo, a 320 phone and the two-column unfolded layout.
+- Root cause behind several of the bugs below: on the folded Duo the screen is 449 wide but the camera rail takes 78 of it, so the page is 371. Rules that tested the screen's width never fired. The fixes test the piece's own width instead.
+- Desk, spike card (folded Duo): the caption was squeezed into a 40px column and spilled out of the card. It now sits under the stack whenever the card is narrow.
+- Research, frost on cold cards: the ice ran across the name and the numbers. It now keeps to about 24px of the rim and is thinner.
+- TV labels ("Edge spots since 20..."): they wrap at every width, and the four counters share rows so the numbers stay level when one label takes two lines.
+- Board, NFL before lines land: "Waiting on a book line · ordered by projection" broke into two side-by-side columns. It is one phrase now.
+- Ledger: "P/L · ¼u · $6.25" stays on one line.
+- A gap in the v3.39 audit, now closed: it only opened Research's first sheet, so the hit-rate, grades and splits sheets were never measured, and it had no camera rail. All sheets, both leagues, were measured this time at seven sizes including the folded and unfolded Duo with the rail, effects on and off: no errors, nothing past the screen, no cut text.
+- Not done: the Board and Games tabs still use the old pill toggles. The console look can be carried over if wanted.
+- Files: index.src.html, fx.css, fx.js, RUNBOOK.md, CHANGELOG.md, VERSION.
+
 ## 2026-11-19 v3.39 fresh prices at 6:40, a better Out rule, and a full audit pass (asked for by Armanddo; pick policy, lineup rule, relay and display)
 - Built in a second session while v3.38 (the effects layer) was being published from another, so it is merged on top of it: v3.38's fx.js, fx.css, simtab.js, build.py and page hooks are kept as they were, and this release adds only its own changes. The zip carries both sets of files, so uploading it alone is enough.
 - Late prices (relay and pick policy): the lineups runs (about 6:40 and 9:15 PM) now pull prices for the games tipping in the next five hours, about 8 credits a game for the NBA and 9 for the NFL, full plan only. With that pull in hand the run prices the board from it, gives open bets a later closing number, and refills any slot a scratched ticket gave back, under the evening rules. It never adds a ticket for another reason. The ticket is tagged "Late swap". With no fresh pull it scratches only, as in v3.37. Cost: a ten-game night is about 80 credits at 6:40 and about 25 at 9:15.

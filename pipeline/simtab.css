@@ -60,10 +60,6 @@
 .sm-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .sm-ctl .btn.ghost{color:var(--chalk);border-color:var(--tote-rule)}
 .sm-ctl .btn.ghost:hover{background:rgba(255,255,255,.06)}
-.sm-ctl .seg{background:#050806;border-color:var(--tote-rule)}
-.sm-ctl .seg button{color:var(--led-mute)}
-.sm-ctl .seg button[aria-pressed="true"]{color:#111}
-.sm-ctl .seg .seg-ink{background:var(--led)}
 .sm-play{width:48px;height:48px;border-radius:50%;border:2px solid #000;background:var(--led);color:#111;display:grid;place-items:center;box-shadow:0 0 0 3px rgba(255,184,51,.18),0 6px 14px -6px rgba(255,184,51,.6);transition:transform .16s var(--sm-out)}
 .sm-play:active{transform:scale(.92)}
 .sm-play svg{width:22px;height:22px;grid-area:1/1;overflow:visible}
@@ -132,17 +128,9 @@
 .sm-hn{font-weight:700;fill:var(--ink)}
 .sm-gl{margin-top:4px}
 .sm-glr,.sm-pl{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-.sm-leg{display:inline-flex;align-items:center;gap:8px;min-height:40px;border:2px solid var(--ink);border-radius:999px;background:var(--panel);padding:5px 8px 5px 13px;font:600 13px var(--text);transition:transform .16s var(--sm-out),background-color .2s,color .2s}
-.sm-leg b{font-size:12.5px;color:var(--mute);transition:color .2s}
-.sm-leg i{position:relative;width:22px;height:22px;border-radius:50%;background:var(--ink);flex:0 0 auto;transition:transform .26s var(--sm-out),background-color .2s}
-.sm-leg i::before,.sm-leg i::after{content:"";position:absolute;left:6px;right:6px;top:10px;height:2px;border-radius:1px;background:var(--panel)}
-.sm-leg i::after{transform:rotate(90deg)}
-.sm-leg:active{transform:scale(.96)}
-.sm-leg.on{background:var(--ink);color:var(--panel)}.sm-leg.on b{color:var(--c-sim)}.sm-leg.on i{background:var(--c-sim);transform:rotate(45deg)}
-.sm-leg.on i::before,.sm-leg.on i::after{background:var(--ink)}
 
 /* props */
-.sm-pf-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.sm-pf-row{margin-bottom:10px}.sm-bmw{margin-bottom:10px}
 /* v3.27 prop cards: name and line on top (the line in a small tote box), then one tote-black panel with the chance of the over
    from the sim, the desk and the books on one shared scale, then the book's prices. Opens to the range and the parlay legs. */
 .sm-pl-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -275,12 +263,8 @@ body.sm-has-tray main{padding-bottom:230px}
 .sm-bpr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;background:var(--panel);border:1px solid var(--rule);border-left:5px solid var(--t1,var(--rule));border-radius:10px;padding:8px 10px;animation:smrise .32s var(--sm-out) calc(var(--i) * 30ms) backwards}
 .sm-bpr .sm-pn{flex:1 1 160px;min-width:0}
 .sm-bpr .sm-pl{margin:0}
-.sm-leg.mini{min-height:36px;padding:3px 6px 3px 11px;font-size:12.5px;gap:6px}.sm-leg.mini span{white-space:nowrap}
-.sm-leg.mini b{font-size:12px}.sm-leg.mini i{width:19px;height:19px}.sm-leg.mini i::before,.sm-leg.mini i::after{left:5px;right:5px;top:8.5px}
-.sm-leg em{font:600 11px var(--mono);font-style:normal;color:var(--mute);border-left:1px solid var(--rule);padding-left:6px}
-.sm-leg.on em{color:var(--paper);border-color:rgba(255,255,255,.25)}
 @keyframes smrise{from{transform:translateY(6px);opacity:0}}
-@media(max-width:420px){.sm-bgl .sm-leg.mini{flex:1 1 calc(50% - 6px);justify-content:space-between;padding-left:9px}.sm-bpr .sm-pl{flex:1 1 100%}.sm-bpr .sm-pl .sm-leg{flex:1 1 calc(50% - 4px);justify-content:space-between}}
+@media(max-width:420px){.sm-bpr .sm-pl{flex:1 1 100%}}
 @media (prefers-reduced-motion:reduce){
   .sm-card{transition:opacity .2s ease;transform:none;bottom:calc(var(--k) * var(--step,56px));opacity:1}
   .sm-stack{height:calc(var(--n) * var(--step) + 8px)}
@@ -289,7 +273,6 @@ body.sm-has-tray main{padding-bottom:230px}
 
 @media (hover:hover) and (pointer:fine){
   .sm-g:hover{transform:translateY(-1px)}
-  .sm-leg:hover{background:var(--accent-soft)}.sm-leg.on:hover{background:var(--ink)}
   .sm-ph:hover{background:color-mix(in srgb,var(--t1) 7%,transparent)}
   .sm-r:hover{border-color:var(--led-dim)}
 }
@@ -334,7 +317,6 @@ body.sm-has-tray main{padding-bottom:230px}
 }
 @media(max-width:380px){
   .sm-tiles{grid-template-columns:1fr}
-  .sm-leg{font-size:12px;padding:4px 6px 4px 10px;min-height:36px}
   .sm-tray{left:6px;right:6px;padding:8px 9px}
   .sm-tn{gap:10px}
 }
@@ -610,3 +592,83 @@ html,body{overflow-x:clip}
   .sm-leg,.sm-leg.mini{min-height:40px}
   .sm-box summary{min-height:40px}
 }
+/* ===== v3.42 legs are bet slips =====
+   Every leg you can add (Parlay and Sim) is a paper stub, the same paper the press prints its ticket on: cream stock with
+   faint rules, a colour strip down the left, and a tear-off end past a perforation with a notch punched top and bottom.
+   Tap one and it is validated: an "IN" stamp slams onto the tear-off end, the strip turns stamp green, and the slip lifts
+   and sits a little crooked, like paper put down by hand. In the Parlay tab a copy of the slip flies up to the belt.
+   The button carries the lift and the shadow; the span inside (.slp) is the paper, so the notches can be real holes. */
+.sm-leg{--tilt:-1.2deg;display:inline-flex;min-height:44px;padding:0;border:0;border-radius:0;background:none;color:#1c2530;filter:drop-shadow(0 2px 0 rgba(0,0,0,.32));transition:transform .26s cubic-bezier(.2,1.5,.4,1)}
+.sm-leg:nth-child(even){--tilt:1deg}.sm-leg:nth-child(3n){--tilt:-.6deg}
+.sm-leg .slp{--nx:calc(100% - 37px);flex:1 1 auto;display:flex;align-items:center;gap:8px;min-width:0;padding-left:10px;border-left:5px solid #cdc3a2;border-radius:5px;
+  background:repeating-linear-gradient(0deg,rgba(28,47,107,.055) 0 1px,rgba(28,47,107,0) 1px 5px),linear-gradient(180deg,#fffbea,#f4ecd3);
+  -webkit-mask:radial-gradient(circle 5px at var(--nx) 0,rgba(0,0,0,0) 4.5px,#000 5px) top/100% 51% no-repeat,radial-gradient(circle 5px at var(--nx) 100%,rgba(0,0,0,0) 4.5px,#000 5px) bottom/100% 51% no-repeat;
+  mask:radial-gradient(circle 5px at var(--nx) 0,rgba(0,0,0,0) 4.5px,#000 5px) top/100% 51% no-repeat,radial-gradient(circle 5px at var(--nx) 100%,rgba(0,0,0,0) 4.5px,#000 5px) bottom/100% 51% no-repeat;
+  transition:border-color .2s ease-out}
+.sm-leg .slp>span{font:700 13.5px/1.15 var(--text)}
+.sm-leg b{font:600 12px/1 var(--mono);color:#5d6672;transition:color .2s ease-out}
+.sm-leg em{font:600 11.5px/1 var(--mono);font-style:normal;color:#1c2530;border-left:1px solid rgba(28,37,48,.28);padding-left:7px}
+/* the tear-off end: a plus to add, an IN stamp once it is in */
+.sm-leg i{position:relative;flex:0 0 38px;align-self:stretch;margin-left:auto;border-left:2px dashed rgba(28,37,48,.32);background:rgba(26,106,61,0);transition:background-color .2s ease-out}
+.sm-leg i::before{content:"";position:absolute;inset:0;background:linear-gradient(#1c2530,#1c2530) center/12px 2px no-repeat,linear-gradient(#1c2530,#1c2530) center/2px 12px no-repeat;transition:transform .2s cubic-bezier(.23,1,.32,1),opacity .14s ease-out}
+.sm-leg i::after{content:"IN";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #1a6a3d;border-radius:50%;font:800 11px/1 var(--fx-ui);letter-spacing:.05em;color:#1a6a3d;opacity:0;transform:scale(1.9) rotate(-30deg);transition:transform .24s cubic-bezier(.2,1.5,.4,1),opacity .1s ease-out}
+.sm-leg:active{transform:scale(.96)}
+.sm-leg.on{transform:translateY(-2px) rotate(var(--tilt))}.sm-leg.on:active{transform:translateY(0) rotate(var(--tilt)) scale(.97)}
+.sm-leg.on .tk{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
+.sm-leg.on i::before{opacity:0;transform:rotate(45deg) scale(.4)}
+.sm-leg.on i::after{opacity:.92;transform:scale(1) rotate(-12deg)}
+.sm-leg:focus-visible{outline:2px solid var(--c-sim);outline-offset:3px}
+.sm-leg.mini{min-height:40px}.sm-leg.mini .slp{gap:6px;padding-left:7px;--nx:calc(100% - 31px)}.sm-leg.mini .slp>span{font-size:12.5px}.sm-leg.mini b{font-size:11.5px}.sm-leg.mini i{flex-basis:32px}
+/* slips line up in even columns sized by the card, so pairs (the two moneylines, the two sides of a spread) sit side by side */
+.sm-glr,.sm-pl,.sm-bgl{gap:9px 8px}
+.sm-bgl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,136px),1fr))}
+.sm-glr,.sm-pl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.sm-bpr .sm-pl{flex:1 1 290px;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr))}
+/* a label too long for its slip takes a second line; nothing on a slip is ever cut */
+.sm-leg{min-width:0}.sm-leg .slp{padding-block:4px}.sm-leg .slp>span{min-width:0;white-space:normal}.sm-leg b,.sm-leg em{flex:0 0 auto}
+.sm-leg .slp>span{text-align:left}
+.sm-bgl{container-type:inline-size}
+@container (max-width:330px){.sm-leg.mini .slp{gap:5px;padding-left:6px;--nx:calc(100% - 27px)}.sm-leg.mini .slp>span{font-size:12px}.sm-leg.mini b{font-size:11px}.sm-leg.mini i{flex-basis:28px}}
+/* a slip that also carries a book price needs more room */
+.sm-bgl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,192px),1fr))}.sm-glr:has(em),.sm-pl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,208px),1fr))}.sm-bpr .sm-pl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+.sm-leg.mini{min-height:40px}
+  .sm-box summary{min-height:40px}
+}
+/* ===== v3.42 legs are bet slips =====
+   Every leg you can add (Parlay and Sim) is a paper stub, the same paper the press prints its ticket on: cream stock with
+   faint rules, a colour strip down the left, and a tear-off end past a perforation with a notch punched top and bottom.
+   Tap one and it is validated: an "IN" stamp slams onto the tear-off end, the strip turns stamp green, and the slip lifts
+   and sits a little crooked, like paper put down by hand. In the Parlay tab a copy of the slip flies up to the belt.
+   The button carries the lift and the shadow; the span inside (.slp) is the paper, so the notches can be real holes. */
+.sm-leg{--tilt:-1.2deg;display:inline-flex;min-height:44px;padding:0;border:0;border-radius:0;background:none;color:#1c2530;filter:drop-shadow(0 2px 0 rgba(0,0,0,.32));transition:transform .26s cubic-bezier(.2,1.5,.4,1)}
+.sm-leg:nth-child(even){--tilt:1deg}.sm-leg:nth-child(3n){--tilt:-.6deg}
+.sm-leg .slp{--nx:calc(100% - 37px);flex:1 1 auto;display:flex;align-items:center;gap:8px;min-width:0;padding-left:10px;border-left:5px solid #cdc3a2;border-radius:5px;
+  background:repeating-linear-gradient(0deg,rgba(28,47,107,.055) 0 1px,rgba(28,47,107,0) 1px 5px),linear-gradient(180deg,#fffbea,#f4ecd3);
+  -webkit-mask:radial-gradient(circle 5px at var(--nx) 0,rgba(0,0,0,0) 4.5px,#000 5px) top/100% 51% no-repeat,radial-gradient(circle 5px at var(--nx) 100%,rgba(0,0,0,0) 4.5px,#000 5px) bottom/100% 51% no-repeat;
+  mask:radial-gradient(circle 5px at var(--nx) 0,rgba(0,0,0,0) 4.5px,#000 5px) top/100% 51% no-repeat,radial-gradient(circle 5px at var(--nx) 100%,rgba(0,0,0,0) 4.5px,#000 5px) bottom/100% 51% no-repeat;
+  transition:border-color .2s ease-out}
+.sm-leg .slp>span{font:700 13.5px/1.15 var(--text)}
+.sm-leg b{font:600 12px/1 var(--mono);color:#5d6672;transition:color .2s ease-out}
+.sm-leg em{font:600 11.5px/1 var(--mono);font-style:normal;color:#1c2530;border-left:1px solid rgba(28,37,48,.28);padding-left:7px}
+/* the tear-off end: a plus to add, an IN stamp once it is in */
+.sm-leg i{position:relative;flex:0 0 38px;align-self:stretch;margin-left:auto;border-left:2px dashed rgba(28,37,48,.32);background:rgba(26,106,61,0);transition:background-color .2s ease-out}
+.sm-leg i::before{content:"";position:absolute;inset:0;background:linear-gradient(#1c2530,#1c2530) center/12px 2px no-repeat,linear-gradient(#1c2530,#1c2530) center/2px 12px no-repeat;transition:transform .2s cubic-bezier(.23,1,.32,1),opacity .14s ease-out}
+.sm-leg i::after{content:"IN";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #1a6a3d;border-radius:50%;font:800 11px/1 var(--fx-ui);letter-spacing:.05em;color:#1a6a3d;opacity:0;transform:scale(1.9) rotate(-30deg);transition:transform .24s cubic-bezier(.2,1.5,.4,1),opacity .1s ease-out}
+.sm-leg:active{transform:scale(.96)}
+.sm-leg.on{transform:translateY(-2px) rotate(var(--tilt))}.sm-leg.on:active{transform:translateY(0) rotate(var(--tilt)) scale(.97)}
+.sm-leg.on .tk{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
+.sm-leg.on i::before{opacity:0;transform:rotate(45deg) scale(.4)}
+.sm-leg.on i::after{opacity:.92;transform:scale(1) rotate(-12deg)}
+.sm-leg:focus-visible{outline:2px solid var(--c-sim);outline-offset:3px}
+.sm-leg.mini{min-height:40px}.sm-leg.mini .slp{gap:6px;padding-left:7px;--nx:calc(100% - 31px)}.sm-leg.mini .slp>span{font-size:12.5px}.sm-leg.mini b{font-size:11.5px}.sm-leg.mini i{flex-basis:32px}
+/* slips line up in even columns sized by the card, so pairs (the two moneylines, the two sides of a spread) sit side by side */
+.sm-glr,.sm-pl,.sm-bgl{gap:9px 8px}
+.sm-bgl{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr))}
+.sm-glr{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.sm-bpr .sm-pl{flex:1 1 290px;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+.sm-bgl .sm-leg,.sm-glr .sm-leg,.sm-bpr .sm-pl .sm-leg{min-width:0}
+/* a slip that also carries a book price needs more room */
+.sm-bgl:has(em){grid-template-columns:repeat(auto-fit,minmax(192px,1fr))}.sm-glr:has(em){grid-template-columns:repeat(auto-fit,minmax(208px,1fr))}.sm-bpr .sm-pl:has(em){grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.tk-fly{will-change:transform,opacity}
+@media (hover:hover) and (pointer:fine){.sm-leg:not(.on):hover{transform:translateY(-1px)}}
+@media (prefers-reduced-motion:reduce){.sm-leg,.sm-leg .slp,.sm-leg b,.sm-leg i,.sm-leg i::before,.sm-leg i::after{transition:none}.sm-leg.on{transform:none}}

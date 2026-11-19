@@ -211,6 +211,8 @@ site_job.sh writes lineup news (daily.py news) for each league on every early, m
 ## Audit harness (v3.39)
 - The v3.39 audit measured every tab, both leagues, at 22 screen sizes (320 to 1920 wide, two landscape phones) plus interaction runs (case files, pickers, the memo, the sim playing, a packed parlay), with the real fonts served locally. Checks: page wider than the screen, tappable or text elements past the screen edge, text clipped by its own card, text cut with dots or a line clamp, tap targets under 40px, page errors, animations that are not transform or opacity, endless animations running off screen. Worst-case data (long hyphenated names, +19900 and -10000 prices, an empty desk, a single bet, a scratched ticket) went through the same checks.
 - Known and intended: the spotlight's fanned cards run past the card edge, the tape and the Games ticker scroll, the "needs" and "line" markers sit outside their bars, box score names end in dots inside a table that scrolls sideways.
+- The folded Duo (v3.40): its screen is 449 wide with a 78px camera rail on the right (`env(safe-area-inset-right)`), so the page is 371 wide; unfolded it is about 1148 with the same rail. Chromium cannot set that inset, so the harness tests a copy of the page with `env(safe-area-inset-right,0px)` replaced by `78px`, at 449x652 and 1148x770. Size anything new by its container (auto-fit grids, container queries), not by the screen's width.
+- Research has several sheets (the dots under the Film room picker). Open each one; the v3.39 pass only saw the first.
 - Chromium only. It cannot show iOS Safari's own behaviour (rubber-banding, the keyboard, safe areas on a real notch, tap delay); those need a phone.
 
 

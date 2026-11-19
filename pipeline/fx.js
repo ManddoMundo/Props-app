@@ -348,25 +348,27 @@ FX.reg(() => {
     fires.add(me); FX.watch(cv, v => { me.vis = v; if (v) kick(); });
   }
 
+  // v3.40: the ice keeps to the card's rim (about 24px, a little more at the corners) and is thinner. It used to reach 15% of
+  // the card's short side with corners at 2.6 times that, which on a tall hit-rate card ran across the name and the numbers.
   function frost(box) {
     const r = box.getBoundingClientRect(); if (r.width < 60) return; const cell = 3, W = Math.ceil(r.width / cell), H = Math.ceil(r.height / cell);
     const cv = document.createElement('canvas'); cv.className = 'fx-frost-cv'; cv.width = W; cv.height = H; cv.setAttribute('aria-hidden', 'true'); box.appendChild(cv); box.dataset.fxfr = 1;
     const c = cv.getContext('2d'), img = c.createImageData(W, H), arrive = new Uint16Array(W * H).fill(65535), amt = new Uint8Array(W * H), wiped = new Int32Array(W * H);
     // crystals: walkers leave the edges and wander inward, branching; each cell remembers when the ice reaches it and how thick it gets
     let seed = (W * 73856093) ^ (H * 19349663); const R = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-    const reach = Math.min(W, H) * .15, walk = (x, y, ang, step, life, thick) => { while (life-- > 0) { const xi = x | 0, yi = y | 0; if (xi < 0 || yi < 0 || xi >= W || yi >= H) return;
+    const reach = Math.min(Math.min(W, H) * .15, 8), walk = (x, y, ang, step, life, thick) => { while (life-- > 0) { const xi = x | 0, yi = y | 0; if (xi < 0 || yi < 0 || xi >= W || yi >= H) return;
         const dEdge = Math.min(xi, yi, W - 1 - xi, H - 1 - yi); if (dEdge > reach * (.55 + R() * .6)) return;
         const i = yi * W + xi; if (step < arrive[i]) arrive[i] = step; amt[i] = Math.max(amt[i], Math.min(255, thick * (1 - dEdge / (reach * 1.25)) * 255) | 0);
         ang += (R() - .5) * .16; x += Math.cos(ang); y += Math.sin(ang); step += 1 + (R() * 2 | 0);
         if (R() < .16 && thick > .25) walk(x, y, ang + (R() < .5 ? 1 : -1) * (Math.PI / 3), step, (life * .6) | 0, thick * .8); } };
     const per = 2 * (W + H), n = Math.round(per / 6);
     for (let k = 0; k < n; k++) { const q = R() * per; let x, y, a; if (q < W) { x = q; y = 0; a = Math.PI / 2; } else if (q < 2 * W) { x = q - W; y = H - 1; a = -Math.PI / 2; } else if (q < 2 * W + H) { x = 0; y = q - 2 * W; a = 0; } else { x = W - 1; y = q - 2 * W - H; a = Math.PI; }
-      const corner = Math.min(x, W - 1 - x) + Math.min(y, H - 1 - y) < reach; walk(x, y, a + (R() - .5) * 1.1, (R() * 30) | 0, (reach * (corner ? 2.6 : 1.1)) | 0, corner ? 1 : .62); }
+      const corner = Math.min(x, W - 1 - x) + Math.min(y, H - 1 - y) < reach; walk(x, y, a + (R() - .5) * 1.1, (R() * 30) | 0, (reach * (corner ? 1.9 : 1.1)) | 0, corner ? 1 : .62); }
     const me = { cv, vis: false, busy: true, t0: clock, box };
     me.step = () => { const d = img.data, now = (clock - me.t0) * 3; let grow = false;
       for (let i = 0; i < W * H; i++) { const j = i * 4, a = arrive[i]; if (a === 65535) { d[j + 3] = 0; continue; }
         const age = now - wiped[i] - a; if (age < 0) { d[j + 3] = 0; grow = true; continue; }
-        const k = age > 24 ? 1 : age / 24; if (k < 1) grow = true; const v = amt[i]; d[j] = 205 + (v >> 3); d[j + 1] = 232 + (v >> 4); d[j + 2] = 255; d[j + 3] = (v * k * .7) | 0; }
+        const k = age > 24 ? 1 : age / 24; if (k < 1) grow = true; const v = amt[i]; d[j] = 205 + (v >> 3); d[j + 1] = 232 + (v >> 4); d[j + 2] = 255; d[j + 3] = (v * k * .55) | 0; }
       c.putImageData(img, 0, 0); me.busy = grow; };
     me.wipe = (px, py) => { const cx = px / cell, cy = py / cell, rad = 9, now = (clock - me.t0) * 3; let hit = false;
       for (let y = Math.max(0, (cy - rad) | 0); y < Math.min(H, cy + rad); y++) for (let x = Math.max(0, (cx - rad) | 0); x < Math.min(W, cx + rad); x++) { if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > rad * rad) continue; const i = y * W + x; if (arrive[i] !== 65535) { wiped[i] = now + 60; hit = true; } }      // it stays clear a moment, then the ice creeps back

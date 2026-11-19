@@ -1880,7 +1880,12 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 /* Tote captions were cut at two lines on 320 to 360 wide ("1 of 4 tracked beat the late..."). */
 @media(max-width:380px){.tc em{-webkit-line-clamp:3}}
 /* The TV's captions were cut on 320 to 360 wide ("Logged picks, to w..."): labels wrap and captions get a third line. */
-@media(max-width:380px){.tv-t small{white-space:normal;min-height:2.6em} .tv-t em{-webkit-line-clamp:3}}
+@media(max-width:520px){.tv-t em{-webkit-line-clamp:3}}
+/* v3.40: the TV's labels wrap at every width instead of ending in dots ("Edge spots since 20..." on the folded Duo, whose
+   screen is 449 wide but whose page is 371 once the camera rail is taken out, so the old 380px test never fired). Each
+   counter borrows its three rows from the TV's grid, so numbers stay level when one label takes two lines. */
+.tv-t small{white-space:normal;overflow:visible;text-overflow:clip}
+@supports (grid-template-rows:subgrid){.tv-grid>.tv-t{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:0;align-content:start}}
 /* A name identifies the row, so it wraps to a second line instead of ending in dots (ledger rows, hit-rate cards). */
 .who b,.hrc-who b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
 /* Research fixture strip, 320 to 380 wide: the home side's "Pace 102.3" could not wrap and was cut at the card's edge. */
@@ -1893,10 +1898,86 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 @media (pointer:coarse){
   :where(.lg button,.tape-b,.px-x,.sp-info button,.st-dots button,button.pn,.st-skip,.btn.ghost){position:relative}
   .lg button::after,.tape-b::after,.px-x::after,.memo-h .x::after,.sp-info button::after,.st-dots button::after,button.pn::after,.st-skip::after,.btn.ghost::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
-  .seg button{padding-block:10px}
   .trs-d summary{padding-block:13px}
   details.card>summary{padding-block:8px}
 }
+/* ===== v3.41 the console system: every pill toggle in the app =====
+   One piece of equipment, nine finishes. What is the same everywhere: a recessed black slot, keys in condensed capitals,
+   one key down and lit, the same liquid slide between keys, engraved labels, a steel housing with two screws where a tab
+   groups several controls. What changes by tab: the key itself. Each tab sets the --k* tokens and one detail on the key.
+     desk      amber tote lamp                      board     green phosphor with scan lines (the war room's screen)
+     games     brushed steel deck key, teal lamp    sim       square lime arcade button, hard pixel edges
+     parlay    brass plate with two rivets          research  amber lamp; the order switch runs amber or ice
+     stress    orange breaker with hazard ends      book      ledger paper with a red rule
+     model     violet glass with a streak of light
+   Motion is unchanged: the highlight slides on transform (placeSeg), a key dips 1px on press, colour changes cross-fade on opacity. */
+:root{--k1:#ffdc8f;--k2:#ffb833;--k3:#cf8d10;--kedge:#5a3d06;--kglow:rgba(255,184,51,.6);--ktext:#1d1404;--kr:6px;--klamp:#ffb833;--kacc:var(--c-desk)}
+#main[data-tab="board"]{--k1:#e4ffea;--k2:#86e39a;--k3:#3f9f5c;--kedge:#12401f;--kglow:rgba(134,227,154,.6);--ktext:#062010;--klamp:#86e39a;--kacc:var(--c-board)}
+#main[data-tab="games"]{--k1:#f6f8f7;--k2:#bcc5c0;--k3:#808a85;--kedge:#262c29;--kglow:rgba(127,214,208,.4);--ktext:#0d1614;--klamp:#7fd6d0;--kacc:var(--c-games);--kr:4px}
+#main[data-tab="sim"]{--k1:#eeffb0;--k2:#c5f04a;--k3:#93c022;--kedge:#3f5c06;--kglow:rgba(197,240,74,0);--ktext:#172400;--klamp:#c5f04a;--kacc:#c5f04a;--kr:2px}
+#main[data-tab="parlay"]{--k1:#f9e9b4;--k2:#d9b45a;--k3:#9a7422;--kedge:#4a360b;--kglow:rgba(217,180,90,.5);--ktext:#2a1c03;--klamp:#f1d488;--kacc:#f3e3bd}
+#main[data-tab="research"]{--kacc:var(--c-research)}
+#main[data-tab="stress"]{--k1:#ffd3b5;--k2:#ff9d5c;--k3:#cf5a1c;--kedge:#5a2306;--kglow:rgba(255,157,92,.6);--ktext:#261003;--klamp:#ff9d5c;--kacc:var(--c-stress)}
+#main[data-tab="book"]{--k1:#fffbf2;--k2:#f1e6c8;--k3:#c9b88a;--kedge:#5c5136;--kglow:rgba(243,166,166,.4);--ktext:#22190a;--klamp:#f3c9c9;--kacc:var(--c-book)}
+#main[data-tab="model"]{--k1:#f3ecff;--k2:#cdb8f5;--k3:#8468d6;--kedge:#2c1f5c;--kglow:rgba(205,184,245,.6);--ktext:#170f33;--klamp:#cdb8f5;--kacc:var(--c-model)}
+/* the slot and its keys */
+.seg{gap:3px;padding:3px;border:1px solid #000;border-radius:calc(var(--kr) + 3px);background:#070a08;box-shadow:inset 0 2px 6px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.07)}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:var(--kr);font:700 14.5px/1 var(--fx-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--led-mute);transition:color .2s ease-out,transform .12s var(--ease)}
+.seg button svg{flex:0 0 12px;width:12px;height:12px;opacity:.75;transition:opacity .2s ease-out}
+.seg button[aria-pressed="true"]{color:var(--ktext)}.seg button[aria-pressed="true"] svg{opacity:1}
+.seg button:active{transform:translateY(1px) scale(.97)}
+.seg-ink{top:3px;bottom:3px;border-radius:var(--kr);background:linear-gradient(180deg,var(--k1),var(--k2) 52%,var(--k3));box-shadow:0 0 16px -2px var(--kglow),inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 var(--kedge)}
+.seg-ink::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+/* one detail per tab, drawn on the key */
+#main[data-tab="board"] .seg-ink::before{background:repeating-linear-gradient(0deg,rgba(4,48,20,.2) 0 1px,rgba(4,48,20,0) 1px 3px)}
+#main[data-tab="games"] .seg-ink::before{inset:auto 22% 4px 22%;height:3px;border-radius:2px;background:var(--klamp);box-shadow:0 0 8px 1px rgba(127,214,208,.9)}
+#main[data-tab="games"] .seg button{padding-bottom:5px}
+#main[data-tab="sim"] .seg-ink{box-shadow:0 3px 0 var(--kedge),inset 0 2px 0 #f6ffd2,inset 0 -3px 0 #8fbb20,inset 2px 0 0 #dffb8f,inset -2px 0 0 #a6d033}
+#main[data-tab="sim"] .seg button[aria-pressed="true"]{transform:translateY(-1px)}#main[data-tab="sim"] .seg button[aria-pressed="true"]:active{transform:translateY(1px)}
+#main[data-tab="parlay"] .seg-ink::before{background:radial-gradient(circle at 7px 50%,#5b430f 0 1.7px,rgba(91,67,15,0) 2.2px),radial-gradient(circle at calc(100% - 7px) 50%,#5b430f 0 1.7px,rgba(91,67,15,0) 2.2px)}
+#main[data-tab="parlay"] .seg button[aria-pressed="true"]{text-shadow:0 1px 0 rgba(255,255,255,.4)}
+#main[data-tab="stress"] .seg-ink::before{background:repeating-linear-gradient(-45deg,#261003 0 3px,rgba(38,16,3,0) 3px 6px) left/7px 100% no-repeat,repeating-linear-gradient(-45deg,#261003 0 3px,rgba(38,16,3,0) 3px 6px) right/7px 100% no-repeat}
+#main[data-tab="book"] .seg-ink::before{inset:0 0 auto 0;height:3px;border-radius:var(--kr) var(--kr) 0 0;background:#d9534f}
+#main[data-tab="model"] .seg-ink::before{inset:2px 3px 52% 3px;border-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,0))}
+/* Research's order switch: amber when hot, ice when cold. Both lamps sit in the key and cross-fade. */
+.thermo .seg-ink::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,#e6f5ff,#8fc8ff 52%,#3f8fd2);box-shadow:0 0 16px -2px rgba(143,200,255,.7),inset 0 1px 0 rgba(255,255,255,.7),0 2px 0 #123e63;opacity:0;transition:opacity .28s ease-out}
+.thermo:has([data-rs="hs:under"][aria-pressed="true"]) .seg-ink::after{opacity:1}
+.thermo button[data-rs="hs:under"][aria-pressed="true"]{color:#06233b}
+.thermo{overflow:hidden}.thermo button{flex:1 1 0;min-width:0}
+/* the housing, where a tab groups several controls */
+.hrk{position:relative;display:grid;gap:13px 14px;padding:17px 14px 13px;border:1px solid #000;border-radius:12px;color:#e9efe9;container:hrk/inline-size;
+  background:linear-gradient(var(--kacc),var(--kacc)) top/100% 2px no-repeat,linear-gradient(180deg,#232a26,#151a17 46%,var(--tote));box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 1px var(--tote-rule),0 12px 20px -16px rgba(0,0,0,.95)}
+.hrk::before,.hrk::after{content:"";position:absolute;top:7px;width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#c9cfca,#555b57 60%,#1b1e1c);box-shadow:0 1px 0 rgba(0,0,0,.8);pointer-events:none}
+.hrk::before{left:7px}.hrk::after{right:7px}
+.hrk-r{display:grid;gap:6px;min-width:0}
+.hrk-r>small{font:600 9px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--led-mute)}
+.hrk-2{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;min-width:0}
+.hrk-2.eq{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.hrk .vw button{padding:0 12px}
+/* a row that scrolls sideways; a shade on either end shows there is more, only when there is */
+.hrk-sc{position:relative;min-width:0;max-width:100%}
+.hrk-sc .seg{scroll-snap-type:x proximity;scroll-padding:0 26px}.hrk-sc .seg button{scroll-snap-align:start}
+.hrk-sc::before,.hrk-sc::after{content:"";position:absolute;top:1px;bottom:1px;width:30px;z-index:2;pointer-events:none;opacity:0;transition:opacity .2s ease-out}
+.hrk-sc::before{left:1px;border-radius:8px 0 0 8px;background:linear-gradient(90deg,#070a08 25%,rgba(7,10,8,0))}
+.hrk-sc::after{right:1px;border-radius:0 8px 8px 0;background:linear-gradient(270deg,#070a08 25%,rgba(7,10,8,0))}
+.hrk-sc.more-l::before,.hrk-sc.more-r::after{opacity:1}
+/* pickers and the search box read like a display, in the tab's lamp colour */
+.hrk .px,.hrk .bkp-b,.hrk .wr-q{width:100%;min-height:44px;border:1px solid #000;border-radius:9px;background:#070a08;box-shadow:inset 0 2px 6px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.07);color:var(--klamp)}
+.hrk .px,.hrk .bkp-b{justify-content:space-between;padding:4px 12px 4px 14px;font:700 15.5px/1.15 var(--fx-ui);letter-spacing:.08em;text-transform:uppercase;text-shadow:0 0 10px var(--kglow)}
+.hrk .hrk-r>.px{border-radius:9px;box-shadow:inset 0 2px 6px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.07)}.hrk .px{--ink:var(--klamp)}.hrk .px small,.hrk .bkp-b small{display:none}.hrk .px:active,.hrk .bkp-b:active{transform:translateY(1px)}
+.hrk .bkp{flex:none;width:100%}.hrk .bkp-b b{font:inherit;margin-right:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hrk .bkp-b svg{stroke:var(--klamp)}
+.hrk .wr-q{flex:none;padding:0 12px;border-bottom-color:#000}.hrk .wr-q svg{stroke:var(--klamp)}
+.hrk .wr-q input{color:#f2f5f1}.hrk .wr-q input::placeholder{color:var(--led-mute);opacity:.9}
+.hrk .wr-q:focus-within{border-color:var(--klamp);box-shadow:inset 0 2px 6px rgba(0,0,0,.85),0 0 0 1px var(--klamp)}
+.hrk-src{margin:0;padding-top:11px;border-top:1px dashed var(--tote-rule);font:500 10.5px/1.5 var(--mono);color:var(--led-mute)}
+/* sized by the console's own width, not the screen's: on the folded Duo the camera rail takes 78px of a 449px screen */
+@container hrk (max-width:400px){.hrk-2 .vw button span{display:none}.hrk-2 .vw button{padding:0 13px}.hrk-2 .thermo button{padding:0 8px;gap:6px}.hrk-2.eq{grid-template-columns:minmax(0,1fr)}.hrk .seg button{padding-inline:12px}}
+@container hrk (max-width:300px){.hrk-2 .thermo button{font-size:13.5px;letter-spacing:.07em;padding:0 6px}.hrk-2 .thermo button svg{display:none}}
+@media (prefers-reduced-motion:reduce){.seg button,.thermo .seg-ink::after,.hrk-sc::before,.hrk-sc::after{transition:none}}
+/* v3.40 fixes from the folded-Duo screenshots */
+.rnd>span{min-width:0}      /* Board: "Waiting on a book line · ordered by projection" wraps as one phrase, not two columns */
+.cells.c4{grid-template-columns:repeat(3,84px) minmax(84px,max-content)} .cells.c4>:nth-child(4) small{white-space:nowrap}      /* ledger: "P/L · ¼u · $6.25" stays on one line */
+@media(max-width:760px){.cells.c4{grid-template-columns:repeat(3,1fr)}.cells.c4>:nth-child(4){grid-column:1/-1}}
 /*__SIM_CSS__*/
 /*__FX_CSS__*/
 </style>
@@ -2435,11 +2516,10 @@ function boardHtml() {
       + tick(a.length, 'showing', 'On the board', 'after your filters', 'show'), vcrTime(lg))}
     ${ns ? `<div class="banner"><span>Stress scenario on: ${ns} lineup change${ns > 1 ? 's' : ''}. Every number below reflects it.</span><button class="btn ghost sm" data-act="resetScen">Clear scenario</button></div>` : ''}
     ${nl ? '' : `<p class="wr-note"><b>Mock board.</b> Every prop has a fair line, but none is graded until a book price lands with the late morning pull. Tap any prop to enter your book's line and the desk grades it AAA to C on the spot.</p>`}
-    <div class="seg mk" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-fm="${k}" aria-pressed="${S.mkt === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
-    <div class="wr-row">
-      <div class="seg so" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span>${[['rated', 'Best grade'], ['proj', 'Biggest number'], ['name', 'A to Z']].map(([k, n]) => `<button data-fs="${k}" aria-pressed="${S.sort === k}">${n}</button>`).join('')}</div>
-      ${bkPickHtml(lg)}
-      <select id="fGame" aria-label="Game"><option value="all">Every game</option>${gopts}</select>
+    <div class="hrk" role="group" aria-label="Board filters">
+      <div class="hrk-r"><small>Market</small><div class="hrk-sc"><div class="seg mk" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-fm="${k}" aria-pressed="${S.mkt === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div></div></div>
+      <div class="hrk-r"><small>Order</small><div class="hrk-sc"><div class="seg so" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span>${[['rated', 'Best grade'], ['proj', 'Biggest number'], ['name', 'A to Z']].map(([k, n]) => `<button data-fs="${k}" aria-pressed="${S.sort === k}">${n}</button>`).join('')}</div></div></div>
+      <div class="hrk-2 eq"><div class="hrk-r"><small>Prices at</small>${bkPickHtml(lg)}</div><div class="hrk-r"><small>Game</small><select id="fGame" aria-label="Game"><option value="all">Every game</option>${gopts}</select></div></div>
       <label class="wr-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/></svg><input id="fQ" type="search" placeholder="Scout a name or a club" value="${esc(S.q)}" aria-label="Search player or team" autocomplete="off"></label>
     </div>
   </section>
@@ -2447,7 +2527,7 @@ function boardHtml() {
 }
 function ledgerHtml(a) {
   return ((() => { let last = null, rd = 0; return a.slice(0, S.limit).map((pr, i) => { let h = '';
-      if (S.sort === 'rated') { const r = assess(pr), k = r ? r.rating : 'NR'; if (k !== last) { last = k; rd++; h = `<div class="rnd">${r ? `Round ${rd} · <b>rated ${esc(k)}</b>` : `<b>Waiting on a book line</b> · ordered by projection`}</div>`; } }
+      if (S.sort === 'rated') { const r = assess(pr), k = r ? r.rating : 'NR'; if (k !== last) { last = k; rd++; h = `<div class="rnd">${r ? `Round ${rd} · <b>rated ${esc(k)}</b>` : `<span><b>Waiting on a book line</b> · ordered by projection</span>`}</div>`; } }
       return h + rowHtml(pr, i); }).join(''); })() || '<div class="row"><span class="mut">Nobody on the board matches that. Try another market or clear the search.</span></div>')
     + (a.length > S.limit ? `<button class="more" data-act="more">Show ${Math.min(60, a.length - S.limit)} more of ${a.length}</button>` : '');
 }
@@ -2844,6 +2924,13 @@ const nz = (x, d = 1) => x == null || !isFinite(x) ? '·' : (+x).toFixed(d);
 const t12 = t => { const [h, m] = String(t).split(':').map(Number); return `${(h + 11) % 12 + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
 // Rank chip. tone 1: a low rank helps the side being read (green, arrow up). tone 0: ranked by amount only, no colour.
 const rk = (r, tone = 1, n = 32) => !r ? '' : `<span class="rk ${!tone ? 'n' : r <= 8 ? 'g' : r > n - 8 ? 'b' : 'n'}" title="Rank ${r} of ${n}">${!tone ? '' : r <= 8 ? '▲' : r > n - 8 ? '▼' : ''}${r}</span>`;
+// v3.40: small pixel-cut icons for the hit-rate console (Research). Drawn on a 12 grid so they sit with the dragons.
+const HRK_IC = {
+  hot: '<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M6 0h1v2h1v2h1v1h1v4H9v2H8v1H4v-1H3V9H2V6h1V4h1v2h1V3h1z"/></svg>',
+  cold: '<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M5 0h2v3h1V2h1v2H8v1h2V4h1v1h1v2h-1v1h-1V7H8v1h1v2H8V9H7v3H5V9H4v1H3V8h1V7H2v1H1V7H0V5h1V4h1v1h2V4H3V2h1v1h1z"/></svg>',
+  list: '<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M0 1h2v2H0zM4 1h8v2H4zM0 5h2v2H0zM4 5h8v2H4zM0 9h2v2H0zM4 9h8v2H4z"/></svg>',
+  grid: '<svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z"/></svg>',
+};
 const chips = (key, cur, opts, label) => `<div class="seg rsg" data-seg="rs-${key}" role="group" aria-label="${label}"><span class="seg-ink" aria-hidden="true"></span>${opts.map(([v, n]) => `<button data-rs="${key}:${v}" aria-pressed="${cur === v}">${n}</button>`).join('')}</div>`;
 const sheet = (title, table, cls) => `<div class="card${cls ? ' ' + cls : ''}">${title ? `<div class="sec"><h3><span>${title}</span></h3></div>` : ''}<div class="scroll">${table}</div></div>`;
 const on = p => p.st !== 'IR' && p.st !== 'OFF';
@@ -3150,12 +3237,12 @@ function gamesHtml() {
   return `${mast('games', 'Game picks', hd)}
     <section class="wr fr2 gpw" aria-label="Game picks record">
       ${vcrHtml('games|' + lg, lg + ' game picks record', tick(th.su_mkt != null ? pct(th.su_mkt) : pct(th.su || 0), 'Winners, this season', th.su_mkt != null ? `the line's favourite · our ratings ${pct(th.su || 0)}` : `${th.n || 0} games, our ratings`) + tick(pc(tats.All) || 'New', 'Spread, this season', tats.All && tats.All[0] + tats.All[1] ? `${rec(tats.All)} our ratings vs the line` : 'starts with the daily game lines') + (lg === 'NFL' ? tick(pc(ats.Strong) || 'New', 'Edge spots since 2015', ats.Strong ? `${rec(ats.Strong)} · needs 52.4%` : '', 'show') : tick(pc(ats.All) || 'New', 'Spread, tested', ats.All ? `${rec(ats.All)} since 2025-26 · needs 52.4%` : '', '')) + tick(pw + pl ? `${pw}-${pl}` : String(PL), pw + pl ? 'Logged picks, to win' : 'Logged picks', cw + cl ? `spread ${cw}-${cl}` : 'graded as games finish'), esc(lg))}
-      <div class="seg so" data-seg="gm-view" role="group" aria-label="Day">${'<span class="seg-ink" aria-hidden="true"></span>'}${views.map(([v, n]) => `<button data-gm="view:${v}" aria-pressed="${H.view === v}">${esc(n)}</button>`).join('')}</div>
-      <div class="gp-slate"><span><small>Games</small><b>${all.length}</b></span><span><small>Edges</small><b class="g">${nEdge}</b></span><span><small>Leans</small><b class="h">${nLean}</b></span>${big ? `<span><small>Biggest gap</small><b>${esc(big.ats)} ${Math.abs(big.gap).toFixed(1)}</b></span>` : ''}${fsum}</div>
-      <div class="wr-row">
-        <div class="seg so" data-seg="gm-only" role="group" aria-label="Show"><span class="seg-ink" aria-hidden="true"></span>${[['all', 'All'], ['edge', 'Edges'], ['lean', 'Leans'], ['none', 'No edge']].map(([v, n]) => `<button data-gm="only:${v}" aria-pressed="${H.only === v}">${n}</button>`).join('')}</div>
-        <div class="seg so" data-seg="gm-sort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-gm="sort:time" aria-pressed="${H.sort === 'time'}">${lg === 'NFL' ? 'Kickoff' : 'Tip-off'}</button><button data-gm="sort:gap" aria-pressed="${H.sort === 'gap'}">Biggest gap</button><button data-gm="sort:move" aria-pressed="${H.sort === 'move'}">Line move</button></div>
+      <div class="hrk" role="group" aria-label="Game filters">
+        <div class="hrk-r"><small>Day</small><div class="hrk-sc"><div class="seg so" data-seg="gm-view" role="group" aria-label="Day">${'<span class="seg-ink" aria-hidden="true"></span>'}${views.map(([v, n]) => `<button data-gm="view:${v}" aria-pressed="${H.view === v}">${esc(n)}</button>`).join('')}</div></div></div>
+        <div class="hrk-r"><small>Show</small><div class="hrk-sc"><div class="seg so" data-seg="gm-only" role="group" aria-label="Show"><span class="seg-ink" aria-hidden="true"></span>${[['all', 'All'], ['edge', 'Edges'], ['lean', 'Leans'], ['none', 'No edge']].map(([v, n]) => `<button data-gm="only:${v}" aria-pressed="${H.only === v}">${n}</button>`).join('')}</div></div></div>
+        <div class="hrk-r"><small>Order</small><div class="hrk-sc"><div class="seg so" data-seg="gm-sort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-gm="sort:time" aria-pressed="${H.sort === 'time'}">${lg === 'NFL' ? 'Kickoff' : 'Tip-off'}</button><button data-gm="sort:gap" aria-pressed="${H.sort === 'gap'}">Biggest gap</button><button data-gm="sort:move" aria-pressed="${H.sort === 'move'}">Line move</button></div></div></div>
       </div>
+      <div class="gp-slate"><span><small>Games</small><b>${all.length}</b></span><span><small>Edges</small><b class="g">${nEdge}</b></span><span><small>Leans</small><b class="h">${nLean}</b></span>${big ? `<span><small>Biggest gap</small><b>${esc(big.ats)} ${Math.abs(big.gap).toFixed(1)}</b></span>` : ''}${fsum}</div>
     </section>
     <div class="gpl">${games.map(fin ? fcard : card).join('') || '<p class="prose">No games match.</p>'}</div>
     ${trackHtml(lg, G)}
@@ -3277,12 +3364,12 @@ function splitHtml() {
         ${r.rows.map(x => `<tr class="${x.now ? 'now' : ''}"><td>${esc(x.lab)}${x.now ? ' <span class="trs-tn">tonight</span>' : ''}</td><td>${x.n ? x.h + ' of ' + x.n : '·'}</td><td>${bar(x)}</td><td class="${x.n && x.avg > L ? 'pos' : x.n ? 'neg' : ''}">${x.n ? f1(x.avg) : '·'}</td></tr>`).join('')}</tbody></table></div></details></article>`; };
   return `<section class="wr fr2" aria-label="Split controls">
       ${vcrHtml('split|' + lg, lg + ' trends by split', tick(rows.length, 'sp-n', 'Props split', 'with 3+ games in tonight\'s spots') + tick(over, 'sp-o', 'Spots lean over', '15+ points above his usual', 'show') + tick(under, 'sp-u', 'Spots lean under', '15+ points below his usual', 'cold') + tick(Z.d.p ? Object.keys(Z.d.p).length : 0, 'sp-p', 'Players on file', `games through ${esc(Z.d.asof)}`), vcrTime(lg))}
-      <div class="seg mk" data-seg="rs-smkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
-      <div class="wr-row">
-        <div class="seg so" data-seg="rs-ssort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="sp:over" aria-pressed="${H.sp !== 'under'}">Leans over</button><button data-rs="sp:under" aria-pressed="${H.sp === 'under'}">Leans under</button></div>
-        <select id="rsHG" aria-label="Game"><option value="all">Every game</option>${[...new Set(base.map(p => p.e.side.game))].map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select>
+      <div class="hrk" role="group" aria-label="Split filters">
+        <div class="hrk-r"><small>Market</small><div class="hrk-sc"><div class="seg mk" data-seg="rs-smkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div></div></div>
+        <div class="hrk-r"><small>Order</small><div class="hrk-sc"><div class="seg so" data-seg="rs-ssort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="sp:over" aria-pressed="${H.sp !== 'under'}">Leans over</button><button data-rs="sp:under" aria-pressed="${H.sp === 'under'}">Leans under</button></div></div></div>
+        <div class="hrk-r"><small>Game</small><select id="rsHG" aria-label="Game"><option value="all">Every game</option>${[...new Set(base.map(p => p.e.side.game))].map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select></div>
+        <p class="hrk-src">Tonight's spots are the situations he is in tonight: home or away, ${lg === 'NBA' ? 'days of rest' : 'the length of the week'}, and how much the opponent gives up in this stat (#1 gives up the most). The number is how often he went over tonight's line in past games in those same spots, next to his record over all of them.</p>
       </div>
-      <p class="wr-src">Tonight's spots are the situations he is in tonight: home or away, ${lg === 'NBA' ? 'days of rest' : 'the length of the week'}, and how much the opponent gives up in this stat (#1 gives up the most). The number is how often he went over tonight's line in past games in those same spots, next to his record over all of them.</p>
     </section>
     <div class="trsl">${rows.slice(0, 40).map(card).join('') || `<p class="prose">No ${lg} props with a line and enough games in tonight's spots yet.</p>`}</div>
     <p class="note">Each split is his own games, up to the last ${lg === 'NBA' ? '30 across this season and last' : '17 across this season and last'}. Splits overlap and samples are small: four games in a spot is a hint, not a pattern. The book sees the same games. A split that agrees with the desk's lean is worth more than one that stands alone.</p>`;
@@ -3378,12 +3465,12 @@ function gradeHtml() {
       <span class="mg-b">${v.q.map(chip).join('')}</span></button>`; };
   return `<section class="wr fr2" aria-label="Market grade controls">
       ${vcrHtml('grade|' + lg, lg + ' market grades', tick(all.length, 'mg-n', 'Props quoted', `across ${new Set(all.flatMap(r => r.v.q.map(z => z[0]))).size} books`) + tick(good, 'mg-good', 'Hard Rock A or B', 'priced at or better than the books', 'show') + tick(off, 'mg-off', 'Off market', 'Hard Rock line out of step', 'cold') + tick(nb, 'mg-nb', 'Books a prop', 'average quotes per prop', '', 1), vcrTime(lg))}
-      <div class="seg mk" data-seg="rs-gmkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
-      <div class="wr-row">
-        <div class="seg so" data-seg="rs-gsort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="gs:best" aria-pressed="${H.gs === 'best' || !H.gs}">Best at Hard Rock</button><button data-rs="gs:worst" aria-pressed="${H.gs === 'worst'}">Worst</button><button data-rs="gs:off" aria-pressed="${H.gs === 'off'}">Off market</button></div>
-        <select id="rsHG" aria-label="Game"><option value="all">Every game</option>${[...new Set(all.map(r => r.g))].map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select>
+      <div class="hrk" role="group" aria-label="Market grade filters">
+        <div class="hrk-r"><small>Market</small><div class="hrk-sc"><div class="seg mk" data-seg="rs-gmkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div></div></div>
+        <div class="hrk-r"><small>Order</small><div class="hrk-sc"><div class="seg so" data-seg="rs-gsort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="gs:best" aria-pressed="${H.gs === 'best' || !H.gs}">Best at Hard Rock</button><button data-rs="gs:worst" aria-pressed="${H.gs === 'worst'}">Worst</button><button data-rs="gs:off" aria-pressed="${H.gs === 'off'}">Off market</button></div></div></div>
+        <div class="hrk-r"><small>Game</small><select id="rsHG" aria-label="Game"><option value="all">Every game</option>${[...new Set(all.map(r => r.g))].map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select></div>
+        <p class="hrk-src">From the ${esc(String(B.asof || '').replace(/^#\s*/, '').replace(/^pulled\s+/i, '').replace(/\s*pull\.?$/i, ''))} pull. Each book's line and prices are turned into the number they imply, the books other than Hard Rock are averaged by their middle, and every price is checked against that.</p>
       </div>
-      <p class="wr-src">From the ${esc(String(B.asof || '').replace(/^#\s*/, '').replace(/^pulled\s+/i, '').replace(/\s*pull\.?$/i, ''))} pull. Each book's line and prices are turned into the number they imply, the books other than Hard Rock are averaged by their middle, and every price is checked against that.</p>
     </section>
     <div class="mgl">${rows.slice(0, 120).map(row).join('') || '<p class="prose">Nothing matches these filters.</p>'}</div>
     <p class="note"><b>Reading a grade.</b> A: Hard Rock's better side is at least 2 points better than the other books' fair price. B: better than fair. C: a normal margin, about what a -110 side costs. D: a heavy margin. F: well out of line. Off market: Hard Rock's line implies a number more than 8% from the other books, or sits 1.5 or more off their middle line. Green chip: the best over across the books; blue: the best under. A grade is about price, not about whether the bet wins, and it does not change the desk's picks.</p>`;
@@ -3486,13 +3573,15 @@ function hitHtml() {
   const tick = (n, k, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n.toLocaleString()}</b><em>${sub}</em></div>`;
   return `<section class="wr fr2" aria-label="Hit rate controls">
       ${vcrHtml('hit|' + lg, lg + ' hit rates', tick(rows.length, 'hr-n', 'On the tape', 'props with a line on file') + tick(hot, 'hr-hot', 'Running hot', 'over in 7+ of the last 10', 'show') + tick(cold, 'hr-cold', 'Ice cold', 'over in 3 or fewer of the last 10', 'cold') + tick(agree, 'hr-agree', 'Desk agrees', 'streak and desk lean the same way'), vcrTime(lg))}
-      <div class="seg mk" data-seg="rs-mkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div>
-      <div class="wr-row">
-        <div class="seg so" data-seg="rs-sort" role="group" aria-label="Sort"><span class="seg-ink" aria-hidden="true"></span><button data-rs="hs:over" aria-pressed="${H.hs !== 'under'}">Hottest first</button><button data-rs="hs:under" aria-pressed="${H.hs === 'under'}">Coldest first</button></div>
-        <select id="rsHG" aria-label="Game"><option value="all">Every game</option>${gms.map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select>
+      <div class="hrk" role="group" aria-label="Hit rate filters">
+        <div class="hrk-r hrk-mk"><small>Market</small><div class="hrk-sc"><div class="seg mk" data-seg="rs-mkt" role="group" aria-label="Market"><span class="seg-ink" aria-hidden="true"></span>${['all', ...mks].map(k => `<button data-rs="hm:${k}" aria-pressed="${H.hm === k}">${k === 'all' ? 'All' : MK[lg][k].s}</button>`).join('')}</div></div></div>
+        <div class="hrk-2">
+          <div class="hrk-r hrk-so"><small>Order</small><div class="seg so thermo" data-seg="rs-sort" role="group" aria-label="Order"><span class="seg-ink" aria-hidden="true"></span><button data-rs="hs:over" aria-pressed="${H.hs !== 'under'}" aria-label="Hottest first">${HRK_IC.hot}Hottest</button><button data-rs="hs:under" aria-pressed="${H.hs === 'under'}" aria-label="Coldest first">${HRK_IC.cold}Coldest</button></div></div>
+          <div class="hrk-r hrk-vw"><small>Show as</small><div class="seg vw" data-seg="rs-view" role="group" aria-label="Show as"><span class="seg-ink" aria-hidden="true"></span><button data-rs="hv:list" aria-pressed="${H.hv !== 'grid'}" aria-label="List">${HRK_IC.list}<span>List</span></button><button data-rs="hv:grid" aria-pressed="${H.hv === 'grid'}" aria-label="Grid, every market">${HRK_IC.grid}<span>Grid</span></button></div></div>
+        </div>
+        <div class="hrk-r hrk-gm"><small>Game</small><select id="rsHG" aria-label="Game"><option value="all">Every game</option>${gms.map(id => `<option value="${id}"${H.hg === id ? ' selected' : ''}>${esc(gameLabel(lg, G[id]))}</option>`).join('')}</select></div>
+        <p class="hrk-src">The line is Hard Rock's where it has one, otherwise the middle line across the other books in the ${BKS(lg) ? esc(BKS(lg).asof) : 'latest'} pull, plus any you entered on the Board.</p>
       </div>
-      <div class="seg vw" data-seg="rs-view" role="group" aria-label="View"><span class="seg-ink" aria-hidden="true"></span><button data-rs="hv:list" aria-pressed="${H.hv !== 'grid'}">List</button><button data-rs="hv:grid" aria-pressed="${H.hv === 'grid'}">Grid, every market</button></div>
-      <p class="wr-src">The line is Hard Rock's where it has one, otherwise the middle line across the other books in the ${BKS(lg) ? esc(BKS(lg).asof) : 'latest'} pull, plus any you entered on the Board.</p>
     </section>
     ${H.hv === 'grid' ? gridHtml(rows, lg) : `<div class="ledger rs-led">${rows.slice(0, 60).map(row).join('') || `<div class="row"><span class="mut">No ${lg} lines on file for this slate yet. They land with the late morning pull, or enter a book line on the Board and the prop shows up here.</span></div>`}`}</div>
     <p class="note">Each bar is one of his last ten games, oldest on the left, with the opponent under it; the dashed line is tonight's line, and a bar that clears it is lit. The book has seen the same ten games and set the line with them in mind, so a streak on its own is not an edge. The desk column is the chance after the model and the other books are weighed. Where the streak and the desk disagree, open the memo before leaning on either.${lg === 'NFL' ? ' NFL marks can reach back into last season.' : ''}</p>`;
@@ -3559,6 +3648,11 @@ function rsPaint(sel) {            // repaint the sheet only, so the tool rail k
 // The <select> stays in the page as the source of truth and still fires change, so nothing else had to learn about this.
 let PX = null;
 function enhance() {
+  // v3.40 hit-rate console: the market row opens on the key that is down, and a shade marks an end that has more to scroll to
+  document.querySelectorAll('.hrk-sc:not([data-sc])').forEach(w => { w.dataset.sc = '1'; const sg = w.querySelector('.seg'); if (!sg) return;
+    const upd = () => { w.classList.toggle('more-l', sg.scrollLeft > 4); w.classList.toggle('more-r', sg.scrollLeft + sg.clientWidth < sg.scrollWidth - 4); };
+    const on = sg.querySelector('[aria-pressed="true"]'); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - (sg.clientWidth - on.offsetWidth) / 2);
+    sg.addEventListener('scroll', upd, { passive: true }); upd(); });
   document.querySelectorAll('select:not([data-px])').forEach(sel => {
     sel.dataset.px = '1'; sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true'); sel.classList.add('px-native');
     const o = sel.selectedOptions[0], txt = o ? (o.dataset.short || o.textContent) : '', lab = sel.getAttribute('aria-label') || '', b = document.createElement('button');
@@ -3608,6 +3702,9 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); const n = e.key === 'Home' ? os[0] : os[os.length - 1]; if (n) n.focus(); }
 }, true);
 addEventListener('resize', () => { pxClose(true); placeInk(); edgeFade(); document.querySelectorAll('.seg').forEach(sg => placeSeg(sg, false)); });
+// v3.41: the keys are set in a web font. If a weight arrives after a toggle was measured, its keys change width and the lit
+// key would sit off its label, so every toggle is measured again whenever a font finishes loading.
+try { document.fonts.addEventListener('loadingdone', () => document.querySelectorAll('.seg').forEach(sg => placeSeg(sg, false))); } catch (e) {}
 addEventListener('scroll', () => { if (PX && PX.el.classList.contains('pop') && performance.now() - PX.t > 400) pxClose(); }, { passive: true });      // a scroll still settling when it opened does not count
 new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
 
