@@ -656,8 +656,37 @@ class Arena {
     this.ri = ri; const sm = this.g.samples[ri]; this.R = smRng(0x5eed + ri * 7919 + this.g.id.length * 31);
     this.sc = this.lg === 'NBA' ? smNbaScript(this.g, sm, this.R) : smNflScript(this.g, sm, this.R);
     this.dur = this.sc.ev.map(e => this.evDur(e)); this.tot = this.dur.reduce((a, b) => a + b, 0);
+    this.decI = this.decider(); this.decShown = false;      // v3.38: the score that put the winner ahead for good, if it came late
     this.seek(0, true); this.paintBox(true);
     if (autoplay && !RM()) this.play();
+  }
+  decider() {      // v3.38 broadcast camera: a dry run of the box score finds the last time the eventual winner took the lead. Only a late one counts.
+    const ev = this.sc.ev, n = ev.length; this.box = this.emptyBox(); this.score = [0, 0]; this.log = []; const m = []; let t = 0; const at = [];
+    for (let i = 0; i < n; i++) { this.apply(ev[i], true); m.push(this.score[1] - this.score[0]); t += this.dur[i]; at.push(t); }
+    const W = Math.sign(m[n - 1] || 0); if (!W) return -1; let d = -1;
+    for (let i = 0; i < n; i++) if (Math.sign(m[i]) === W && Math.sign(i ? m[i - 1] : 0) !== W) d = i;
+    return d >= 0 && at[d] / (this.tot || 1) > .72 ? d : -1;
+  }
+  camStep(dt, e, ball) {      // v3.38 broadcast camera. A change of shot is a cut; inside a shot the camera eases after the ball. Off, or with Reduce Motion: the wide shot.
+    const C = this.cam, G = this.geo, on = FX.on('cam') && this.playing && e && this.i < this.sc.ev.length, now = performance.now(), lg = this.lg;
+    let kind = 'wide', z = 1, slow = 1;
+    if (on) { const k = e.k;
+      if (lg === 'NBA') { if (k === '2' || k === '3' || k === 'miss') { kind = 'play'; z = 1.3; } else if (k === 'ft') { kind = 'tight'; z = 1.5; } }
+      else if (k === 'run' || k === 'pass' || k === 'inc' || k === 'rtd') { kind = 'play'; z = 1.28; } else if (k === 'fg' || k === 'fgx' || k === 'pat') { kind = 'tight'; z = 1.42; }
+      if (this.i === this.decI && kind !== 'wide') { kind = 'dec'; z = 1.72; slow = this.u > .1 && this.u < .92 ? .3 : 1;
+        if (!this.decShown) { this.decShown = true; this.stamp('THE DECIDER', 'fin'); } } }
+    this.slowK = slow;
+    if (kind !== C.k && (now - C.at > 1250 || kind === 'dec' || !on)) { const cut = on && C.k !== 'dec'; C.k = kind; C.at = now; C.tz = z;
+      if (cut && ball) { C.z = kind === 'dec' ? 1.45 : z; C.x = ball.x; C.y = ball.y; } }      // the cut itself: no easing
+    const fx = C.k !== 'wide' && ball ? ball.x : this.L / 2, fy = C.k !== 'wide' && ball ? ball.y : this.Wd / 2, a = Math.min(1, dt * (C.k === 'wide' ? 3.2 : 4.2)), za = Math.min(1, dt * (C.k === 'dec' ? 1.1 : 3));
+    C.x += (fx - C.x) * a; C.y += (fy - C.y) * a; C.z += (C.tz - C.z) * za;
+    this.camBusy = Math.abs(C.z - C.tz) > .003 || Math.abs(C.x - fx) > .08 || Math.abs(C.y - fy) > .08;
+    if (C.z < 1.004 && C.k === 'wide') { if (this.H !== this.H0) { this.H = this.H0; this.drawFloor(); } return; }
+    const H0 = this.H0, zz = C.z, u = C.x / this.L, v = C.y / this.Wd, w0 = H0[6] * u + H0[7] * v + 1, Fx = (H0[0] * u + H0[1] * v + H0[2]) / w0, Fy = (H0[3] * u + H0[4] * v + H0[5]) / w0;
+    let tx = this.w / 2 - zz * Fx, ty = G.top + G.hf * .56 - zz * Fy;      // the ball sits a little below the middle of the frame; the floor never shows past its own edges
+    tx = Math.min(G.inB * (1 - zz), Math.max((this.w - G.inB) * (1 - zz), tx)); ty = Math.min(G.top * (1 - zz), Math.max((G.top + G.hf) * (1 - zz), ty));
+    this.H = [zz * H0[0] + tx * H0[6], zz * H0[1] + tx * H0[7], zz * H0[2] + tx, zz * H0[3] + ty * H0[6], zz * H0[4] + ty * H0[7], zz * H0[5] + ty, H0[6], H0[7]];
+    this.drawFloor();
   }
   evDur(e) {      // milliseconds at 1x
     if (this.lg === 'NBA') return e.k === 'tip' ? 2000 : e.k === 'qtr' ? 1100 : e.k === 'to' ? 900 : e.k === 'ft' ? 1500 : e.k === 'miss' ? 1700 : e.a != null ? 2200 : 1800;
@@ -671,7 +700,7 @@ class Arena {
   btn() { const b = $('#smPlay'); if (b) { b.classList.toggle('on', this.playing); b.setAttribute('aria-label', this.playing ? 'Pause' : 'Play'); } }
   kick() { if (this.dead || this.raf || !this.vis || document.hidden) return; this.last = performance.now(); this.raf = requestAnimationFrame(n => this.frame(n)); }
   seek(f, quiet) {      // jump: the box and score are replayed instantly up to that point, the players snap to place
-    const target = f * this.tot; this.t = 0; this.i = 0; this.u = 0; this.box = this.emptyBox(); this.score = [0, 0]; this.log = [];
+    const target = f * this.tot; this.t = 0; this.i = 0; this.u = 0; this.box = this.emptyBox(); this.score = [0, 0]; this.log = []; this.decShown = false;
     while (this.i < this.sc.ev.length && this.t + this.dur[this.i] <= target) { this.apply(this.sc.ev[this.i], true); this.t += this.dur[this.i]; this.i++; }
     this.u = 0; this.snap = true; this.fx = [];
     if (!quiet) { this.paintBox(true); }
@@ -770,6 +799,7 @@ class Arena {
     const narrow = w < 560, inB = w * .01, inT = w * (narrow ? .085 : .1), hf = Wd / L * w * (narrow ? .7 : .62), top = Math.max(26, hf * .14);
     this.h = Math.round(top + hf + 6); this.k = (w - 2 * inB) / L;
     this.H = smQuad([inT, top], [w - inT, top], [w - inB, top + hf], [inB, top + hf]);
+    this.H0 = this.H; this.geo = { inB, top, hf }; this.cam = { z: 1, x: L / 2, y: Wd / 2, k: 'wide', at: 0, tz: 1 };      // v3.38: the wide shot the broadcast camera starts from and returns to
     this.dpr = Math.min(window.devicePixelRatio || 1, 3);
     for (const c of [this.floor, this.live]) { c.width = Math.round(w * this.dpr); c.height = Math.round(this.h * this.dpr); c.style.width = w + 'px'; c.style.height = this.h + 'px'; }
     this.stage.style.setProperty('--sh', this.h + 'px');
@@ -840,7 +870,7 @@ class Arena {
     this.raf = 0; if (this.dead) return; if (!this.live.isConnected) { this.destroy(); return; }
     const dt = Math.min(.05, (now - this.last) / 1000); this.last = now;
     if (this.playing && this.i < this.sc.ev.length) {
-      const step = dt * 1000 * this.speed * (RM() ? .6 : 1); let du = step / this.dur[this.i];
+      const step = dt * 1000 * this.speed * (RM() ? .6 : 1) * (this.slowK || 1); let du = step / this.dur[this.i];      // v3.38: slowK is under 1 only on the deciding score
       this.u += du;
       while (this.u >= 1 && this.i < this.sc.ev.length) { this.u -= 1; const e = this.sc.ev[this.i]; if (!e.done) this.apply(e, false); this.t += this.dur[this.i]; this.i++; this.onEnd(e); if (this.i < this.sc.ev.length) this.u *= this.dur[this.i - 1] / this.dur[this.i]; }
       if (this.i >= this.sc.ev.length) { this.u = 0; this.playing = false; this.btn(); this.paintClock(); this.stampFinal(); }
@@ -848,7 +878,7 @@ class Arena {
       this.prog();
     }
     this.draw(dt);
-    const busy = this.playing || this.fx.length || this.moving;
+    const busy = this.playing || this.fx.length || this.moving || this.camBusy;
     if (busy && this.vis && !document.hidden) this.raf = requestAnimationFrame(n => this.frame(n));
   }
   onEnd(e) {
@@ -859,6 +889,7 @@ class Arena {
     const c = this.cx, d = this.dpr, k = this.k; if (!k) return; c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, this.w, this.h);
     const e = this.sc.ev[Math.min(this.i, this.sc.ev.length - 1)], u = this.i >= this.sc.ev.length || RM() ? .999 : this.u;
     const pose = this.lg === 'NBA' ? this.nbaPose(e, u) : this.nflPose(e, u);
+    if (this.H0) this.camStep(dt, e, pose.ball);
     const w = RM() || this.snap ? 1e4 : (this.lg === 'NBA' ? 6.5 : 7.5); this.snap = false; let moving = false;
     const seen = new Set();
     for (const p of pose.toks) { let o = this.toks.get(p.id); if (!o) { o = { x: p.x, y: p.y, vx: 0, vy: 0, a: 0 }; this.toks.set(p.id, o); }

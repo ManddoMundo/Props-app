@@ -1,5 +1,5 @@
 O="/home/claude/props/out/"; S="/home/claude/props/src/"
-h=open(S+"index.src.html").read(); e=open(S+"engine.js").read().replace("if (typeof module !== 'undefined') module.exports = E;","")
+h=open(S+"index.src.html").read(); ENG=open(S+"engine.js").read().replace("if (typeof module !== 'undefined') module.exports = E;","")
 import json, os, datetime
 D=json.load(open(O+"data.json"))
 D["desk"]=json.load(open(O+"history.json")) if os.path.exists(O+"history.json") else {"bets":[],"days":[],"unit":0.5,"bankroll":25}
@@ -33,5 +33,7 @@ D["built"]=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M
 d=json.dumps(D,separators=(",",":")).replace("</","<\\/")
 # v3.20 the Sim tab lives in its own two files, poured into the page here
 h=h.replace("/*__SIM_CSS__*/",open(S+"simtab.css").read()).replace("/*__SIM_JS__*/",open(S+"simtab.js").read())
-h=h.replace("/*__ENGINE__*/",e).replace("/*__DATA__*/",d)
+# v3.38 the effects layer (ten switchable effects, display only) lives in fx.css and fx.js
+h=h.replace("/*__FX_CSS__*/",open(S+"fx.css").read()).replace("/*__FX_JS__*/",open(S+"fx.js").read())
+h=h.replace("/*__ENGINE__*/",ENG).replace("/*__DATA__*/",d)
 open(O+"index.html","w").write(h); print(len(h))

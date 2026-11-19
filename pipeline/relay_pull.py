@@ -124,6 +124,8 @@ def chosen(lg, evs):
             ok = True
         elif KIND == "close":
             ok = mins <= 270
+        elif KIND == "lineups":                 # v3.39: only the games about to start (the next five hours), both leagues
+            ok = mins <= 300
         elif lg == "NBA" or TIER == "lite":
             ok = same_day
         else:                                   # NFL: the next 30 hours, and the whole week on Wednesday for the research room
@@ -198,7 +200,7 @@ def pull_lines(lg):
     if not body:
         notes.append(f"{lg}: no lines to save ({len(picked)} games in the window)")
         return
-    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}" + (f"_close{NOW:%H}" if KIND == "close" else "_pm" if KIND == "evening" else "")
+    name = f"{lg}_test" if KIND == "test" else f"{lg}_{TODAY}" + (f"_close{NOW:%H}" if KIND == "close" else "_pm" if KIND == "evening" else "_late" if KIND == "lineups" else "")
     save("lines", lg, name, f"# relay pulled {NOW:%Y-%m-%d %H:%M} ET, {KIND}, books: {','.join(BOOKS)}\nbookmaker_key|market_key|player|line|over_price|under_price",
          body, rows=sum(books.values()), games=games, books=books, markets=len(mk))
 
@@ -303,7 +305,8 @@ def due():
     if NOW.weekday() == 6 and 12 <= h < 13.75 and ST["done"].get("close_early") != TODAY:      # Sunday: NFL 1 PM closing lines
         return "close"
     # v3.24: lineups. About 6:40 PM (the 7 PM tips confirm their starters about 30 minutes before; NFL night inactives are
-    # out by then) and about 9:15 PM (the West coast games). No credits: nba.com lineups and the ESPN injury report.
+    # out by then) and about 9:15 PM (the West coast games). nba.com lineups, the ESPN injury report and, since v3.39, fresh
+    # prices for the games about to start.
     if 18.5 <= h < 20.25 and ST["done"].get("evening") == TODAY and ST["done"].get("lineups_a") != TODAY:
         return "lineups"
     if 20.9 <= h < 23 and ST["done"].get("lineups_b") != TODAY:
@@ -339,7 +342,14 @@ elif KIND == "early":
 elif KIND == "close" and TIER == "lite":
     notes.append("Closing lines are skipped on a small plan")
 elif KIND == "lineups":
-    pass                                        # lineups and injuries only: no lines, no credits
+    # v3.39: the lineups runs pull prices again for the games about to start (one credit a market a game: about 8 a game
+    # for the NBA, 9 for the NFL), so a ticket scratched on late news can be replaced at a price that is really on offer.
+    # Full plan only. The file is <LG>_<date>_late and each lineups run writes over it.
+    if TIER == "full":
+        for lg in ("NBA", "NFL"):
+            pull_lines(lg)
+    else:
+        notes.append("Lineups run: no late prices on a small plan, so scratched tickets are not replaced")
 else:
     for lg in ("NBA", "NFL"):
         pull_lines(lg)

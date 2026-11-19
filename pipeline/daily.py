@@ -4,6 +4,7 @@
   python3 daily.py news  <YYYY-MM-DD> <NBA|NFL> <injuries.txt|-> [lines.txt ...]   lineup news -> out/news.json (run BEFORE the models)
   python3 daily.py lines <YYYY-MM-DD> <NBA|NFL> <lines.txt> [...]   price pasted odds tables, write out/feed.json
   python3 daily.py pick  <YYYY-MM-DD> <NBA|NFL>                     log the day's best bets to out/history.json
+  python3 daily.py evening <YYYY-MM-DD> <NBA|NFL> [late]            second look on the evening pull; "late" = refill scratched slots from the lineups run's pull
   python3 daily.py scratch <YYYY-MM-DD> <NBA|NFL>                   void today's open tickets on players ruled out (run AFTER the models, BEFORE evening)
   python3 daily.py explain <YYYY-MM-DD> <NBA|NFL>                   (re)write the case file on each bet and the day's pass list
   python3 daily.py close <YYYY-MM-DD> <NBA|NFL> "<label>" <late_lines.txt>   closing line check on the open bets
@@ -34,10 +35,14 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            # both. Closing-line replay, 2026 season: NBA sides the 0.12 hold removed went about 60%, NFL sides lost.
            hold_edge={"NBA": 0.25, "NFL": 0.12},
            min_books=2,                      # other books that must quote the same player and market before a side can be picked
-           # v3.37: sportsbooks that must still quote a player's main market, both sides, before the quotes overrule an "Out"
-           # on the injury report. It used to take one row from anyone, so a leftover alternate line or an exchange that never
-           # closed its market kept a scratched player in the lineup (Scottie Barnes, Nov 18).
-           news_books=3,
+           # v3.37: quotes overrule an "Out" on the injury report only when enough sportsbooks still post the player's main
+           # market with both prices. It used to take one row from anyone, so a leftover alternate line or an exchange that
+           # never closed its market kept a scratched player in the lineup (Scottie Barnes, Nov 18).
+           # v3.39: "enough" is a share of the sportsbooks pricing his game, not a fixed 3: at least half of them, and never
+           # fewer than news_min (or all of them when fewer than that are pricing the game). Seven books need 4, four need 2.
+           # In the saved pulls a player who is playing has every book or all but one (46 of 49 had 4 of 4, the rest 3 of 4),
+           # so half leaves room for a slow book or two without letting stragglers overrule the report.
+           news_share=0.5, news_min=2,
            # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
            # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
            # market has 200 graded sides and the weekly review adds it here. The confident lane follows the books, not the model.
@@ -251,10 +256,11 @@ def cmd_news(date, lg, files):
     """Lineup news for one league. files[0] is an injury table (team | player | pos | est_return | status | comment) or "-",
     the rest are book lines files. A player the books are quoting is expected to play; in NFL files a `# game: AWAY @ HOME`
     line before each game's table lets the passing yards market name each team's starting QB.
-    v3.37: quotes overrule a listed "Out" only when news_books sportsbooks still post his main market with both prices.
+    v3.37/v3.39: quotes overrule a listed "Out" only when at least news_share of the sportsbooks pricing his game still
+    post his main market with both prices (never fewer than news_min).
     FL_NEWS=late (the lineups and close runs, where the lines on file are older than the injury report): a plain "Out"
     always stands; only a coarse status (injured reserve and the like) can still be overruled by the books."""
-    out, q, inn, qb_game, by_team, firm, coarse, strong = set(), set(), set(), {}, {}, set(), set(), {}
+    out, q, inn, qb_game, by_team, firm, coarse, strong, gbooks, pgame = set(), set(), set(), {}, {}, set(), set(), {}, {}, {}
     late = os.environ.get("FL_NEWS") == "late"
     if files and files[0] != "-":
         for ln in open(files[0]):
@@ -269,7 +275,7 @@ def cmd_news(date, lg, files):
                 if code: by_team.setdefault(code, []).append([c[1], c[2]])      # who is out, by club, for the write-ups
             elif any(k in st for k in ("day-to-day", "questionable", "game-time", "gtd")): q.add(norm(c[1]))
     num = lambda x: bool(re.fullmatch(r"[+-]?\d+(\.\d+)?", x))
-    for f in files[1:]:
+    for fi, f in enumerate(files[1:]):
         game = None
         for ln in open(f):
             if ln.startswith("# game:"):
@@ -281,13 +287,18 @@ def cmd_news(date, lg, files):
             # a quote that counts against an "Out": a sportsbook the desk bets at, a main market, both prices posted
             if c[0] in CFG["bet_books"] and c[1] in MK[lg] and num(c[4]) and (c[1] == "player_anytime_td" or num(c[5])):
                 strong.setdefault(norm(c[2]), set()).add(c[0])
+                gk = (fi, game); gbooks.setdefault(gk, set()).add(c[0]); pgame.setdefault(norm(c[2]), set()).add(gk)      # a file with no game markers counts as one game
             if lg == "NFL" and c[1] == "player_pass_yds" and game and norm(c[2]) not in qb_game.setdefault(game, []):
                 qb_game[game].append(norm(c[2]))
     cur = json.load(open(NEWS)) if os.path.exists(NEWS) else {}
     # Books pull a prop the moment a player is ruled out, so live quotes from several books beat a stale or coarse status
     # (for example "injured reserve" on a player who has been designated to return). One leftover row does not.
     both = out & inn
-    quoted_out = sorted(n for n in both if len(strong.get(n, ())) >= CFG["news_books"] and (not late or n in coarse))
+
+    def enough(n):      # the books still posting him, against the books pricing his game
+        ng = max((len(gbooks[g]) for g in pgame.get(n, ())), default=0)
+        return ng > 0 and len(strong.get(n, ())) >= max(min(CFG["news_min"], ng), math.ceil(CFG["news_share"] * ng))
+    quoted_out = sorted(n for n in both if enough(n) and (not late or n in coarse))
     stays = sorted(both - set(quoted_out))
     out -= set(quoted_out); inn -= out
     by_team = {t: [x for x in v if norm(x[0]) in out] for t, v in by_team.items()}
@@ -297,7 +308,7 @@ def cmd_news(date, lg, files):
                "t": datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p ET")}
     json.dump(cur, open(NEWS, "w"), indent=1)
     print(f"{lg} {date} news: {len(out)} out, {len(q)} questionable, {len(inn)} quoted by a book" + (f", book QBs {qb_game}" if qb_game else "")
-          + (f", listed out but quoted by {CFG['news_books']}+ books (treated as playing): {quoted_out}" if quoted_out else "")
+          + (f", listed out but still posted by at least half the books on his game (treated as playing): {[(n, len(strong.get(n, ()))) for n in quoted_out]}" if quoted_out else "")
           + (f", listed out and kept out despite a leftover quote: {[(n, sorted(strong.get(n, ()))) for n in stays]}" if stays else ""))
 
 
@@ -555,14 +566,17 @@ def cmd_pick(date, lg):
     cmd_explain(date, lg)
 
 
-def cmd_evening(date, lg):
-    """v3.17 evening pass (about 6 PM). Same pick rules as midday, on the evening lines, for games still to come:
+def cmd_evening(date, lg, sfx="_pm"):
+    """v3.39: sfx="_late" is the same pass on the lineups run's own fresh pull (about 6:40 and 9:15 PM), with one
+    difference: it only refills slots that scratched tickets gave back. It never adds a ticket to a day that is merely short.
+    v3.17 evening pass (about 6 PM). Same pick rules as midday, on the evening lines, for games still to come:
     never a second ticket on a player already bet today, never past max_picks edge plays per league a day, max_per_game and
     day_units as always. Tickets from midday are never changed. Also records what moved since midday: line, prices and the
     desk's own chance on every prop priced both times."""
-    fp = O + f"priced/{lg}_{date}_pm.json"
+    late = sfx == "_late"
+    fp = O + f"priced/{lg}_{date}{sfx}.json"
     if not os.path.exists(fp):
-        print(f"{lg} {date}: no evening lines priced"); return
+        print(f"{lg} {date}: no {'late' if late else 'evening'} lines priced"); return
     h = history(); pm = json.load(open(fp))
     am_fp = O + f"priced/{lg}_{date}.json"; am = json.load(open(am_fp)) if os.path.exists(am_fp) else []
     A = {(x["id"], x["side"]): x for x in am}
@@ -585,11 +599,12 @@ def cmd_evening(date, lg):
     for b in live:
         per_game[b["game"]] = per_game.get(b["game"], 0) + 1
     room = CFG["max_picks"] - sum(1 for b in live if b.get("lane") != "confident" and not b.get("lean"))
+    if late: room = min(room, len(gone))
     pool = sorted([b for b in pm if eligible(b)], key=lambda b: -b["adj"]); picks = []
     for b in pool:
         if room <= 0: break
         if b["pid"] in taken or per_game.get(b["game"], 0) >= CFG["max_per_game"]: continue
-        b = dict(b); b.update(best=False, status="open", result=None, lane="edge", run="pm")
+        b = dict(b); b.update(best=False, status="open", result=None, lane="edge", run=sfx[1:])
         for k in ("be", "conf", "adj", "n"):
             b.pop(k, None)
         if not put_stake(h, b):
@@ -597,17 +612,20 @@ def cmd_evening(date, lg):
         if gone:      # this pick takes the slot a scratched ticket gave back
             g = gone.pop(0); b["replaces"] = g["name"]; g["scratch"]["replaced_by"] = b["name"]
         h["bets"].append(b); picks.append(b); taken.add(b["pid"]); per_game[b["game"]] = per_game.get(b["game"], 0) + 1; room -= 1
-        print(f'  evening pick: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} blended {b["muf"]}')
+        print(f'  {"late" if late else "evening"} pick: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} blended {b["muf"]}')
     from zoneinfo import ZoneInfo
     t = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p")
     rec = next((d for d in h["days"] if d["date"] == date and d["lg"] == lg), None)
     if rec is None:
         rec = dict(date=date, lg=lg, sides_priced=0, cleared_bar=0, picks=0); h["days"].append(rec)
-    rec["pm"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks), moved=n_moved, compared=n_both, moves=moves[:12])
+    if late:      # the evening record (what moved since midday) is left as it was
+        rec["late"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks))
+    else:
+        rec["pm"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks), moved=n_moved, compared=n_both, moves=moves[:12])
     save_history(h)
-    print(f"{lg} {date} evening: {len(pm)} sides priced, {len(pool)} cleared the bar, {len(picks)} new, {n_moved} of {n_both} props moved since midday")
+    print(f"{lg} {date} {'late' if late else 'evening'}: {len(pm)} sides priced, {len(pool)} cleared the bar, {len(picks)} new" + ("" if late else f", {n_moved} of {n_both} props moved since midday"))
     if picks:
-        cmd_explain(date, lg, "_pm")
+        cmd_explain(date, lg, sfx)
         h = history()      # the case file says which ticket it replaced
         for b in h["bets"]:
             if b["date"] == date and b["lg"] == lg and b.get("replaces") and b.get("why") and not b["why"].get("repl"):
@@ -831,7 +849,7 @@ def cmd_explain(date, lg, sfx=""):
     row = {(x["id"], x["side"]): x for x in priced}
     mine = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded") and b.get("lane") != "confident"]
     if sfx:
-        mine = [b for b in mine if b.get("run") == "pm"]
+        mine = [b for b in mine if b.get("run") == sfx[1:]]
     for b in mine:
         mn = b.get("mn") or (row.get((b["id"], b["side"])) or {}).get("mn")
         b["why"] = explain(b, D, quotes, news, mn)
@@ -1252,7 +1270,7 @@ if __name__ == "__main__":
     elif a[0] == "explain": cmd_explain(a[1], a[2])
     elif a[0] == "close": cmd_close(a[1], a[2], a[3], a[4:])
     elif a[0] == "pick": cmd_pick(a[1], a[2])
-    elif a[0] == "evening": cmd_evening(a[1], a[2])
+    elif a[0] == "evening": cmd_evening(a[1], a[2], "_late" if len(a) > 3 and a[3] == "late" else "_pm")
     elif a[0] == "scratch": cmd_scratch(a[1], a[2])
     elif a[0] == "confident": cmd_confident(a[1], a[2], a[3:])
     elif a[0] == "fill": cmd_fill(a[1])

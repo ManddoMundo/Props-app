@@ -603,3 +603,10 @@ html,body{overflow-x:clip}
 .pk-ta{display:flex;justify-content:flex-end;margin-top:10px}
 .pk-ta .btn{color:var(--pk-paper-ink);border-color:var(--pk-paper-ink)}
 @container (max-width:430px){.pk-base{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 12px}.pk-rs{grid-column:1;justify-content:center}.pk-go{grid-column:2;width:100%}.pk-rs[hidden]+.pk-go{grid-column:1/-1}}
+/* v3.39 audit pass */
+/* Sim prop cards cut real names at iPhone widths ("Anfernee Simo..."): the name wraps to a second line instead. */
+.sm-pn b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+@media (pointer:coarse){
+  .sm-leg,.sm-leg.mini{min-height:40px}
+  .sm-box summary{min-height:40px}
+}

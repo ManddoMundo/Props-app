@@ -1872,7 +1872,33 @@ button.row.pl:hover .tg{animation:numpop .44s var(--thunk) .06s}
 .bkd.open .bkd-tb tbody tr{animation:bkrise .28s cubic-bezier(.23,1,.32,1) calc(60ms + var(--i) * 26ms) backwards}
 .bkd .note{margin:0 0 10px}
 @media (prefers-reduced-motion:reduce){.bkd-w{transition:none}.bkd.open .bkd-tb tbody tr,.bkp-o{animation:none}}
+/* v3.39 audit pass. Each rule fixes one thing found by measuring every tab at 22 screen sizes; nothing here is a redesign. */
+/* Board filters, 320 to 344 wide: the side column sized itself to the sort control and ran 40px past the screen, cutting the books picker and the search box. */
+.wr-side{grid-template-columns:minmax(0,1fr)} .wr-row>*{max-width:100%}
+/* Games, 320 wide: a line-move tag could not wrap and pushed its row 20px past the card. */
+.gp-pk b{min-width:0} .gp-mvb .gp-tg{white-space:normal}
+/* Tote captions were cut at two lines on 320 to 360 wide ("1 of 4 tracked beat the late..."). */
+@media(max-width:380px){.tc em{-webkit-line-clamp:3}}
+/* The TV's captions were cut on 320 to 360 wide ("Logged picks, to w..."): labels wrap and captions get a third line. */
+@media(max-width:380px){.tv-t small{white-space:normal;min-height:2.6em} .tv-t em{-webkit-line-clamp:3}}
+/* A name identifies the row, so it wraps to a second line instead of ending in dots (ledger rows, hit-rate cards). */
+.who b,.hrc-who b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+/* Research fixture strip, 320 to 380 wide: the home side's "Pace 102.3" could not wrap and was cut at the card's edge. */
+@media(max-width:380px){.fx-t .nm-p{white-space:normal;font-size:11px} .fx-t.a{padding-right:16px} .fx-t.h{padding-left:18px}}
+@media(max-width:340px){.fx-t{padding-inline:8px} .fx-t.a{padding-right:8px} .fx-t.h{padding-left:12px} .fx-t small{letter-spacing:.08em}}
+/* An exit eases out, like every other exit in the app. */
+.fold.shut{animation-timing-function:ease-out}
+/* Touch targets under the 40px rule, fixed for fingers only (a mouse keeps the tighter look). Invisible reach where the
+   control sits in open space; a few px of real height where a scroller would clip the reach. */
+@media (pointer:coarse){
+  :where(.lg button,.tape-b,.px-x,.sp-info button,.st-dots button,button.pn,.st-skip,.btn.ghost){position:relative}
+  .lg button::after,.tape-b::after,.px-x::after,.memo-h .x::after,.sp-info button::after,.st-dots button::after,button.pn::after,.st-skip::after,.btn.ghost::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+  .seg button{padding-block:10px}
+  .trs-d summary{padding-block:13px}
+  details.card>summary{padding-block:8px}
+}
 /*__SIM_CSS__*/
+/*__FX_CSS__*/
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
   <pattern id="hOver" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="var(--accent-soft)"/><rect width="2.6" height="5" fill="var(--accent)"/></pattern>
@@ -1911,7 +1937,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const f1 = x => (Math.round(x * 10) / 10).toFixed(1);
 const pct = x => (x * 100).toFixed(1) + '%';
 const sgn = (x, d = 1) => (x >= 0 ? '+' : '') + x.toFixed(d);
-const odds = a => (a > 0 ? '+' + a : String(a));
+const odds = a => { a = Math.round(a); return a > 0 ? '+' + a : String(a); };      // v3.39: a consensus price can sit between two books (+161.5); a price is always shown whole
 const money = x => (x < 0 ? '-$' : '$') + Math.abs(x).toFixed(2);
 const sum = a => a.reduce((s, v) => s + v, 0);
 const RM = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
@@ -2678,7 +2704,7 @@ function ticketHtml(b, i) {
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   return `<article class="tk${op ? ' open' : ''}${S.fresh ? ' in' : ''}${b.best && b.status === 'open' ? ' beam' : ''}" style="--i:${i}">
     <button class="tk-main" data-tk="${esc(k)}" aria-expanded="${op}">
-      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(t12(g.time)) : ''} · ${esc(b.date.slice(5))}</span>
+      <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : b.run === 'late' ? '<b>Late swap</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(t12(g.time)) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
         ${w ? `<span class="tk-head">${esc(w.head)}</span>` : ''}
         <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('Line val.', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
@@ -2722,7 +2748,10 @@ function deskHtml() {
   const etNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })), etH = etNow.getHours() + etNow.getMinutes() / 60;
   const etDay = `${etNow.getFullYear()}-${String(etNow.getMonth() + 1).padStart(2, '0')}-${String(etNow.getDate()).padStart(2, '0')}`;
   const eveRec = DESK.days.find(d => d.date === etDay && d.pm), eveMiss = !eveRec && lastDate === etDay && etH >= 19.75;
-  const eveTxt = eveRec ? `Evening pass ran ${eveRec.pm.t}` : lastDate !== etDay ? '' : etH < 17.75 ? 'Evening pass runs about 6 PM' : etH < 19.75 ? 'Evening pass due by 7:45 PM' : 'Evening pass did not run today';
+  // v3.39: the late pass (about 6:40 and 9:15 PM) and any scratched tickets are named beside the evening pass
+  const lateRec = DESK.days.filter(d => d.date === etDay && d.late).pop(), scrN = dd.reduce((n, d) => n + (d.scratched || []).length, 0);
+  const eveTxt = (eveRec ? `Evening pass ran ${eveRec.pm.t}` : lastDate !== etDay ? '' : etH < 17.75 ? 'Evening pass runs about 6 PM' : etH < 19.75 ? 'Evening pass due by 7:45 PM' : 'Evening pass did not run today')
+    + (lateRec ? `, late prices ${lateRec.late.t}` : '') + (scrN ? ` · ${scrN} scratched` : '');
   const cenAll = dd.flatMap(d => Object.values(d.cen || {})), cenTxt = cenAll.length ? (() => { const a = Math.min(...cenAll), b = Math.max(...cenAll), f = x => Math.round(Math.abs(x - 1) * 100); return a >= 1 ? ` Before centring, the model ran ${f(a)} to ${f(b)} percent under the books.` : ''; })() : '';
   const passed = dd.flatMap(d => (d.passed || []).map(x => [x, d.lg]));
   // v3.17: what moved between the midday and evening pulls, props priced both times, biggest line moves first
@@ -2733,7 +2762,7 @@ function deskHtml() {
   const passHtml = ([x, lg], i) => `<div class="pass${S.fresh ? ' in' : ''}" style="--i:${i}"><span class="ph"><b>${esc(x.name)}</b><span class="pstamp">${esc(x.stamp)}</span></span>
     <span class="lbl">${esc(lg)} · ${esc(x.team)} v ${esc(x.opp)}</span><span class="pl">${esc(x.side)} ${x.line} ${esc(MK[lg][x.mkt].s)} ${odds(x.odds)} · edge ${sgn(x.edge * 100)}</span><p>${esc(x.why)}</p></div>`;
   const split = (title, keyf, names) => { const ks = [...new Set(graded.map(keyf))]; if (!ks.length) return ''; return `<div class="card scroll"><table><thead><tr><th>${title}</th><th>Record</th><th>Hit rate</th><th>Units</th></tr></thead><tbody>${ks.map(k => { const r = rec(graded.filter(b => keyf(b) === k)); return `<tr><td>${esc(names(k))}</td><td>${r.w}-${r.l}</td><td>${pct(r.hit)}</td><td class="${r.u >= 0 ? 'pos' : 'neg'}">${sgn(r.u, 2)}</td></tr>`; }).join('')}</tbody></table></div>`; };
-  const stampOf = b => b.superseded ? ['REPLACED', 'n'] : st(b) === 'won' ? ['PAID', 'g'] : st(b) === 'lost' ? ['LOST', 'b'] : st(b) === 'push' ? ['PUSH', 'n'] : ['VOID', 'n'];
+  const stampOf = b => b.superseded ? ['REPLACED', 'n'] : st(b) === 'won' ? ['PAID', 'g'] : st(b) === 'lost' ? ['LOST', 'b'] : st(b) === 'push' ? ['PUSH', 'n'] : b.scratch ? ['SCRATCHED', 'n'] : ['VOID', 'n'];
   const cell = (l, v, c) => `<span class="cell"><small>${l}</small><span${c ? ` class="${c}"` : ''}>${v}</span></span>`;
   const srow = b => { const k = tkKey(b), sp = stampOf(b), has = !!b.why && !b.superseded, op = has && S.open.has(k);
     const inner = `<span class="rs ${sp[1]}">${sp[0]}</span><span class="who"><b>${esc(b.name)} ${esc(betLabel(b))}</b><span>${esc(b.date.slice(5))} · ${esc(b.lg)} · ${esc(b.gl)}${b.best ? ' · best bet' : ''}</span></span>
@@ -3654,6 +3683,7 @@ addEventListener('resize', () => { if (foldFrom == null) foldFrom = foldW; foldW
   foldTm = setTimeout(() => { const a = foldFrom, b = innerWidth; foldFrom = null; if (RM() || !a) return;
     const open = a < 640 && b >= 700 && b / a > 1.4, shut = a >= 700 && b < 640 && a / b > 1.4; if (!open && !shut) return;
     document.querySelectorAll('.fold').forEach(n => n.remove()); const el = document.createElement('div'); el.className = 'fold ' + (open ? 'open' : 'shut'); el.setAttribute('aria-hidden', 'true');
+    if (FX.hinge(el, open)) { placeInk(); return; }      // v3.38: with the Hinge effect on, the covers are a case with latches
     el.innerHTML = '<i>Fair</i><i>Line</i>'; document.body.appendChild(el); placeInk(); setTimeout(() => el.remove(), 1900); }, 140); });
 
 /* a pick grows into its credit memo and shrinks back into its row (a container transform, done by hand) */
@@ -3876,6 +3906,7 @@ function go(fn, dir) {              // a change of sheet. No View Transitions: o
   S.fresh = true; S.enter = true;
   if (RM()) { fn(); return; }
   if (dir === 'iris') return irisGo(fn);
+  if (FX.rooms(fn, dir)) return;      // v3.38: with the Rooms effect on, the camera turns from one room to the next
   fn(); sheetIn(dir);
 }
 function sheetIn(dir) {             // only what is on screen slides in, a few pieces at a time; the rest of the page simply appears
@@ -4075,6 +4106,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && STO
 addEventListener('resize', () => { if (S.tab === 'model') requestAnimationFrame(storyMount); });
 
 /*__SIM_JS__*/
+/*__FX_JS__*/
 /* ---------- render + events ---------- */
 function render() {
   $('#lgNBA').setAttribute('aria-pressed', S.lg === 'NBA'); $('#lgNFL').setAttribute('aria-pressed', S.lg === 'NFL');
@@ -4197,7 +4229,7 @@ const endDrag = () => { if (drag) { drag = false; refreshMain(); } };
 document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.memo) closeMemo(); });
 
-grade(); render(); enhance(); cloud(true); watchTop();
+grade(); render(); enhance(); cloud(true); watchTop(); FX.boot();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeInk);
 })();
 </script>
