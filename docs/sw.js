@@ -1,5 +1,5 @@
 /* Fair Line service worker (site.py, v3.36). Network first: the saved copy is only for when there is no signal. */
-const V = 'fl-3.37', CORE = ['./', 'manifest.webmanifest', 'icon-192.png', 'research/nfl.json', 'research/splits_nba.json', 'research/splits_nfl.json', 'research/nba_match.json', 'research/sim_nba.json', 'research/sim_nfl.json'];
+const V = 'fl-3.39', CORE = ['./', 'manifest.webmanifest', 'icon-192.png', 'research/nfl.json', 'research/splits_nba.json', 'research/splits_nfl.json', 'research/nba_match.json', 'research/sim_nba.json', 'research/sim_nfl.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('fl-') && k !== V && k !== 'fl-fonts').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 const late = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('slow')), ms))]);

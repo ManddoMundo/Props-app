@@ -271,23 +271,44 @@
    "et": "2026-11-18 21:52",
    "rows": 421,
    "confirmed": 421
+  },
+  {
+   "path": "data/news/NBA_2026-11-19.txt.enc",
+   "what": "news",
+   "lg": "NBA",
+   "date": "2026-11-19",
+   "kind": "early",
+   "et": "2026-11-19 06:50",
+   "rows": 101
+  },
+  {
+   "path": "data/news/NFL_2026-11-19.txt.enc",
+   "what": "news",
+   "lg": "NFL",
+   "date": "2026-11-19",
+   "kind": "early",
+   "et": "2026-11-19 06:50",
+   "rows": 800
   }
  ],
  "done": {
   "midday": "2026-11-18",
   "evening": "2026-11-18",
   "lineups_a": "2026-11-18",
-  "lineups_b": "2026-11-18"
+  "lineups_b": "2026-11-18",
+  "early": "2026-11-19"
  },
  "quota": {
   "remaining": 5081,
   "used": 14919
  },
- "updated_utc": "2026-11-19 02:52",
- "et": "2026-11-18 21:52",
- "kind": "lineups",
+ "updated_utc": "2026-11-19 11:50",
+ "et": "2026-11-19 06:50",
+ "kind": "early",
  "tier": "full",
  "spent": 0,
  "errors": [],
- "notes": []
+ "notes": [
+  "Morning refresh: no lines pulled, they post later in the morning"
+ ]
 }
