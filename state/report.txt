@@ -1,16 +1,16 @@
-bets 32, open 3
-  all            12-11  hit 52.2%  units +0.04  dollars -2.16  avg model prob 60.3%
-  best bets      4-4  hit 50.0%  units -0.39  dollars -0.20  avg model prob 58.6%
-  edge lane      12-11  hit 52.2%  units +0.04  dollars -2.16  avg model prob 60.3%
-  NBA            9-9  hit 50.0%  units -0.57  dollars -2.46  avg model prob 59.7%
+bets 32, open 1
+  all            14-11  hit 56.0%  units +3.79  dollars +91.59  avg model prob 59.9%
+  best bets      5-4  hit 55.6%  units +1.71  dollars +52.30  avg model prob 58.4%
+  edge lane      14-11  hit 56.0%  units +3.79  dollars +91.59  avg model prob 59.9%
+  NBA            11-9  hit 55.0%  units +3.18  dollars +91.29  avg model prob 59.3%
   NFL            3-2  hit 60.0%  units +0.61  dollars +0.30  avg model prob 62.1%
-  ast            1-4  hit 20.0%  units -3.09  dollars -3.72  avg model prob 55.2%
+  ast            3-4  hit 42.9%  units +0.66  dollars +90.03  avg model prob 55.4%
   pass_yds       0-1  hit 0.0%  units -1.00  dollars -0.50  avg model prob 62.8%
   pts            3-3  hit 50.0%  units -0.27  dollars -0.13  avg model prob 63.9%
   reb            5-2  hit 71.4%  units +2.78  dollars +1.39  avg model prob 59.4%
   rec_yds        2-0  hit 100.0%  units +1.74  dollars +0.87  avg model prob 61.8%
   rush_yds       1-1  hit 50.0%  units -0.13  dollars -0.07  avg model prob 62.1%
-  AAA            10-9  hit 52.6%  units +0.50  dollars +0.25  avg model prob 60.8%
+  AAA            12-9  hit 57.1%  units +4.25  dollars +94.00  avg model prob 60.3%
   AA             0-2  hit 0.0%  units -1.25  dollars -6.75  avg model prob 50.7%
   A              2-0  hit 100.0%  units +0.79  dollars +4.34  avg model prob 64.4%
   closing line value: 4 bets tracked, average -4.3%, beat the close on 1
