@@ -4,6 +4,7 @@
   python3 daily.py news  <YYYY-MM-DD> <NBA|NFL> <injuries.txt|-> [lines.txt ...]   lineup news -> out/news.json (run BEFORE the models)
   python3 daily.py lines <YYYY-MM-DD> <NBA|NFL> <lines.txt> [...]   price pasted odds tables, write out/feed.json
   python3 daily.py pick  <YYYY-MM-DD> <NBA|NFL>                     log the day's best bets to out/history.json
+  python3 daily.py scratch <YYYY-MM-DD> <NBA|NFL>                   void today's open tickets on players ruled out (run AFTER the models, BEFORE evening)
   python3 daily.py explain <YYYY-MM-DD> <NBA|NFL>                   (re)write the case file on each bet and the day's pass list
   python3 daily.py close <YYYY-MM-DD> <NBA|NFL> "<label>" <late_lines.txt>   closing line check on the open bets
   python3 daily.py relay <YYYY-MM-DD>                              fetch and decrypt the day's lines and injury files from the GitHub relay
@@ -14,7 +15,7 @@ Run after nfl.py / nba.py / build_data.py so out/data.json and the *_check.json 
 import json, math, os, re, sys, unicodedata, datetime
 import numpy as np
 from scipy import stats
-from common import nb_k, norm
+from common import nb_k, norm, load_lineups
 
 O = "/home/claude/props/out/"
 D = "/home/claude/props/data/"
@@ -33,6 +34,10 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            # both. Closing-line replay, 2026 season: NBA sides the 0.12 hold removed went about 60%, NFL sides lost.
            hold_edge={"NBA": 0.25, "NFL": 0.12},
            min_books=2,                      # other books that must quote the same player and market before a side can be picked
+           # v3.37: sportsbooks that must still quote a player's main market, both sides, before the quotes overrule an "Out"
+           # on the injury report. It used to take one row from anyone, so a leftover alternate line or an exchange that never
+           # closed its market kept a scratched player in the lineup (Scottie Barnes, Nov 18).
+           news_books=3,
            # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
            # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
            # market has 200 graded sides and the weekly review adds it here. The confident lane follows the books, not the model.
@@ -113,8 +118,13 @@ def stake_units(b):
     return min(u, CFG["max_units"])
 
 
+def scratched(b):
+    """v3.37: a ticket voided before the game because the player was ruled out. It no longer holds a slot or a stake."""
+    return b.get("status") == "void" and bool(b.get("scratch"))
+
+
 def day_units(h, date):
-    return sum(b["units"] for b in h["bets"] if b["date"] == date and not b.get("superseded") and b.get("unit"))
+    return sum(b["units"] for b in h["bets"] if b["date"] == date and not b.get("superseded") and b.get("unit") and not scratched(b))
 
 
 def put_stake(h, b):
@@ -240,8 +250,12 @@ def parse(path):
 def cmd_news(date, lg, files):
     """Lineup news for one league. files[0] is an injury table (team | player | pos | est_return | status | comment) or "-",
     the rest are book lines files. A player the books are quoting is expected to play; in NFL files a `# game: AWAY @ HOME`
-    line before each game's table lets the passing yards market name each team's starting QB."""
-    out, q, inn, qb_game, by_team = set(), set(), set(), {}, {}
+    line before each game's table lets the passing yards market name each team's starting QB.
+    v3.37: quotes overrule a listed "Out" only when news_books sportsbooks still post his main market with both prices.
+    FL_NEWS=late (the lineups and close runs, where the lines on file are older than the injury report): a plain "Out"
+    always stands; only a coarse status (injured reserve and the like) can still be overruled by the books."""
+    out, q, inn, qb_game, by_team, firm, coarse, strong = set(), set(), set(), {}, {}, set(), set(), {}
+    late = os.environ.get("FL_NEWS") == "late"
     if files and files[0] != "-":
         for ln in open(files[0]):
             c = [x.strip() for x in ln.strip().strip("|").split("|")]
@@ -250,8 +264,11 @@ def cmd_news(date, lg, files):
             st = c[4].lower(); code = TEAM[lg].get(c[0].lower().split()[-1]) if c[0].split() else None
             if any(k in st for k in ("out", "injured reserve", "doubtful", "suspen", "unable to perform", "non-football")):
                 out.add(norm(c[1]))
+                if "out" in st: firm.add(norm(c[1]))          # ruled out of this game, by name: the only status a ticket is scratched on
+                elif "doubtful" not in st: coarse.add(norm(c[1]))      # a roster designation, which can lag a player's return
                 if code: by_team.setdefault(code, []).append([c[1], c[2]])      # who is out, by club, for the write-ups
             elif any(k in st for k in ("day-to-day", "questionable", "game-time", "gtd")): q.add(norm(c[1]))
+    num = lambda x: bool(re.fullmatch(r"[+-]?\d+(\.\d+)?", x))
     for f in files[1:]:
         game = None
         for ln in open(f):
@@ -261,16 +278,27 @@ def cmd_news(date, lg, files):
             if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
                 continue
             inn.add(norm(c[2]))
+            # a quote that counts against an "Out": a sportsbook the desk bets at, a main market, both prices posted
+            if c[0] in CFG["bet_books"] and c[1] in MK[lg] and num(c[4]) and (c[1] == "player_anytime_td" or num(c[5])):
+                strong.setdefault(norm(c[2]), set()).add(c[0])
             if lg == "NFL" and c[1] == "player_pass_yds" and game and norm(c[2]) not in qb_game.setdefault(game, []):
                 qb_game[game].append(norm(c[2]))
     cur = json.load(open(NEWS)) if os.path.exists(NEWS) else {}
-    # Books pull a prop the moment a player is ruled out, so a live quote beats a stale or coarse status (for example
-    # "injured reserve" on a player who has been designated to return).
-    quoted_out = sorted(out & inn); out -= inn
+    # Books pull a prop the moment a player is ruled out, so live quotes from several books beat a stale or coarse status
+    # (for example "injured reserve" on a player who has been designated to return). One leftover row does not.
+    both = out & inn
+    quoted_out = sorted(n for n in both if len(strong.get(n, ())) >= CFG["news_books"] and (not late or n in coarse))
+    stays = sorted(both - set(quoted_out))
+    out -= set(quoted_out); inn -= out
     by_team = {t: [x for x in v if norm(x[0]) in out] for t, v in by_team.items()}
-    cur[lg] = {"date": date, "out": sorted(out), "q": sorted(q), "in": sorted(inn), "qb_game": qb_game, "listed_out_but_quoted": quoted_out, "out_team": by_team}
+    from zoneinfo import ZoneInfo
+    cur[lg] = {"date": date, "out": sorted(out), "q": sorted(q), "in": sorted(inn), "qb_game": qb_game, "listed_out_but_quoted": quoted_out,
+               "out_despite_quote": stays, "out_firm": sorted(out & firm), "out_team": by_team,
+               "t": datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p ET")}
     json.dump(cur, open(NEWS, "w"), indent=1)
-    print(f"{lg} {date} news: {len(out)} out, {len(q)} questionable, {len(inn)} quoted by a book" + (f", book QBs {qb_game}" if qb_game else "") + (f", listed out but quoted (treated as playing): {quoted_out}" if quoted_out else ""))
+    print(f"{lg} {date} news: {len(out)} out, {len(q)} questionable, {len(inn)} quoted by a book" + (f", book QBs {qb_game}" if qb_game else "")
+          + (f", listed out but quoted by {CFG['news_books']}+ books (treated as playing): {quoted_out}" if quoted_out else "")
+          + (f", listed out and kept out despite a leftover quote: {[(n, sorted(strong.get(n, ()))) for n in stays]}" if stays else ""))
 
 
 def price_all(date, lg, files):
@@ -460,7 +488,8 @@ def cmd_mirror():
 def cmd_summary(date, kind, note):
     h = history(); B = h["bets"]
     print(json.dumps({"date": date, "kind": kind, "ok": True, "version": open(os.path.dirname(os.path.abspath(__file__)) + "/VERSION").read().strip(), "note": note.strip(),
-                      "bets": len(B), "open": sum(b["status"] == "open" for b in B), "picks_today": sum(b["date"] == date and not b.get("superseded") for b in B)}))
+                      "bets": len(B), "open": sum(b["status"] == "open" for b in B), "picks_today": sum(b["date"] == date and not b.get("superseded") and not scratched(b) for b in B),
+                      "scratched_today": sum(b["date"] == date and scratched(b) for b in B)}))
 
 
 def cmd_lines(date, lg, files):
@@ -551,9 +580,11 @@ def cmd_evening(date, lg):
     moves.sort(key=lambda m: (-abs(m["dl"]), -abs(m["dp"])))
     today = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded")]
     taken = {b["pid"] for b in today}; per_game = {}
-    for b in today:
+    live = [b for b in today if not scratched(b)]      # v3.37: a scratched ticket gives its slot back; its player stays off limits
+    gone = [b for b in today if scratched(b) and b.get("lane") != "confident" and not b.get("lean") and not b["scratch"].get("replaced_by")]
+    for b in live:
         per_game[b["game"]] = per_game.get(b["game"], 0) + 1
-    room = CFG["max_picks"] - sum(1 for b in today if b.get("lane") != "confident" and not b.get("lean"))
+    room = CFG["max_picks"] - sum(1 for b in live if b.get("lane") != "confident" and not b.get("lean"))
     pool = sorted([b for b in pm if eligible(b)], key=lambda b: -b["adj"]); picks = []
     for b in pool:
         if room <= 0: break
@@ -563,6 +594,8 @@ def cmd_evening(date, lg):
             b.pop(k, None)
         if not put_stake(h, b):
             print("  day is full at", CFG["day_units"], "units:", b["name"]); break
+        if gone:      # this pick takes the slot a scratched ticket gave back
+            g = gone.pop(0); b["replaces"] = g["name"]; g["scratch"]["replaced_by"] = b["name"]
         h["bets"].append(b); picks.append(b); taken.add(b["pid"]); per_game[b["game"]] = per_game.get(b["game"], 0) + 1; room -= 1
         print(f'  evening pick: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} blended {b["muf"]}')
     from zoneinfo import ZoneInfo
@@ -575,6 +608,46 @@ def cmd_evening(date, lg):
     print(f"{lg} {date} evening: {len(pm)} sides priced, {len(pool)} cleared the bar, {len(picks)} new, {n_moved} of {n_both} props moved since midday")
     if picks:
         cmd_explain(date, lg, "_pm")
+        h = history()      # the case file says which ticket it replaced
+        for b in h["bets"]:
+            if b["date"] == date and b["lg"] == lg and b.get("replaces") and b.get("why") and not b["why"].get("repl"):
+                g = next((x for x in h["bets"] if x["date"] == date and x["lg"] == lg and x["name"] == b["replaces"] and x.get("scratch")), None)
+                b["why"]["repl"] = True
+                b["why"]["head"] = f'Takes the slot of {b["replaces"]}, scratched{" at " + g["scratch"]["t"] if g else ""}. ' + b["why"]["head"]
+        save_history(h)
+
+
+def cmd_scratch(date, lg):
+    """v3.37: void today's open tickets on players who are ruled out, before the game, the way a book voids the prop.
+    A ticket is scratched only on a plain "Out" on today's injury report (after the book-quote check in cmd_news) or,
+    for the NBA, the league's own inactive list. Doubtful, questionable and roster designations never scratch a ticket.
+    The ticket keeps every number it was logged with; only status and the scratch note change. If he plays after all,
+    grading puts the ticket back and settles it on the result."""
+    news = (json.load(open(NEWS)) if os.path.exists(NEWS) else {}).get(lg, {})
+    firm = set(news.get("out_firm", [])) if news.get("date") == date else set()
+    LU = load_lineups(lg, date) if lg == "NBA" else {}
+    from zoneinfo import ZoneInfo
+    t = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p ET")
+    h = history(); n = 0
+    for b in h["bets"]:
+        if b["date"] != date or b["lg"] != lg or b["status"] != "open" or b.get("superseded"):
+            continue
+        nm = norm(b["name"])
+        why = "listed out on the injury report" if nm in firm else "on the league's inactive list" if nm in LU.get(b["team"], {}).get("inactive", ()) else None
+        if not why:
+            continue
+        b["status"] = "void"; b["scratch"] = dict(t=t, why=why); n += 1
+        if b.get("why") and not b["why"].get("scr"):
+            b["why"]["scr"] = True
+            b["why"]["head"] = f"Scratched at {t}: {b['name']} is {why}. The ticket is void, as a book would void it. " + b["why"]["head"]
+        print(f"  scratched: {b['name']} {b['side']} {b['line']} {b['mkt']} {b['odds']:+d} ({why})")
+    if n:
+        rec = next((d for d in h["days"] if d["date"] == date and d["lg"] == lg), None)
+        if rec is not None:
+            rec["scratched"] = [dict(name=b["name"], mkt=b["mkt"], side=b["side"], line=b["line"], t=b["scratch"]["t"], why=b["scratch"]["why"])
+                                for b in h["bets"] if b["date"] == date and b["lg"] == lg and b.get("scratch")]
+        save_history(h)
+    print(f"{lg} {date}: {n} tickets scratched")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -866,7 +939,8 @@ def cmd_grade():
     D, _ = load(); h = history(); n = 0
     by = {lg: {p["id"]: p for p in D[lg]["players"]} for lg in ("NBA", "NFL")}
     for b in h["bets"]:
-        if b["status"] != "open":
+        back = scratched(b) and not b["scratch"].get("final")      # v3.37: scratched before the game; check that he really sat
+        if b["status"] != "open" and not back:
             continue
         p = by[b["lg"]].get(b["pid"])
         box = nfl_box() if b["lg"] == "NFL" else None
@@ -879,9 +953,14 @@ def cmd_grade():
                 past = (b["game"] in box["snap_games"]) if box["snaps"] is not None else (b["game"] in box["games"])
             else:
                 past = (thru > b["date"]) if b["lg"] == "NBA" else (int(re.sub(r"\D", "", thru.split("Week")[-1])) >= int(b["tag"].split("W")[1]))
-            if past:
+            if past and back:
+                b["scratch"]["final"] = True      # he sat: the scratch stands
+            elif past:
                 b["status"] = "void"; n += 1      # player did not play: books void the prop
             continue
+        if back:      # he played after all, so a book would have had action: settle the ticket on the result
+            b["scratch"].update(final=True, played=True)
+            if b.get("why"): b["why"]["head"] = "He played after being listed out, so the ticket stands and is graded. " + b["why"]["head"]
         b["result"] = v
         if b["mkt"] == "any_td": win = (v > 0) == (b["side"] == "Yes")
         elif v == b["line"]: win = None
@@ -1174,6 +1253,7 @@ if __name__ == "__main__":
     elif a[0] == "close": cmd_close(a[1], a[2], a[3], a[4:])
     elif a[0] == "pick": cmd_pick(a[1], a[2])
     elif a[0] == "evening": cmd_evening(a[1], a[2])
+    elif a[0] == "scratch": cmd_scratch(a[1], a[2])
     elif a[0] == "confident": cmd_confident(a[1], a[2], a[3:])
     elif a[0] == "fill": cmd_fill(a[1])
     elif a[0] == "gpicks": cmd_gpicks(a[1], a[2] if len(a) > 2 else "grade")

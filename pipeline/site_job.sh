@@ -35,6 +35,8 @@ case "$KIND" in
       if [ -f "$L" ] || [ -f "$N" ]; then python3 daily.py news $D $LG "$([ -f "$N" ] && echo "$N" || echo -)" $([ -f "$L" ] && echo "$L"); fi; done
     bash run.sh
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
+    # v3.37: a ticket on a player now ruled out is voided here, before the second look, so its slot goes to the next side that clears the bar
+    for LG in NBA NFL; do python3 daily.py scratch $D $LG || echo "SCRATCH STEP FAILED for $LG"; done
     for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; T=$P/out/lines/${LG}_${D}_pm_today.txt
       if [ -f "$L" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), evening" "$L" || true; fi
       if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -qE '^(hardrockbet|draftkings|fanduel|betmgm|williamhill_us|betrivers|fanatics)\|' "$T"; then FL_RUN=pm python3 daily.py lines $D $LG "$T" && python3 daily.py evening $D $LG || echo "EVENING PASS FAILED for $LG"
@@ -44,12 +46,15 @@ case "$KIND" in
     # v3.24: close (Sunday about 12:30) and lineups (about 6:40 and 9:15 PM): the newest injury report and, for the NBA, the
     # league's own starting lineups go into the model, then the board's prices and the sim are redone for the games still
     # to come. No new bets: picks stay with the midday and evening passes.
+    # v3.37: the lines on file are older than this injury report, so a plain "Out" stands whatever the old quotes say
+    # (FL_NEWS=late), and a ticket on a player ruled out is voided (scratch). No replacement here: there are no fresh prices.
     for LG in NBA NFL; do for F in $P/out/lines/${LG}_${D}_close*.txt; do
       if [ -f "$F" ]; then python3 daily.py close $D $LG "$(TZ=America/New_York date '+%-I:%M %p ET'), relay" "$F" || true; fi; done; done
     for LG in NBA NFL; do N=$P/out/news/${LG}_$D.txt; L=$P/out/lines/${LG}_${D}_pm.txt; [ -f "$L" ] || L=$P/out/lines/${LG}_$D.txt
-      if [ -f "$N" ]; then python3 daily.py news $D $LG "$N" $([ -f "$L" ] && echo "$L"); fi; done
+      if [ -f "$N" ]; then FL_NEWS=late python3 daily.py news $D $LG "$N" $([ -f "$L" ] && echo "$L"); fi; done
     bash run.sh
     node check.js | head -2 | python3 -c "import sys,re; v=[float(x) for x in re.findall(r'rel diff ([0-9.e+-]+)', sys.stdin.read())]; print('engine check', v); sys.exit(0 if v and max(v) < 1e-2 else 1)"
+    for LG in NBA NFL; do python3 daily.py scratch $D $LG || echo "SCRATCH STEP FAILED for $LG"; done
     for LG in NBA NFL; do L=$P/out/lines/${LG}_${D}_pm.txt; [ -f "$L" ] || L=$P/out/lines/${LG}_$D.txt; T=$P/out/lines/${LG}_${D}_late_today.txt
       if [ -f "$L" ] && python3 daily.py today $D "$L" "$T" && grep -qE '^(hardrockbet|draftkings|fanduel|betmgm|williamhill_us|betrivers|fanatics)\|' "$T"; then FL_RUN=late python3 daily.py lines $D $LG "$T" || echo "LATE PRICING FAILED for $LG"; fi; done ;;
   *) echo "nothing to build ($KIND)"; exit 0 ;;
