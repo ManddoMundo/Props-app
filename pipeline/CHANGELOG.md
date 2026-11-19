@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-19 v3.43 a ticket on a player who sat is voided the next morning, not a day later (asked for by Armanddo; grading rule, no model or pick change)
+- What he saw: after the Nov 19 midday run the desk still showed Scottie Barnes Over 5.5 assists (Nov 18) as an open ticket beside today's three.
+- Why: it was never one of today's picks. It was last night's ticket, still waiting to be graded. A ticket whose player has no box score line was only voided once the stats had moved past the game's date. Stats ran through Nov 18, the same date, so the rule waited for Nov 19's games to finish before voiding it, a full extra day.
+- Fix: once the stats run through the game's own date and at least five of his teammates have a line for that game while he has none, he did not play, and the ticket is voided on the next run. Replayed on the Nov 19 midday books: Barnes goes from open to void and no other bet changes.
+- The scratch step added in v3.37 would have voided this ticket before tip-off, but it shipped after that game. From here on a player ruled out is scratched the same evening, and this rule is the backstop the morning after.
+- Files: daily.py, CHANGELOG.md, VERSION.
+
 ## 2026-11-19 v3.42 legs are bet slips (asked for by Armanddo; display only, nothing in the model or pick policy changed)
 - Every leg you can add, in the Parlay tab and the Sim, is now a paper bet slip instead of a pill: cream stock with faint rules (the same paper the press prints its ticket on), a strip down the left edge, and a tear-off end past a dashed perforation with a notch punched top and bottom. The notches are real holes, so the card shows through.
 - Adding a leg validates the slip: an IN stamp slams onto the tear-off end, the strip and the chance turn stamp green, and the slip lifts and sits slightly crooked, like paper put down by hand. Each slip leans its own way. Tapping again lifts the stamp and lays it flat.

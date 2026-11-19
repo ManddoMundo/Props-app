@@ -971,6 +971,13 @@ def cmd_grade():
                 past = (b["game"] in box["snap_games"]) if box["snaps"] is not None else (b["game"] in box["games"])
             else:
                 past = (thru > b["date"]) if b["lg"] == "NBA" else (int(re.sub(r"\D", "", thru.split("Week")[-1])) >= int(b["tag"].split("W")[1]))
+                # v3.43: do not wait a whole extra day to void an NBA ticket. Once the stats run through the game's own date and
+                # at least five of his teammates have a line for that game while he has none, he did not play. The old rule only
+                # voided when the stats had moved past that date, so a ticket on a player who sat (Scottie Barnes, Nov 18) stayed
+                # on the desk as open through the whole next day.
+                if not past and b["lg"] == "NBA" and p and thru >= b["date"]:
+                    mates = sum(1 for q in D["NBA"]["players"] if q.get("team") == p.get("team") and q["id"] != p["id"] and b["tag"] in q["logs"]["d"])
+                    past = mates >= 5
             if past and back:
                 b["scratch"]["final"] = True      # he sat: the scratch stands
             elif past:
