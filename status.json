@@ -472,20 +472,20 @@
    "lg": "NBA",
    "date": "2026-11-20",
    "kind": "midday",
-   "et": "2026-11-20 12:06",
-   "rows": 34499,
+   "et": "2026-11-20 14:35",
+   "rows": 36074,
    "games": 9,
    "books": {
-    "fanduel": 4192,
-    "kalshi": 1701,
-    "polymarket": 312,
-    "novig": 752,
-    "betrivers": 3746,
-    "williamhill_us": 7586,
-    "draftkings": 4721,
-    "betmgm": 2499,
-    "fanatics": 4284,
-    "hardrockbet": 4706
+    "fanduel": 5470,
+    "kalshi": 1714,
+    "novig": 766,
+    "betrivers": 3772,
+    "williamhill_us": 7626,
+    "draftkings": 4786,
+    "betmgm": 2785,
+    "fanatics": 4065,
+    "hardrockbet": 4724,
+    "pinnacle": 366
    },
    "markets": 13
   },
@@ -495,8 +495,8 @@
    "lg": "NBA",
    "date": "2026-11-20",
    "kind": "midday",
-   "et": "2026-11-20 12:06",
-   "rows": 558,
+   "et": "2026-11-20 14:35",
+   "rows": 504,
    "games": 9
   },
   {
@@ -505,8 +505,8 @@
    "lg": "NFL",
    "date": "2026-11-20",
    "kind": "midday",
-   "et": "2026-11-20 12:06",
-   "rows": 990,
+   "et": "2026-11-20 14:35",
+   "rows": 900,
    "games": 17
   },
   {
@@ -515,7 +515,7 @@
    "lg": "NBA",
    "date": "2026-11-20",
    "kind": "midday",
-   "et": "2026-11-20 12:06",
+   "et": "2026-11-20 14:35",
    "rows": 109
   },
   {
@@ -524,7 +524,7 @@
    "lg": "NFL",
    "date": "2026-11-20",
    "kind": "midday",
-   "et": "2026-11-20 12:06",
+   "et": "2026-11-20 14:35",
    "rows": 800
   }
  ],
@@ -536,11 +536,11 @@
   "early": "2026-11-20"
  },
  "quota": {
-  "remaining": 4817,
-  "used": 15183
+  "remaining": 4694,
+  "used": 15306
  },
- "updated_utc": "2026-11-20 17:06",
- "et": "2026-11-20 12:06",
+ "updated_utc": "2026-11-20 19:35",
+ "et": "2026-11-20 14:35",
  "kind": "midday",
  "tier": "full",
  "spent": 123,
