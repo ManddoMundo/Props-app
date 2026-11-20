@@ -43,6 +43,13 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            # In the saved pulls a player who is playing has every book or all but one (46 of 49 had 4 of 4, the rest 3 of 4),
            # so half leaves room for a slow book or two without letting stragglers overrule the report.
            news_share=0.5, news_min=2,
+           # v3.45 the market lane of the shadow book (tracking only, never a pick). The fair price is the books' own: each
+           # book's two prices with the house cut taken out, averaged with these weights (a book not listed counts 1.0), the
+           # book being bet left out. FanDuel and DraftKings count more because their prop prices move first; Kalshi and
+           # Polymarket count less because the pull has no volume to judge their prices by. The weights are a judgement, not
+           # fitted: the first review of this lane is where they get tested.
+           mk_w={"fanduel": 1.5, "draftkings": 1.5, "kalshi": 0.5, "polymarket": 0.5},
+           mk_min_edge=0.01,                 # a side is filed in the market lane when the best price beats the books' fair price by this much
            # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
            # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
            # market has 200 graded sides and the weekly review adds it here. The confident lane follows the books, not the model.
@@ -312,6 +319,37 @@ def cmd_news(date, lg, files):
           + (f", listed out and kept out despite a leftover quote: {[(n, sorted(strong.get(n, ()))) for n in stays]}" if stays else ""))
 
 
+def market_view(L, lg, mkt, side, bet, impd):
+    """v3.45 the market's own fair price for one side, and the book that beats it by most. For each book the desk can bet,
+    the other books' implied projections are averaged (weights in CFG mk_w), turned into a chance at that book's line, and
+    set against that book's break-even. Needs min_books other books. The model is not in this number: the only thing
+    borrowed from it is the shape of the curve, used to carry a price from one line to another. Tracking only."""
+    if mkt == "any_td":
+        return None      # one-sided price: the house cut cannot be taken out
+    top = None
+    for bk, r in bet.items():
+        odds = r["o"] if side != "Under" else r["u"]
+        oth = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in impd.items() if k != bk]
+        if odds is None or len(oth) < CFG["min_books"]:
+            continue
+        mean = sum(v * w for v, w in oth) / sum(w for _, w in oth)
+        ov, un, _ = probs(L, lg, mkt, mean, r["line"])
+        p = (un if side == "Under" else ov) / (ov + un); e = p - 1 / dec(odds)
+        if top is None or e > top["edge"]:
+            top = dict(book=bk, line=r["line"], odds=int(odds), p=round(p, 4), edge=round(e, 4), n=len(oth))
+    return top
+
+
+def market_est(L, b):
+    """A side priced before v3.45 carries no market view, only the plain median of every book's implied projection (mm),
+    the bet book included. This rebuilds the nearest thing from it, at the row's own book and price. Marked est in the file."""
+    if b["mkt"] == "any_td" or b.get("mm") is None or b.get("nb", 0) < CFG["min_books"] or b["mkt"] not in L["model"]["disp"]:
+        return None
+    ov, un, _ = probs(L, b["lg"], b["mkt"], b["mm"], b["line"])
+    p = (un if b["side"] == "Under" else ov) / (ov + un)
+    return dict(book=b.get("book"), line=b["line"], odds=b["odds"], p=round(p, 4), edge=round(p - 1 / dec(b["odds"]), 4), n=b["nb"], est=1)
+
+
 def price_all(date, lg, files):
     D, chk = load(); L = D[lg]; CAL = calib(D)
     games = {g["id"]: g for g in L["games"]}
@@ -362,9 +400,10 @@ def price_all(date, lg, files):
                 return None
             po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
             return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
-        imps = [v for v in (imp(x) for x in good.values()) if v is not None]
+        impd = {bk: v for bk, v in ((bk, imp(x)) for bk, x in good.items()) if v is not None}
+        imps = list(impd.values())
         mm = float(np.median(imps)) if imps else None
-        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good))
+        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good, impd=impd))
     # Centre the model on the market for this slate, market by market, so a general lean (it used to run low: the Under
     # lean) cannot create bets. What is left is where the model disagrees about one player more than about the rest.
     cen = {}
@@ -405,6 +444,10 @@ def price_all(date, lg, files):
                 k = (adj, ev, bk == CFG["book"])      # ties go to the home book
                 if side not in best or k > best[side][0]:
                     best[side] = (k, rec)
+        # v3.45: what the books alone say about each side (no model in it). Rides on the priced row for the shadow book.
+        for side, v in best.items():
+            mk = market_view(L, lg, mkt, side, x["bet"], x["impd"])
+            if mk: v[1]["mk"] = mk
         out += [v[1] for v in best.values()]
         # the board's line for this prop: the book the desk would use on its better side; every book's quote rides along
         top = max(best.values(), key=lambda v: v[0])[1]
@@ -898,6 +941,44 @@ def cmd_close(date, lg, label, files):
         n += 1
         print(f"  {b['name']} {b['side']} {b['line']} {b['mkt']} {b['odds']:+d}: closed {hr.get('line')} {hr.get('o')}/{hr.get('u')}, fair {fair:.1%}, CLV {b['close']['clv'] * 100:+.1f}%, market moved {0 if opened is None else (fair - opened) * 100:+.1f} pts")
     save_history(h); print(f"{lg} {date}: closing lines recorded for {n} bets")
+    try: wide_close(date, lg, label, quotes, L)      # v3.46: tracking only, never fatal
+    except Exception as e: print("  wide close not recorded:", e)
+
+
+def wide_close(date, lg, label, quotes, L):
+    """v3.46 the closing number for every side the shadow book follows, not only the desk's tickets: each midday side that
+    cleared the test, and each side in the market lane. Same sum as cmd_close: the median of the books' implied projections
+    at this pull, turned into a fair chance at the row's line; clv = the price taken times that chance, minus one. Kept in
+    out/closes.json (a later pull overwrites an earlier one while the player is still quoted) and merged into shadow.json
+    by `shadow`. Tracking only: nothing here is read by pick, evening or the stakes."""
+    f = O + f"priced/{lg}_{date}.json"
+    if not os.path.exists(f):
+        return
+    cp = O + "closes.json"; C = json.load(open(cp)) if os.path.exists(cp) else {}; n = 0
+    for b in json.load(open(f)):
+        if b["mkt"] == "any_td":
+            continue
+        mk = b.get("mk")
+        mkok = bool(mk) and mk["edge"] >= CFG["mk_min_edge"] and CFG["min_odds"] <= mk["odds"] <= CFG["max_odds"]
+        try: cleared = eligible(b)
+        except (KeyError, TypeError): cleared = False
+        if not (cleared or mkok):
+            continue
+        imps = []
+        for r in quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}).values():
+            if r["line"] is not None and r["o"] is not None and r["u"] is not None:
+                po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imps.append(implied_mean(L, lg, b["mkt"], r["line"], po / (po + pu)))
+        if len(imps) < 2:
+            continue
+        mc = float(np.median(imps))
+        def fair(line):
+            ov, un, _ = probs(L, lg, b["mkt"], mc, line); return (un if b["side"] == "Under" else ov) / (ov + un)
+        C[b["id"] + "|" + b["side"]] = dict(date=date, t=label, nb=len(imps), clv=round(dec(b["odds"]) * fair(b["line"]) - 1, 4),
+                                            mclv=round(dec(mk["odds"]) * fair(mk["line"]) - 1, 4) if mkok else None)
+        n += 1
+    old = (datetime.date.fromisoformat(date) - datetime.timedelta(days=45)).isoformat()
+    C = {k: v for k, v in C.items() if v.get("date", date) >= old}
+    json.dump(C, open(cp, "w")); print(f"{lg} {date}: closing number recorded for {n} shadow sides")
 
 
 def actual(lg, p, mkt, tag):
@@ -1013,6 +1094,8 @@ def cmd_report(h=None):
     cl = [b["close"]["clv"] for b in h["bets"] if b.get("close") and not b.get("superseded")]
     if cl:
         print(f"  closing line value: {len(cl)} bets tracked, average {np.mean(cl) * 100:+.1f}%, beat the close on {sum(c > 0 for c in cl)}")
+    try: shadow_report()      # v3.44: picked against cleared-but-passed, when the shadow book is on file
+    except Exception as e: print("  shadow book not readable:", e)
 
 
 def cmd_audit():
@@ -1056,6 +1139,168 @@ def cmd_audit():
         for m in sorted({r["lg"] + " " + r["mkt"] for r in ov}):
             z = [r for r in ov if r["lg"] + " " + r["mkt"] == m]
             print(f"  {m:<14} mean(proj - line) {np.mean([r['mu'] - r['line'] for r in z]):+.2f}   mean(actual - line) {np.mean([r['result'] - r['line'] for r in z]):+.2f}   MAE proj {np.mean([abs(r['result'] - r['mu']) for r in z]):.2f}  MAE line {np.mean([abs(r['result'] - r['line']) for r in z]):.2f}")
+
+
+def cmd_shadow():
+    """v3.44 the shadow book. Every side that clears the desk's test is worth grading, not only the three the desk takes.
+    This sorts each day's midday sides (the same file `pick` used) into: picked, cleared but passed (the day was full, or the
+    desk already had the player or two bets in the game), and near misses (an edge inside the playable window that failed
+    exactly one kind of test: questionable, a market on trial, price, minutes and so on). Results come from audit.json,
+    which grades every priced side. Tracking only: nothing here prices, picks or stakes.
+    A side is classified once, under the rules in force the first time this runs after it was priced, and kept in
+    out/shadow.json, so a later rule change does not rewrite what the desk would have done then (priced files are deleted
+    after 21 days; this file is not)."""
+    import glob
+    sp = O + "shadow.json"; S = json.load(open(sp)) if os.path.exists(sp) else {"rows": {}}
+    R = S.setdefault("rows", {})
+    A = json.load(open(O + "audit.json")) if os.path.exists(O + "audit.json") else {}
+    h = history()
+    took = {b["id"] + "|" + b["side"] for b in h["bets"] if not b.get("superseded") and b.get("lane") != "confident"}
+    for f in sorted(glob.glob(O + "priced/*.json")):
+        if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):      # the midday file only: _pm and _late are second looks at the same games
+            continue
+        try:
+            priced = json.load(open(f))
+            pool = sorted([b for b in priced if eligible(b)], key=lambda b: -b["adj"])
+        except (KeyError, TypeError):      # a file priced before v1.3 has no market check to test against
+            continue
+        rank = {b["id"] + "|" + b["side"]: i + 1 for i, b in enumerate(pool)}
+        for b in priced:
+            k = b["id"] + "|" + b["side"]
+            if k in R or not b.get("ver"):      # no version tag: priced before v1.3, with no market view to judge it by
+                continue
+            if k in rank:
+                grp, stamp = ("picked" if k in took else "passed"), "CAP"
+            elif CFG["min_edge"] <= b["edge"] <= CFG["max_edge"]:
+                grp, stamp = "near", pass_reason(b)[0]
+            else:
+                continue
+            R[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"], line=b["line"], odds=b["odds"],
+                        book=b.get("book"), p=b["p"], edge=b["edge"], adj=b.get("adj"), grp=grp, stamp=stamp, rank=rank.get(k),
+                        home=(int(b["team"] == b["gl"].split(" @ ")[-1]) if b.get("gl") and b.get("team") else None), ver=open(os.path.dirname(os.path.abspath(__file__)) + "/VERSION").read().strip())
+    n = 0
+    for k, r in R.items():
+        if r.get("win") is None and k in A:
+            r.update(win=A[k]["win"], result=A[k]["result"]); n += 1
+    # v3.45 the market lane: what a desk that only shopped prices would have bet. No model in the choice: a side is filed
+    # when the best price among the desk's books beats the other books' fair price by mk_min_edge, inside the desk's price
+    # window. Every market is filed (this method does not need a market to have a model record). It is graded at its own
+    # book, line and price, which may differ from the model's row for the same side.
+    M = S.setdefault("market", {}); D = None
+    for f in sorted(glob.glob(O + "priced/*.json")):
+        if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):
+            continue
+        try: priced = json.load(open(f))
+        except ValueError: continue
+        for b in priced:
+            k = b.get("id", "") + "|" + b.get("side", "")
+            if k in M or not b.get("ver"):
+                continue
+            mk = b.get("mk")
+            if mk is None:
+                if D is None: D = load()[0]
+                try: mk = market_est(D[b["lg"]], b)
+                except (KeyError, TypeError): mk = None
+            if not mk or mk["edge"] < CFG["mk_min_edge"] or not (CFG["min_odds"] <= mk["odds"] <= CFG["max_odds"]):
+                continue
+            try: desk = "picked" if k in took else "cleared" if eligible(b) else "no"
+            except (KeyError, TypeError): desk = "no"
+            M[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"], line=mk["line"], odds=mk["odds"],
+                        book=mk["book"], p=mk["p"], edge=mk["edge"], n=mk["n"], est=mk.get("est", 0), desk=desk, model_edge=b.get("edge"),
+                        q=int("questionable" in b.get("flags", [])))
+    # v3.46: the closing number for every row that has one (wide_close). The latest pull stands.
+    C = json.load(open(O + "closes.json")) if os.path.exists(O + "closes.json") else {}
+    for k, c in C.items():
+        if k in R and c.get("clv") is not None: R[k]["clv"] = c["clv"]
+        if k in M and c.get("mclv") is not None: M[k]["clv"] = c["mclv"]
+    for k, r in M.items():
+        if r.get("win") is None and k in A and A[k].get("result") is not None:
+            v = A[k]["result"]
+            if v == r["line"]: r.update(win=-1, result=v)      # landed on the number: a push, money back, left out of the record
+            else: r.update(win=int((v > r["line"]) == (r["side"] != "Under")), result=v)
+    # the label on the desk's own cleared sides: was the price itself good (price play), or is the model carrying it (model play)
+    for k, r in R.items():
+        if "kind" not in r and r["grp"] != "near":
+            m = M.get(k)
+            r["kind"] = "price" if (m and m["book"] == r.get("book") and m["line"] == r["line"]) else "model"
+    S["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+    json.dump(S, open(sp, "w"))
+    print(f"shadow book: {len(R)} sides on file, {n} newly graded")
+    shadow_report(S)
+
+
+def clv_note(z):
+    """The closing-number part of a report line: the average value against the close and how many beat it."""
+    c = [r["clv"] for r in z if r.get("clv") is not None]
+    return f"  vs close {np.mean(c):+.1%}, beat it {sum(v > 0 for v in c)} of {len(c)}" if c else ""
+
+
+def shadow_report(S=None):
+    """Picked against cleared-but-passed, flat one unit a side so the two are compared like for like (the desk's own
+    record uses its real stakes). Small samples: the weekly review needs 200 graded sides before a rule changes."""
+    if S is None:
+        if not os.path.exists(O + "shadow.json"):
+            return
+        S = json.load(open(O + "shadow.json"))
+    rows = [r for r in S.get("rows", {}).values() if r.get("win") is not None]
+    if not rows:
+        return
+    def line(z, label, said="model said"):
+        if not z:
+            return
+        u = sum((dec(r["odds"]) - 1) if r["win"] else -1 for r in z); w = sum(r["win"] for r in z)
+        print(f"  {label:<26} {w}-{len(z) - w}  hit {w / len(z):.1%}  {said} {np.mean([r['p'] for r in z]):.1%}  break-even {np.mean([1 / dec(r['odds']) for r in z]):.1%}  flat units {u:+.2f}  per bet {u / len(z):+.1%}" + clv_note(z))
+    last = max(r["date"] for r in rows)
+    print(f"shadow book (flat 1 unit a side, {min(r['date'] for r in rows)[5:]} to {last[5:]}):")
+    line([r for r in rows if r["grp"] == "picked"], "picked")
+    line([r for r in rows if r["grp"] == "passed"], "cleared, not picked")
+    line([r for r in rows if r["grp"] == "picked" and r["date"] == last], f"picked, {last[5:]}")
+    line([r for r in rows if r["grp"] == "passed" and r["date"] == last], f"cleared, not picked, {last[5:]}")
+    for m in sorted({r["lg"] + " " + r["mkt"] for r in rows if r["grp"] != "near"}):
+        line([r for r in rows if r["grp"] != "near" and r["lg"] + " " + r["mkt"] == m], "all cleared: " + m)
+    for lo, hi in ((.03, .04), (.04, .06), (.06, .13)):
+        line([r for r in rows if r["grp"] != "near" and lo <= r["edge"] < hi], f"all cleared: edge {lo * 100:.0f} to {min(hi, .12) * 100:.0f}")
+    for st in sorted({r["stamp"] for r in rows if r["grp"] == "near"}):
+        line([r for r in rows if r["grp"] == "near" and r["stamp"] == st], "near miss: " + st.lower())
+    for kd, lab in (("price", "cleared: price plays"), ("model", "cleared: model plays")):
+        line([r for r in rows if r["grp"] != "near" and r.get("kind") == kd], lab)
+    # v3.46 more cuts of the cleared sides, and the test that matters most: did the price we took beat the closing number
+    cl = [r for r in rows if r["grp"] != "near"]
+    for sd in ("Over", "Under"): line([r for r in cl if r["side"] == sd], "all cleared: " + sd.lower() + "s")
+    line([r for r in cl if r.get("home") == 1], "all cleared: at home"); line([r for r in cl if r.get("home") == 0], "all cleared: on the road")
+    tm = {}
+    for r in cl: tm.setdefault(r.get("team") or "?", []).append(r)
+    tu = sorted(((sum((dec(r["odds"]) - 1) if r["win"] else -1 for r in z), t) for t, z in tm.items() if len(z) >= 5))
+    for u, t in tu[:3] + [x for x in tu[-3:] if x not in tu[:3]]: line(tm[t], "all cleared: team " + t)
+    line([r for r in cl if r.get("clv") is not None and r["clv"] > 0], "cleared: beat the close")
+    line([r for r in cl if r.get("clv") is not None and r["clv"] <= 0], "cleared: lost to the close")
+    market_report(S, lambda z, label: line(z, label, "books said"))
+
+
+def market_report(S, line):
+    """v3.45 the market lane next to the desk. Flat one unit a side. "books said" is the books' own fair chance."""
+    mk = [r for r in S.get("market", {}).values() if r.get("win") in (0, 1)]
+    if not mk:
+        return
+    now, est = [r for r in mk if not r["est"]], [r for r in mk if r["est"]]
+    print(f"market lane (books only, no model; {len(now)} sides priced the v3.45 way, {len(est)} rebuilt from older files):")
+    for z, tag in ((now, ""), (est, " (older, rebuilt)")):
+        if not z:
+            continue
+        line(z, "all filed" + tag)
+        for lo, hi in ((.01, .02), (.02, .03), (.03, 1)):
+            line([r for r in z if lo <= r["edge"] < hi], f"  beat fair by {lo * 100:.0f}{' to ' + str(int(hi * 100)) if hi < 1 else ' and up'}{tag}")
+        day = {}
+        for r in sorted(z, key=lambda r: -r["edge"]):
+            day.setdefault(r["date"], []).append(r)
+        line([r for v in day.values() for r in v[:CFG["max_picks"]]], f"  top {CFG['max_picks']} a day{tag}")
+        line([r for r in z if not r["q"]], "  not questionable" + tag)
+        line([r for r in z if r["desk"] != "no"], "  the model cleared it too" + tag)
+        line([r for r in z if r["desk"] == "no"], "  the model passed" + tag)
+        line([r for r in z if r.get("clv") is not None and r["clv"] > 0], "  beat the close" + tag)
+        line([r for r in z if r.get("clv") is not None and r["clv"] <= 0], "  lost to the close" + tag)
+        for m in sorted({r["lg"] + " " + r["mkt"] for r in z}):
+            line([r for r in z if r["lg"] + " " + r["mkt"] == m], "  " + m + tag)
 
 
 ALTK = {"NBA": {"player_points_alternate": "pts", "player_rebounds_alternate": "reb", "player_assists_alternate": "ast", "player_threes_alternate": "fg3",
@@ -1289,3 +1534,4 @@ if __name__ == "__main__":
     elif a[0] == "grade": cmd_grade()
     elif a[0] == "report": cmd_report()
     elif a[0] == "audit": cmd_audit()
+    elif a[0] == "shadow": cmd_shadow()

@@ -53,6 +53,8 @@ python3 daily.py gpicks "$(TZ=America/New_York date +%F)" grade || true
 python3 sim.py grade || echo "SIM GRADE STEP FAILED"
 python3 sim.py || echo "SIM STEP FAILED: the Sim tab keeps its last file"
 python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
+# v3.44 the shadow book: grade every side that cleared the test, picked or not. Tracking only, never fatal.
+python3 daily.py shadow || echo "SHADOW STEP FAILED: the shadow book keeps its last file"
 python3 - <<'PY'
 import json; D=json.load(open('/home/claude/props/out/data.json'))
 for lg in ('NBA','NFL'):
