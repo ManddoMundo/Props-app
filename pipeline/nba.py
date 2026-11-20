@@ -1,4 +1,5 @@
 """NBA prop model: minutes x per-minute rate, re-balanced inside the team's expected total.
+Since v3.50 the points and threes rates are built from shots taken and shooting percentage (the shot build, see SHOT_ON).
 Walk-forward: every feature for a game is built only from games played before it."""
 import json, os
 from collections import defaultdict, deque
@@ -19,6 +20,18 @@ CARRY = 0.6   # weight kept on last season's per-minute rates when a new season 
 # on 2025-26 and 2026-27: points CRPS +3.3% and +6.5%, rebounds +3.1% and +3.5%, assists +2.4% and +3.3% on those players,
 # lab lineup_bt.py). Applied to his minutes before the team is rebalanced to 240, so his teammates absorb it.
 LINEUP_F = {"promoted": 1.21, "demoted": 0.853}
+# v3.50 the shot build: points and threes per minute come from shots taken and shooting percentage, not from recent points.
+# Volume (two-point tries, three-point tries, free throw tries per minute) keeps the 15-game memory. Each percentage is pulled
+# toward the position's with a prior counted in attempts. Points: 60 twos, 120 threes, 40 free throws, 15-game memory.
+# Threes: 240 attempts on a 100-game memory, because a few weeks of three-point shooting says little. Every setting was chosen
+# on 2024-25 and scored once on 2025-26 and 2026-27 (lab shot_bt.py): points miss 4.846 to 4.832 (-0.30%), threes 0.981 to
+# 0.973 (-0.80%), better in both seasons. The old build over-projected players shooting hot by 2.5% on points and 3.6% on
+# threes and under-projected cold ones by 2.1% and 4.5%; this one is within 1.3% in every band. Rebounds and assists unchanged.
+SHOT_ON = True      # the lab sets this False to rebuild the old rates for comparison
+SHOT = ["a2", "m2", "a3", "m3", "fa", "fm"]
+SH_N = dict(p2=60.0, p3=120.0, pf=40.0)
+HL3, N3 = 100.0, 240.0
+D3 = 0.5 ** (1 / HL3)
 ROT_T = 250.0       # live lineup with no news: fill the rotation by minutes to this team total (walk-forward tested, CHANGELOG v1.3)
 ROT_T_NEWS = 246.0  # with lineup news. v3.16: replayed 2025-26 as the desk sees it at noon (last game's roster, the official
                     # injury report at noon). Tuned on games to Jan 31: 236 under-projected points by 0.23 a player, 246 by 0.10;
@@ -37,12 +50,16 @@ def load():
     d["gd"] = d.game_date.astype(str)
     d["pid"] = d.athlete_id.astype(str)
     d[BASE] = d[BASE].fillna(0)
+    num = lambda c: pd.to_numeric(d[c], errors="coerce").fillna(0)
+    d["a3"], d["m3"] = num("three_point_field_goals_attempted"), d["fg3"]
+    d["a2"], d["m2"] = (num("field_goals_attempted") - d["a3"]).clip(lower=0), (num("field_goals_made") - d["m3"]).clip(lower=0)
+    d["fa"], d["fm"] = num("free_throws_attempted"), num("free_throws_made")
     return d.sort_values(["gd", "game_id"])
 
 
 class State:
-    def __init__(self, pri, lg):
-        self.pri, self.lg = pri, lg
+    def __init__(self, pri, lg, spri=None):
+        self.pri, self.lg, self.spri = pri, lg, spri
         self.pl = defaultdict(lambda: defaultdict(float))
         self.tm = defaultdict(lambda: defaultdict(float))
         self.last = defaultdict(lambda: defaultdict(lambda: deque(maxlen=10)))
@@ -61,7 +78,31 @@ class State:
         f = dict(m=(s["mw"] + MW0 * 14.0) / (s["w"] + MW0), n=s["n"])
         for k in BASE:
             f["r_" + k] = (s[k] + PM0 * self.pri[pos][k]) / (s["min"] + PM0)
+        if self.spri:      # v3.50 the shot build (see SHOT_ON above)
+            P = self.spri[pos]
+            v2, v3, vf = ((s[a] + PM0 * P[v]) / (s["min"] + PM0) for v, a in (("v2", "a2"), ("v3", "a3"), ("vf", "fa")))
+            p2, p3, pf = ((s[m] + SH_N[k] * P[k]) / (s[a] + SH_N[k]) for k, m, a in (("p2", "m2", "a2"), ("p3", "m3", "a3"), ("pf", "fm", "fa")))
+            f["r_pts"] = 2 * v2 * p2 + 3 * v3 * p3 + vf * pf
+            f["r_fg3"] = v3 * (s["m3L"] + N3 * P["p3"]) / (s["a3L"] + N3)
         return f
+
+    def shot_view(self, pid, pos, recent):
+        """v3.50, for the page only: the parts of the shot build (per 36 minutes and the steadied percentages), the per-minute
+        rates the old build would have used, and his shots and shooting over his last 10 and last 60 games (recent = his box
+        score rows, oldest first). a/b rows: games, shots a game, threes tried a game, true shooting, three-point percentage."""
+        s, P = self.pl[pid], self.spri[pos]
+        v2, v3, vf = ((s[a] + PM0 * P[v]) / (s["min"] + PM0) for v, a in (("v2", "a2"), ("v3", "a3"), ("vf", "fa")))
+        p2, p3, pf = ((s[m] + SH_N[k] * P[k]) / (s[a] + SH_N[k]) for k, m, a in (("p2", "m2", "a2"), ("p3", "m3", "a3"), ("pf", "fm", "fa")))
+        p3L = (s["m3L"] + N3 * P["p3"]) / (s["a3L"] + N3)
+
+        def cut(z):
+            n = len(z)
+            if not n: return None
+            fga, a3, fa, pts, m3 = (float(z[c].sum()) for c in ("a2", "a3", "fa", "pts", "m3")); fga += a3
+            den = 2 * (fga + 0.44 * fa)
+            return [n, round(fga / n, 1), round(a3 / n, 1), round(pts / den, 3) if den > 0 else None, round(m3 / a3, 3) if a3 >= 10 else None]
+        return dict(v=[round(36 * (v2 + v3), 1), round(36 * v3, 1), round(36 * vf, 1)], p=[round(p2, 3), round(p3, 3), round(pf, 3), round(p3L, 3)],
+                    r0=[round((s[k] + PM0 * self.pri[pos][k]) / (s["min"] + PM0), 5) for k in ("pts", "fg3")], a=cut(recent.tail(10)), b=cut(recent))
 
     def update(self, season, t, o, rows):
         T, O = self.tm[t], self.tm[o]
@@ -77,15 +118,17 @@ class State:
             pid = r["pid"]; s = self.pl[pid]
             if self.ps.get(pid, season) != season:
                 s["mw"] *= 0.35; s["w"] *= 0.35
-                for k in BASE + ["min"]:
+                for k in BASE + ["min"] + SHOT + ["a3L", "m3L"]:
                     s[k] *= CARRY
             self.ps[pid] = season
             s["mw"] *= DM; s["w"] *= DM
-            for k in BASE + ["min"]:
+            for k in BASE + ["min"] + SHOT:
                 s[k] *= DR
+            s["a3L"] *= D3; s["m3L"] *= D3
             s["mw"] += r["min"]; s["w"] += 1; s["min"] += r["min"]; s["n"] += 1
-            for k in BASE:
+            for k in BASE + SHOT:
                 s[k] += r[k]
+            s["a3L"] += r["a3"]; s["m3L"] += r["m3"]
             L = self.last[pid]
             for k in BASE + ["min"]:
                 L[k].append(float(r[k]))
@@ -96,9 +139,12 @@ def walk(d):
     tr0 = d[d.season == 2025]
     pri = {p: {k: x[k].sum() / x["min"].sum() for k in BASE} for p, x in tr0.groupby("pos")}
     lg = {k: float(tr0.groupby(["game_id", "team"])[k].sum().mean()) for k in BASE}
-    S = State(pri, lg)
+    tot = lambda x, c: float(x[c].sum())
+    spri = {p: dict(v2=tot(x, "a2") / tot(x, "min"), v3=tot(x, "a3") / tot(x, "min"), vf=tot(x, "fa") / tot(x, "min"),
+                    p2=tot(x, "m2") / tot(x, "a2"), p3=tot(x, "m3") / tot(x, "a3"), pf=tot(x, "fm") / tot(x, "fa")) for p, x in tr0.groupby("pos")}
+    S = State(pri, lg, spri if SHOT_ON else None)
     prow, trow = [], []
-    keep = ["pid", "name", "pos", "min", "starter", "gd"] + BASE
+    keep = ["pid", "name", "pos", "min", "starter", "gd"] + BASE + SHOT
     for gid, gdf in d.groupby("game_id", sort=False):
         sides = [(t, x.opp.iloc[0], x[keep].to_dict("records")) for t, x in gdf.groupby("team")]
         for t, o, rows in sides:
@@ -204,6 +250,7 @@ def main():
     days = sorted(up.gd.unique())[:3]
     up = up[up.gd.isin(days)]
     cur = d[d.season == 2027]
+    recent = {pid: x.tail(60) for pid, x in d.groupby("pid")} if SHOT_ON else {}      # v3.50: shots and shooting for the page
     news = load_news("NBA", days[:1])     # only news dated the first slate day counts
     LU = load_lineups("NBA", days[0]) if days else {}      # v3.24: the league's starting fives, first slate day only
     LUF = {}
@@ -270,7 +317,8 @@ def main():
                 players[x.pid] = dict(id=x.pid, name=x.name, pos=x.posr, grp=x.pos, team=t, active=bool(active), missed=bool(missed), q=bool(nm in news["q"]),
                                       n=int(pf["n"]), m=round(pf["m"], 3), start=bool(list(L["start"])[-1]),
                                       **({"lu": lu, "luc": bool(LU[t]["confirmed"])} if lu else {}),
-                                      r={b: round(pf["r_" + b], 5) for b in BASE}, logs=logs)
+                                      r={b: round(pf["r_" + b], 5) for b in BASE}, logs=logs,
+                                      **({"sh": S.shot_view(x.pid, x.pos, recent[x.pid])} if SHOT_ON and x.pid in recent else {}))
     upr, utr = pd.DataFrame(prow), pd.DataFrame(trow)
     proj = project(upr, utr, MF)
     check = {f"{r.game_id}|{r.pid}": {k: round(float(getattr(r, "mu_" + k)), 4) for k in BASE + list(COMBO)} | {"mn": round(float(r.mn), 4)} for r in proj.itertuples()}

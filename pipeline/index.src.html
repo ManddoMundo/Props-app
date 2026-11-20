@@ -964,6 +964,15 @@ body.morph .memo{transition:none!important}
 .hrc-f small{font:600 11px var(--fx-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hrc-f b{font:700 20px/1.05 var(--fx-num);white-space:nowrap}
 .hrc-f b.mut{font:500 16px/1.25 var(--fx-ui);color:var(--mute)}
+/* v3.50 under the streak: his shots and his shooting over the last ten against his own norm */
+.hrc-sh{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-top:9px;border-top:1px dashed var(--rule)}
+.hrc-sh>span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hrc-sh small{font:600 11px var(--fx-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.hrc-sh b{font:700 20px/1.05 var(--fx-num);white-space:nowrap}
+.hrc-sh b em{font:500 14px/1 var(--fx-ui);font-style:normal;color:var(--mute);margin-left:6px}
+.hrc-sh .sht{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;margin-left:auto}
+.sht i{font:700 12px/1 var(--fx-ui);font-style:normal;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:4px;border:1.5px solid var(--rule);color:var(--ink);white-space:nowrap}
+.sht i.up{border-color:var(--good);color:var(--good)}.sht i.hot{border-color:#f06a14;color:#f06a14}.sht i.cold{border-color:#3e9be6;color:#3e9be6}
 /* v3.32 unfolded (760px and up): the cards sit two across, each at the proportions of the folded phone, and a counter panel
    puts its TV beside its filters instead of floating it in an empty box */
 @media(min-width:760px){
@@ -2532,11 +2541,30 @@ function ledgerHtml(a) {
     + (a.length > S.limit ? `<button class="more" data-act="more">Show ${Math.min(60, a.length - S.limit)} more of ${a.length}</button>` : '');
 }
 
+/* v3.50 what sits under a points or threes number: shots taken (volume) and the share that goes in (shooting), his last
+   ten games against his last sixty. The numbers come from nba.py (players[].sh); the same idea drives the model's shot build. */
+const SHOT_MK = { pts: 1, pra: 1, pr: 1, pa: 1, fg3: 1 };
+function shotRead(p, mkt) {
+  const s = p && p.sh; if (!s || !SHOT_MK[mkt] || !s.a || !s.b || s.a[0] < 6 || s.b[0] < 15) return null;
+  const three = mkt === 'fg3', va = s.a[three ? 2 : 1], vb = s.b[three ? 2 : 1], ea = s.a[three ? 4 : 3], eb = s.b[three ? 4 : 3];
+  if (!(vb > 0) || ea == null || eb == null) return null;
+  const dv = va / vb - 1, de = ea - eb, cut = three ? 0.06 : 0.04;
+  return { three, va, vb, ea, eb, n: s.b[0], vol: dv >= 0.1 ? 'up' : dv <= -0.1 ? 'down' : 'flat', eff: de >= cut ? 'hot' : de <= -cut ? 'cold' : 'flat' };
+}
+function shotLine(p, mkt) {
+  const r = shotRead(p, mkt); if (!r) return '';
+  const p0 = x => Math.round(x * 100) + '%', tags = (r.vol === 'up' ? '<i class="up">More shots</i>' : r.vol === 'down' ? '<i>Fewer shots</i>' : '') + (r.eff === 'hot' ? '<i class="hot">Shooting hot</i>' : r.eff === 'cold' ? '<i class="cold">Shooting cold</i>' : '');
+  return `<span class="hrc-sh"><span><small>${r.three ? 'Threes tried' : 'Shots a game'}</small><b>${f1(r.va)}<em>usual ${f1(r.vb)}</em></b></span><span><small>${r.three ? 'Three-point %' : 'Shooting'}</small><b>${p0(r.ea)}<em>usual ${p0(r.eb)}</em></b></span>${tags ? `<span class="sht">${tags}</span>` : ''}</span>`;
+}
+
 /* ---------- memo ---------- */
 function buildUp(pr) {
   const e = pr.e, p = e.p, P = e.parts, r = (a, b) => `<div><span>${a}</span><span>${b}</span></div>`;
   if (pr.lg === 'NBA') { const ks = E.NBA_COMBO[pr.mkt] || [pr.mkt]; let h = r('Projected minutes', `${f1(P.mn)} <span class="mut">(recent ${f1(P.m)})</span>`);
-    for (const k of ks) h += r(`${MK.NBA[k].n} per 36 min`, f1(p.r[k] * 36)) + r(`Matchup and team share factor`, 'x ' + P.boost[k].toFixed(3)) + r('Calibration from backtest', sgn(e.mu[k] - P.mn * p.r[k] * P.boost[k])) + (ks.length > 1 ? r(MK.NBA[k].n, f1(e.mu[k])) : '');
+    const p0 = x => Math.round(x * 100) + '%', sh = p.sh;
+    for (const k of ks) h += (sh && k === 'pts' ? r('Shots per 36 min', `${f1(sh.v[0])} <span class="mut">(${f1(sh.v[1])} threes) plus ${f1(sh.v[2])} free throws</span>`) + r('Shooting, steadied', `${p0(sh.p[0])} twos, ${p0(sh.p[1])} threes, ${p0(sh.p[2])} free throws`)
+        : sh && k === 'fg3' ? r('Threes tried per 36 min', f1(sh.v[1])) + r('Three-point shooting, steadied', p0(sh.p[3])) : '')
+      + r(`${MK.NBA[k].n} per 36 min`, f1(p.r[k] * 36) + (sh && (k === 'pts' || k === 'fg3') ? ` <span class="mut">(old build ${f1(sh.r0[k === 'pts' ? 0 : 1] * 36)})</span>` : '')) + r(`Matchup and team share factor`, 'x ' + P.boost[k].toFixed(3)) + r('Calibration from backtest', sgn(e.mu[k] - P.mn * p.r[k] * P.boost[k])) + (ks.length > 1 ? r(MK.NBA[k].n, f1(e.mu[k])) : '');
     return h + `<div class="t"><span>Projection</span><span>${f1(pr.mu)}</span></div>`; }
   let h = '';
   if (/^pass/.test(pr.mkt)) { h += r('Team pass attempts', f1(P.PA)) + r('His share of dropbacks', pct(P.asn)) + r('Pass attempts', f1(P.att));
@@ -2905,7 +2933,7 @@ function modelHtml() {
     ${lg === 'NBA' ? `<li><b>Why centring is needed:</b> players the books quote have played about 8 percent more minutes than the model projects. A quote is itself news: the book expects a full night.</li>
     <li><b>Tested and left out:</b> back to back rest and home or away. Neither lowered the miss on games the model had not seen.</li>` : `<li><b>Why centring is needed:</b> players the books quote have a bigger role than the model's recent-game average projects. A quote is itself news: the book expects a full workload.</li>`}
     <li><b>Blind spots:</b> coaching changes, weather, snap share, anything after the daily pull.</li>
-    <li><b>Method:</b> ${lg === 'NBA' ? 'minutes times per minute rate, with team minutes forced to 240 and each stat pulled toward what this team and opponent allow.' : 'team pass attempts and carries from the spread and total, split by each player’s share, times his efficiency, adjusted for the defense.'} A negative binomial curve around each projection prices any line.</li></ul></div>`;
+    <li><b>Method:</b> ${lg === 'NBA' ? 'minutes times per minute rate (points and threes built from shots taken and a steadied shooting percentage since v3.50), with team minutes forced to 240 and each stat pulled toward what this team and opponent allow.' : 'team pass attempts and carries from the spread and total, split by each player’s share, times his efficiency, adjusted for the defense.'} A negative binomial curve around each projection prices any line.</li></ul></div>`;
 }
 
 /* ---------- research room ---------- */
@@ -3566,9 +3594,9 @@ function hitHtml() {
     return `<button class="row pl hrc${hk ? ' has-drg heat-' + hk : ''}${S.memo === pr.key ? ' sel' : ''}${S.fresh && i < 16 ? ' in' : ''}" style="--i:${i};${tcol(lg, p.team)}" data-open="${esc(pr.key)}">${ctlHtml(pr.key)}
       <span class="hrc-h">${jersey(lg, p)}<span class="hrc-who"><b>${esc(p.name)}</b><small>${teamTag(lg, p.team)}${side.home ? 'vs' : '@'} ${esc(side.opp)}${g ? ' · ' + when(g) : ''}</small></span></span>
       <span class="hrc-bet"><small>The bet</small><span class="hrc-bl"><b>Over <span class="num">${L}</span></b><span>${esc(M.n.toLowerCase())}</span></span>${dragonHtml(hk, dk, r.h10, r.n10)}</span>
-      <span class="hrc-hl ${tone}"><b class="num${drgT(hk, dk)}">${r.h10} of ${r.n10}</b><span>times he went over ${L} in his last ${r.n10} games</span></span>
+      <span class="hrc-hl ${tone}"><b class="num${drgT(hk, dk)}">${r.h10} of ${r.n10}</b><span>times he went over ${L} in his last ${r.n10} games. A count, not a chance.</span></span>
       <span class="hrc-ch" role="img" aria-label="His last ${r.n10} games, oldest first: ${r.v.join(', ')}. The line is ${L}."><span class="hrc-ln" style="--lf:${Math.min(1, L / mx).toFixed(3)}"><em>${L}</em></span>${bars}</span>
-      <span class="hrc-f"><span><small>Last ${r.n5}</small><b>${r.h5} of ${r.n5}</b></span><span><small>Average</small><b>${f1(r.a10)}</b></span><span><small>vs ${esc(side.opp)}</small><b class="${r.vo.length ? '' : 'mut'}">${r.vo.length ? r.ho + ' of ' + r.vo.length : 'no games'}</b></span><span><small>Desk says</small><b class="${r.po == null ? 'mut' : ''}">${r.po == null ? 'none' : pct(r.po)}</b></span></span></button>`; };
+      <span class="hrc-f"><span><small>Last ${r.n5}</small><b>${r.h5} of ${r.n5}</b></span><span><small>Average</small><b>${f1(r.a10)}</b></span><span><small>vs ${esc(side.opp)}</small><b class="${r.vo.length ? '' : 'mut'}">${r.vo.length ? r.ho + ' of ' + r.vo.length : 'no games'}</b></span><span><small>Desk says</small><b class="${r.po == null ? 'mut' : ''}">${r.po == null ? 'none' : pct(r.po)}</b></span></span>${lg === 'NBA' ? shotLine(p, pr.mkt) : ''}</button>`; };
   const G = IDX[lg].games, hot = rows.filter(r => r.h10 / r.n10 >= .7).length, cold = rows.filter(r => r.h10 / r.n10 <= .3).length, agree = rows.filter(r => r.po != null && ((r.h10 / r.n10 >= .6 && r.po > .5) || (r.h10 / r.n10 <= .4 && r.po < .5))).length;
   const tick = (n, k, lbl, sub, cls) => `<div class="tv-t${cls ? ' ' + cls : ''}"><small>${lbl}</small><b class="tick" data-to="${n}" data-k="${k}">${n.toLocaleString()}</b><em>${sub}</em></div>`;
   return `<section class="wr fr2" aria-label="Hit rate controls">
@@ -3584,7 +3612,7 @@ function hitHtml() {
       </div>
     </section>
     ${H.hv === 'grid' ? gridHtml(rows, lg) : `<div class="ledger rs-led">${rows.slice(0, 60).map(row).join('') || `<div class="row"><span class="mut">No ${lg} lines on file for this slate yet. They land with the late morning pull, or enter a book line on the Board and the prop shows up here.</span></div>`}`}</div>
-    <p class="note">Each bar is one of his last ten games, oldest on the left, with the opponent under it; the dashed line is tonight's line, and a bar that clears it is lit. The book has seen the same ten games and set the line with them in mind, so a streak on its own is not an edge. The desk column is the chance after the model and the other books are weighed. Where the streak and the desk disagree, open the memo before leaning on either.${lg === 'NFL' ? ' NFL marks can reach back into last season.' : ''}</p>`;
+    <p class="note">Each bar is one of his last ten games, oldest on the left, with the opponent under it; the dashed line is tonight's line, and a bar that clears it is lit. The book has seen the same ten games and set the line with them in mind, so a streak on its own is not an edge. The desk column is the chance after the model and the other books are weighed. Where the streak and the desk disagree, open the memo before leaning on either.${lg === 'NBA' ? ' On points and threes, the line under the facts shows what sits under the streak: his shots and his shooting over the last ten against his last sixty games. More shots is a change in role. Shooting far above his own norm usually fades and far below usually recovers, and since v3.50 the model prices that in.' : ''}${lg === 'NFL' ? ' NFL marks can reach back into last season.' : ''}</p>`;
 }
 
 function rsGaps() {

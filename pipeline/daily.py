@@ -49,6 +49,10 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            # Polymarket count less because the pull has no volume to judge their prices by. The weights are a judgement, not
            # fitted: the first review of this lane is where they get tested.
            mk_w={"fanduel": 1.5, "draftkings": 1.5, "kalshi": 0.5, "polymarket": 0.5},
+           # v3.49: a book pulled as a yardstick only. Its rows are in the lines files but parse() leaves them out, so the
+           # desk's market number, the market lane, the board, the news rule and the page never see it. Only wide_close reads
+           # it, to say how the shadow book's sides did against its closing price.
+           ref_books=["pinnacle"],
            mk_min_edge=0.01,                 # a side is filed in the market lane when the best price beats the books' fair price by this much
            # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
            # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
@@ -247,7 +251,9 @@ def confidence(lg, p, mkt, mu, edge, game, side=None):
     return c, flags
 
 
-def parse(path):
+def parse(path, ref=False):
+    """Rows of a lines file. ref=False (every reader but wide_close): the reference books in CFG ref_books are left out.
+    ref=True: only those books."""
     rows = []
     for ln in open(path):
         t = ln.strip()
@@ -255,6 +261,8 @@ def parse(path):
         if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
             continue
         num = lambda s: (float(s.replace("+", "")) if re.fullmatch(r"[+-]?\d+(\.\d+)?", s) else None)
+        if (c[0] in CFG["ref_books"]) != ref:
+            continue
         rows.append(dict(book=c[0], market=c[1], player=c[2], line=num(c[3]), o=num(c[4]), u=num(c[5])))
     return rows
 
@@ -288,7 +296,7 @@ def cmd_news(date, lg, files):
             if ln.startswith("# game:"):
                 game = ln.split(":", 1)[1].strip().replace(" ", ""); continue
             c = [x.strip() for x in ln.strip().strip("|").split("|")]
-            if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
+            if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: ") or c[0] in CFG["ref_books"]:
                 continue
             inn.add(norm(c[2]))
             # a quote that counts against an "Out": a sportsbook the desk bets at, a main market, both prices posted
@@ -822,7 +830,7 @@ def explain(b, D, quotes, news, mn=None):
     # --- model
     t = f"The model projects {mu:.1f} {unit}" + (f" on {mn:.0f} minutes" if (lg == "NBA" and mn) else "") + "."
     if lg == "NBA" and p and mkt in p.get("r", {}):
-        t += f" That is {p['r'][mkt] * 36:.1f} per 36 minutes by its blend of this season and last."
+        t += f" That is {p['r'][mkt] * 36:.1f} per 36 minutes by its blend of this season and last" + (", built from the shots he takes and a steadied shooting percentage." if mkt in ("pts", "fg3") and p.get("sh") else ".")
     if lg == "NFL" and p:
         if mkt.startswith("rec"): t += f" He has drawn about {p['ts'] * 100:.0f}% of the team's targets."
         if mkt.startswith("rush"): t += f" He has taken about {p['cs'] * 100:.0f}% of the carries."
@@ -977,11 +985,11 @@ def cmd_close(date, lg, label, files):
         n += 1
         print(f"  {b['name']} {b['side']} {b['line']} {b['mkt']} {b['odds']:+d}: closed {hr.get('line')} {hr.get('o')}/{hr.get('u')}, fair {fair:.1%}, CLV {b['close']['clv'] * 100:+.1f}%, market moved {0 if opened is None else (fair - opened) * 100:+.1f} pts")
     save_history(h); print(f"{lg} {date}: closing lines recorded for {n} bets")
-    try: wide_close(date, lg, label, quotes, L)      # v3.46: tracking only, never fatal
+    try: wide_close(date, lg, label, quotes, L, files)      # v3.46: tracking only, never fatal
     except Exception as e: print("  wide close not recorded:", e)
 
 
-def wide_close(date, lg, label, quotes, L):
+def wide_close(date, lg, label, quotes, L, files=()):
     """v3.46 the closing number for every side the shadow book follows, not only the desk's tickets: each midday side that
     cleared the test, and each side in the market lane. Same sum as cmd_close: the median of the books' implied projections
     at this pull, turned into a fair chance at the row's line; clv = the price taken times that chance, minus one. Kept in
@@ -991,6 +999,12 @@ def wide_close(date, lg, label, quotes, L):
     if not os.path.exists(f):
         return
     cp = O + "closes.json"; C = json.load(open(cp)) if os.path.exists(cp) else {}; n = 0
+    refq = {}      # v3.49: the reference book's own quotes at this pull (Pinnacle), kept apart from the market number
+    for fl in files:
+        if os.path.exists(fl):
+            for r in parse(fl, ref=True):
+                if r["line"] is not None and r["o"] is not None and r["u"] is not None:
+                    refq[(norm(r["player"]), r["market"])] = r
     for b in json.load(open(f)):
         if b["mkt"] == "any_td":
             continue
@@ -1010,6 +1024,11 @@ def wide_close(date, lg, label, quotes, L):
             ov, un, _ = probs(L, lg, b["mkt"], mc, line); return (un if b["side"] == "Under" else ov) / (ov + un)
         C[b["id"] + "|" + b["side"]] = dict(date=date, t=label, nb=len(imps), clv=round(dec(b["odds"]) * fair(b["line"]) - 1, 4),
                                             mclv=round(dec(mk["odds"]) * fair(mk["line"]) - 1, 4) if mkok else None)
+        rq = refq.get((norm(b["name"]), INV[lg].get(b["mkt"])))
+        if rq:      # the same sum against the reference book alone: its two prices with the cut split out, carried to the row's line
+            po, pu = 1 / dec(rq["o"]), 1 / dec(rq["u"]); mc = implied_mean(L, lg, b["mkt"], rq["line"], po / (po + pu))
+            C[b["id"] + "|" + b["side"]].update(pclv=round(dec(b["odds"]) * fair(b["line"]) - 1, 4),
+                                                mpclv=round(dec(mk["odds"]) * fair(mk["line"]) - 1, 4) if mkok else None)
         n += 1
     old = (datetime.date.fromisoformat(date) - datetime.timedelta(days=45)).isoformat()
     C = {k: v for k, v in C.items() if v.get("date", date) >= old}
@@ -1286,6 +1305,8 @@ def cmd_shadow():
     for k, c in C.items():
         if k in R and c.get("clv") is not None: R[k]["clv"] = c["clv"]
         if k in M and c.get("mclv") is not None: M[k]["clv"] = c["mclv"]
+        if k in R and c.get("pclv") is not None: R[k]["pclv"] = c["pclv"]
+        if k in M and c.get("mpclv") is not None: M[k]["pclv"] = c["mpclv"]
     for k, r in M.items():
         if r.get("win") is None and k in A and A[k].get("result") is not None:
             v = A[k]["result"]
@@ -1305,7 +1326,9 @@ def cmd_shadow():
 def clv_note(z):
     """The closing-number part of a report line: the average value against the close and how many beat it."""
     c = [r["clv"] for r in z if r.get("clv") is not None]
-    return f"  vs close {np.mean(c):+.1%}, beat it {sum(v > 0 for v in c)} of {len(c)}" if c else ""
+    s = f"  vs close {np.mean(c):+.1%}, beat it {sum(v > 0 for v in c)} of {len(c)}" if c else ""
+    pc = [r["pclv"] for r in z if r.get("pclv") is not None]      # v3.49: against Pinnacle's own closing price, where it posted one
+    return s + (f"  vs Pinnacle {np.mean(pc):+.1%}, beat it {sum(v > 0 for v in pc)} of {len(pc)}" if pc else "")
 
 
 def shadow_report(S=None):

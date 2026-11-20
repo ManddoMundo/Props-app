@@ -16,7 +16,10 @@ SPORT = {"NBA": "basketball_nba", "NFL": "americanfootball_nfl"}
 ESPN = {"NBA": "basketball/nba", "NFL": "football/nfl"}
 # The desk bets at the best of the seven sportsbooks (v3.22). Polymarket, Novig and Kalshi (exchanges) are shown in the app
 # and join the market view. Up to ten books cost the same as one, so the three exchanges add no credits.
-BOOKS = ["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics", "polymarket", "novig", "kalshi"]
+# v3.49: Pinnacle takes Polymarket's place. It is a yardstick only: daily.py keeps its rows out of the market number and
+# reads them just to grade the shadow book against Pinnacle's close. Still ten books, so the cost is unchanged.
+BOOKS = ["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics", "pinnacle", "novig", "kalshi"]
+REF = ["pinnacle"]      # left out of the game-lines pull, so the game picks see the same books as before minus Polymarket
 MARKETS = {"NBA": ["player_points", "player_rebounds", "player_assists", "player_threes", "player_points_rebounds_assists",
                    "player_points_rebounds", "player_points_assists", "player_rebounds_assists"],
            "NFL": ["player_pass_yds", "player_pass_attempts", "player_pass_completions", "player_pass_tds", "player_rush_yds",
@@ -209,7 +212,7 @@ def pull_games(lg):
     """Moneylines, spreads and totals for the game picks: one call a league for every game, 3 credits."""
     global spent
     try:
-        evs, h = get(API + SPORT[lg] + "/odds", {"apiKey": KEY, "bookmakers": ",".join(BOOKS), "markets": "h2h,spreads,totals", "oddsFormat": "american", "dateFormat": "iso"})
+        evs, h = get(API + SPORT[lg] + "/odds", {"apiKey": KEY, "bookmakers": ",".join(b for b in BOOKS if b not in REF), "markets": "h2h,spreads,totals", "oddsFormat": "american", "dateFormat": "iso"})
     except RuntimeError as x:
         errors.append(f"{lg} game odds: {x}"); return
     quota(h)
@@ -335,9 +338,6 @@ TIER = "full" if rem is not None and rem >= 3000 else "lite" if rem is not None 
 CAP = {"full": 450, "lite": 24, "none": 0}[TIER]
 if KIND == "test":
     CAP = min(CAP, 20)
-    # v3.48: the test pull swaps Pinnacle in for Polymarket, to see whether Pinnacle posts player props in this feed at all.
-    # Still ten books, so the cost is unchanged. Test only: the daily pulls keep the usual ten. status.json lists rows per book.
-    BOOKS = ["pinnacle" if b == "polymarket" else b for b in BOOKS]
 if TIER == "none":
     notes.append("Credits are nearly gone, so no lines were pulled")
 elif KIND == "early":
