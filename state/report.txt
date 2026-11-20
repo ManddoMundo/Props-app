@@ -1,4 +1,4 @@
-bets 35, open 0
+bets 38, open 3
   all            15-13  hit 53.6%  units +1.74  dollars +40.50  avg model prob 59.4%
   best bets      5-5  hit 50.0%  units -0.29  dollars +2.30  avg model prob 57.6%
   edge lane      15-13  hit 53.6%  units +1.74  dollars +40.50  avg model prob 59.4%
@@ -14,6 +14,23 @@ bets 35, open 0
   AA             0-2  hit 0.0%  units -1.25  dollars -6.75  avg model prob 50.7%
   A              2-0  hit 100.0%  units +0.79  dollars +4.34  avg model prob 64.4%
   closing line value: 7 bets tracked, average -6.4%, beat the close on 1
+calibration (every graded side; said -> happened):
+  all days: 5268 sides, Brier 0.2505 (desk 0.2514 against the books' 0.2484 on the 4370 with both prices), average gap 2.2 points
+    said 30% (110): happened 49%, +19.0
+    said 39% (322): happened 41%, +1.7
+    said 44% (478): happened 50%, +5.9
+    said 48% (1336): happened 49%, +0.4
+    said 52% (1815): happened 52%, -0.2
+    said 56% (665): happened 51%, -4.8
+    said 61% (417): happened 60%, -0.8
+    said 70% (125): happened 54%, -15.9
+  edge inside the playable window (3 to 12 points): 265 sides, Brier 0.2500 (desk 0.2524 against the books' 0.2501 on the 255 with both prices), average gap 5.3 points
+    said 45% (2): happened 0%, -44.9
+    said 48% (19): happened 53%, +4.2
+    said 52% (24): happened 54%, +1.8
+    said 57% (65): happened 52%, -4.3
+    said 61% (119): happened 56%, -4.9
+    said 68% (36): happened 58%, -9.5
 shadow book (flat 1 unit a side, 11-16 to 11-19):
   picked                     4-3  hit 57.1%  model said 56.6%  break-even 51.2%  flat units +0.75  per bet +10.7%
   cleared, not picked        16-14  hit 53.3%  model said 55.6%  break-even 51.5%  flat units +0.60  per bet +2.0%
