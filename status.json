@@ -1,62 +1,6 @@
 {
  "files": [
   {
-   "path": "data/lines/NBA_test.txt.enc",
-   "what": "lines",
-   "lg": "NBA",
-   "date": "2026-11-16",
-   "kind": "test",
-   "et": "2026-11-16 23:09",
-   "rows": 256,
-   "games": 1,
-   "books": {
-    "fanduel": 83,
-    "draftkings": 69,
-    "williamhill_us": 29,
-    "hardrockbet": 71,
-    "fanatics": 4
-   },
-   "markets": 8
-  },
-  {
-   "path": "data/lines/NFL_test.txt.enc",
-   "what": "lines",
-   "lg": "NFL",
-   "date": "2026-11-16",
-   "kind": "test",
-   "et": "2026-11-16 23:09",
-   "rows": 340,
-   "games": 1,
-   "books": {
-    "draftkings": 61,
-    "williamhill_us": 28,
-    "fanduel": 52,
-    "betrivers": 52,
-    "fanatics": 38,
-    "betmgm": 52,
-    "hardrockbet": 57
-   },
-   "markets": 9
-  },
-  {
-   "path": "data/news/NBA_test.txt.enc",
-   "what": "news",
-   "lg": "NBA",
-   "date": "2026-11-16",
-   "kind": "test",
-   "et": "2026-11-16 23:09",
-   "rows": 104
-  },
-  {
-   "path": "data/news/NFL_test.txt.enc",
-   "what": "news",
-   "lg": "NFL",
-   "date": "2026-11-16",
-   "kind": "test",
-   "et": "2026-11-16 23:09",
-   "rows": 800
-  },
-  {
    "path": "data/lines/NBA_2026-11-17.txt.enc",
    "what": "lines",
    "lg": "NBA",
@@ -447,6 +391,98 @@
    "kind": "early",
    "et": "2026-11-20 09:37",
    "rows": 800
+  },
+  {
+   "path": "data/lines/NBA_test.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 591,
+   "games": 1,
+   "books": {
+    "fanduel": 92,
+    "novig": 87,
+    "betrivers": 93,
+    "williamhill_us": 50,
+    "draftkings": 97,
+    "betmgm": 59,
+    "fanatics": 5,
+    "hardrockbet": 99,
+    "pinnacle": 9
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/games/NBA_test.txt.enc",
+   "what": "games",
+   "lg": "NBA",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 558,
+   "games": 9
+  },
+  {
+   "path": "data/lines/NFL_test.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 467,
+   "games": 1,
+   "books": {
+    "draftkings": 66,
+    "williamhill_us": 25,
+    "fanduel": 61,
+    "betrivers": 58,
+    "novig": 65,
+    "betmgm": 57,
+    "hardrockbet": 64,
+    "pinnacle": 35,
+    "fanatics": 36
+   },
+   "markets": 9
+  },
+  {
+   "path": "data/games/NFL_test.txt.enc",
+   "what": "games",
+   "lg": "NFL",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 966,
+   "games": 17
+  },
+  {
+   "path": "data/news/NBA_test.txt.enc",
+   "what": "news",
+   "lg": "NBA",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 108
+  },
+  {
+   "path": "data/news/NFL_test.txt.enc",
+   "what": "news",
+   "lg": "NFL",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 800
+  },
+  {
+   "path": "data/lineups/NBA_2026-11-20.txt.enc",
+   "what": "lineups",
+   "lg": "NBA",
+   "date": "2026-11-20",
+   "kind": "test",
+   "et": "2026-11-20 09:54",
+   "rows": 90,
+   "confirmed": 0
   }
  ],
  "done": {
@@ -457,16 +493,14 @@
   "early": "2026-11-20"
  },
  "quota": {
-  "remaining": 4963,
-  "used": 15037
+  "remaining": 4940,
+  "used": 15060
  },
- "updated_utc": "2026-11-20 14:37",
- "et": "2026-11-20 09:37",
- "kind": "early",
+ "updated_utc": "2026-11-20 14:54",
+ "et": "2026-11-20 09:54",
+ "kind": "test",
  "tier": "full",
- "spent": 0,
+ "spent": 23,
  "errors": [],
- "notes": [
-  "Morning refresh: no lines pulled, they post later in the morning"
- ]
+ "notes": []
 }
