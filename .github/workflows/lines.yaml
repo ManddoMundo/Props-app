@@ -45,4 +45,18 @@ jobs:
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           RELAY_PASS: ${{ secrets.RELAY_PASS }}
-          RELAY_PLAIN: /home/claude/props
+          RELAY_PLAIN: /home/claude/props/out
+          MODE: ${{ github.event.inputs.mode == 'build' && 'none' || github.event.inputs.mode || 'auto' }}
+        run: python3 pipeline/relay_pull.py
+      - name: Run the day and rebuild the app
+        env:
+          RELAY_PASS: ${{ secrets.RELAY_PASS }}
+          FORCE: ${{ github.event.inputs.mode == 'build' && 'build' || '' }}
+        run: bash pipeline/site_job.sh run
+      - name: Save to the repository
+        if: always()
+        run: |
+          git config user.name "fair-line"
+          git config user.email "fair-line@users.noreply.github.com"
+          git add -A .
+          if ! git diff --cached --quiet; then git commit -q -m "day $(date -u +%Y-%m-%dT%H:%MZ)"; git push -q; fi
