@@ -7,9 +7,15 @@ on:
     # Cron runs on UTC. Two times each so one lands at the right Eastern hour in both standard and daylight time;
     # the relay step decides what is due, and a run with nothing due exits.
     - cron: "27 15,16 * * *"   # about 11:30 AM Eastern: lines, injuries, model, picks, rebuild
+    # v3.44: second tries. GitHub started the 11:27 AM run at 2:27 PM on Nov 19 and no evening run landed inside its window.
+    # A run that finds its job already done exits in about 25 seconds and spends no credits, so spare starts are free.
+    - cron: "47 16,17 * * *"   # second try at midday (11:47 AM or 12:47 PM Eastern)
+    - cron: "17 18 * * *"      # third try at midday (1:17 PM standard, 2:17 PM daylight)
     - cron: "57 21,22 * * *"   # about 6 PM Eastern: evening pass, fresh lines and injuries, closing numbers for the midday bets, a second look, line moves
     - cron: "37 22,23 * * *"   # about 6:40 PM Eastern: starting lineups (v3.24), or the evening pass if it was late
+    - cron: "17 23,0 * * *"    # second try at the evening pass or the lineups (6:17 and 7:17 PM standard, 7:17 and 8:17 PM daylight)
     - cron: "12 1,2 * * *"     # about 9:15 PM Eastern: starting lineups for the West coast games (v3.24)
+    - cron: "42 2 * * *"       # second try at the late lineups (9:42 PM standard, 10:42 PM daylight)
     - cron: "30 16,17 * * 0"   # Sunday midday Eastern: NFL closing lines for the afternoon games
   workflow_dispatch:
     inputs:
@@ -39,18 +45,4 @@ jobs:
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           RELAY_PASS: ${{ secrets.RELAY_PASS }}
-          RELAY_PLAIN: /home/claude/props/out
-          MODE: ${{ github.event.inputs.mode == 'build' && 'none' || github.event.inputs.mode || 'auto' }}
-        run: python3 pipeline/relay_pull.py
-      - name: Run the day and rebuild the app
-        env:
-          RELAY_PASS: ${{ secrets.RELAY_PASS }}
-          FORCE: ${{ github.event.inputs.mode == 'build' && 'build' || '' }}
-        run: bash pipeline/site_job.sh run
-      - name: Save to the repository
-        if: always()
-        run: |
-          git config user.name "fair-line"
-          git config user.email "fair-line@users.noreply.github.com"
-          git add -A .
-          if ! git diff --cached --quiet; then git commit -q -m "day $(date -u +%Y-%m-%dT%H:%MZ)"; git push -q; fi
+          RELAY_PLAIN: /home/claude/props
