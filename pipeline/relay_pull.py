@@ -335,6 +335,9 @@ TIER = "full" if rem is not None and rem >= 3000 else "lite" if rem is not None 
 CAP = {"full": 450, "lite": 24, "none": 0}[TIER]
 if KIND == "test":
     CAP = min(CAP, 20)
+    # v3.48: the test pull swaps Pinnacle in for Polymarket, to see whether Pinnacle posts player props in this feed at all.
+    # Still ten books, so the cost is unchanged. Test only: the daily pulls keep the usual ten. status.json lists rows per book.
+    BOOKS = ["pinnacle" if b == "polymarket" else b for b in BOOKS]
 if TIER == "none":
     notes.append("Credits are nearly gone, so no lines were pulled")
 elif KIND == "early":

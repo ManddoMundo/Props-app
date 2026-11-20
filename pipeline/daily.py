@@ -319,25 +319,59 @@ def cmd_news(date, lg, files):
           + (f", listed out and kept out despite a leftover quote: {[(n, sorted(strong.get(n, ()))) for n in stays]}" if stays else ""))
 
 
-def market_view(L, lg, mkt, side, bet, impd):
+def power_fair(o, u):
+    """v3.47 the over's fair chance with the house cut removed the power way: both implied chances are raised to the one
+    power that makes them add to 1. Next to the plain split (each side's share of the total) it takes more of the cut off
+    the longer price. Used only by the market lane, to compare the two methods."""
+    a, b = 1 / dec(o), 1 / dec(u)
+    if a + b <= 1:
+        return a / (a + b)
+    lo, hi = 1.0, 6.0
+    for _ in range(40):
+        k = (lo + hi) / 2
+        if a ** k + b ** k > 1: lo = k
+        else: hi = k
+    return a ** ((lo + hi) / 2)
+
+
+def market_view(L, lg, mkt, side, bet, impd, impw=None):
     """v3.45 the market's own fair price for one side, and the book that beats it by most. For each book the desk can bet,
     the other books' implied projections are averaged (weights in CFG mk_w), turned into a chance at that book's line, and
     set against that book's break-even. Needs min_books other books. The model is not in this number: the only thing
-    borrowed from it is the shape of the curve, used to carry a price from one line to another. Tracking only."""
+    borrowed from it is the shape of the curve, used to carry a price from one line to another. Tracking only.
+    v3.47: the same sum is also done with the power de-vig (edge_pw). When the plain split finds nothing at the bar and the
+    power method does, that ticket rides along as `pw`, so the shadow book can follow what only the power method would bet."""
     if mkt == "any_td":
         return None      # one-sided price: the house cut cannot be taken out
-    top = None
-    for bk, r in bet.items():
+    def at(bk, r, imps):
         odds = r["o"] if side != "Under" else r["u"]
-        oth = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in impd.items() if k != bk]
+        oth = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in imps.items() if k != bk]
         if odds is None or len(oth) < CFG["min_books"]:
-            continue
+            return None
         mean = sum(v * w for v, w in oth) / sum(w for _, w in oth)
         ov, un, _ = probs(L, lg, mkt, mean, r["line"])
-        p = (un if side == "Under" else ov) / (ov + un); e = p - 1 / dec(odds)
-        if top is None or e > top["edge"]:
-            top = dict(book=bk, line=r["line"], odds=int(odds), p=round(p, 4), edge=round(e, 4), n=len(oth))
+        p = (un if side == "Under" else ov) / (ov + un)
+        return dict(book=bk, line=r["line"], odds=int(odds), p=round(p, 4), edge=round(p - 1 / dec(odds), 4), n=len(oth))
+    top = tpw = None
+    for bk, r in bet.items():
+        a = at(bk, r, impd); w = at(bk, r, impw) if impw else None
+        if a is None:
+            continue
+        if w: a["edge_pw"] = w["edge"]
+        if top is None or a["edge"] > top["edge"]: top = a
+        if w and (tpw is None or w["edge"] > tpw["edge"]): tpw = dict(w, edge_pw=w["edge"], edge=a["edge"], p=a["p"])
+    if top and tpw and top["edge"] < CFG["mk_min_edge"] <= tpw["edge_pw"]:
+        top["pw"] = {k: tpw[k] for k in ("book", "line", "odds", "p", "edge", "edge_pw", "n")}
     return top
+
+
+def market_ticket(mk):
+    """The ticket the market lane files for a side, or None: the plain-split ticket when it clears the bar, else the
+    power-only ticket when there is one. Either way inside the desk's price window."""
+    if not mk:
+        return None
+    t = mk if mk["edge"] >= CFG["mk_min_edge"] else mk.get("pw")
+    return t if t and CFG["min_odds"] <= t["odds"] <= CFG["max_odds"] else None
 
 
 def market_est(L, b):
@@ -401,9 +435,11 @@ def price_all(date, lg, files):
             po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
             return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
         impd = {bk: v for bk, v in ((bk, imp(x)) for bk, x in good.items()) if v is not None}
+        # v3.47: the same quotes with the house cut taken out the power way, for the shadow book's comparison only
+        impw = {} if mkt == "any_td" else {bk: implied_mean(L, lg, mkt, x["line"], power_fair(x["o"], x["u"])) for bk, x in good.items() if bk in impd}
         imps = list(impd.values())
         mm = float(np.median(imps)) if imps else None
-        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good, impd=impd))
+        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good, impd=impd, impw=impw))
     # Centre the model on the market for this slate, market by market, so a general lean (it used to run low: the Under
     # lean) cannot create bets. What is left is where the model disagrees about one player more than about the rest.
     cen = {}
@@ -446,7 +482,7 @@ def price_all(date, lg, files):
                     best[side] = (k, rec)
         # v3.45: what the books alone say about each side (no model in it). Rides on the priced row for the shadow book.
         for side, v in best.items():
-            mk = market_view(L, lg, mkt, side, x["bet"], x["impd"])
+            mk = market_view(L, lg, mkt, side, x["bet"], x["impd"], x["impw"])
             if mk: v[1]["mk"] = mk
         out += [v[1] for v in best.values()]
         # the board's line for this prop: the book the desk would use on its better side; every book's quote rides along
@@ -958,8 +994,7 @@ def wide_close(date, lg, label, quotes, L):
     for b in json.load(open(f)):
         if b["mkt"] == "any_td":
             continue
-        mk = b.get("mk")
-        mkok = bool(mk) and mk["edge"] >= CFG["mk_min_edge"] and CFG["min_odds"] <= mk["odds"] <= CFG["max_odds"]
+        mk = market_ticket(b.get("mk")); mkok = mk is not None
         try: cleared = eligible(b)
         except (KeyError, TypeError): cleared = False
         if not (cleared or mkok):
@@ -1094,8 +1129,45 @@ def cmd_report(h=None):
     cl = [b["close"]["clv"] for b in h["bets"] if b.get("close") and not b.get("superseded")]
     if cl:
         print(f"  closing line value: {len(cl)} bets tracked, average {np.mean(cl) * 100:+.1f}%, beat the close on {sum(c > 0 for c in cl)}")
+    try: calib_report()       # v3.47: are the desk's chances honest, on every graded side
+    except Exception as e: print("  calibration not readable:", e)
     try: shadow_report()      # v3.44: picked against cleared-but-passed, when the shadow book is on file
     except Exception as e: print("  shadow book not readable:", e)
+
+
+def calib_report():
+    """v3.47 calibration on every graded side in audit.json, not only the bets: when the desk says 55%, does it happen 55%
+    of the time. Brier score is the average squared miss of the stated chance (lower is better; always saying 50% scores
+    0.2500). The books' score uses each prop's own two prices with the house cut split out, where both sides are on file.
+    Each prop is in here twice (over and under), so the counts are sides, not independent props."""
+    if not os.path.exists(O + "audit.json"):
+        return
+    A = json.load(open(O + "audit.json"))
+    R = [(k, r) for k, r in A.items() if r.get("win") in (0, 1) and r.get("mkt") != "any_td" and r.get("p") is not None]
+    if not R:
+        return
+    def block(rows, label):
+        p = np.array([r["p"] for _, r in rows]); w = np.array([r["win"] for _, r in rows]); bk = []
+        for k, r in rows:
+            o = A.get(k.rsplit("|", 1)[0] + "|" + ("Under" if r["side"] == "Over" else "Over"))
+            if o and o.get("odds") is not None and o.get("line") == r.get("line"):
+                a, b = 1 / dec(r["odds"]), 1 / dec(o["odds"]); bk.append(((a / (a + b)), r["win"], r["p"]))
+        s = f"  {label}: {len(rows)} sides, Brier {np.mean((p - w) ** 2):.4f}"
+        if bk:
+            q = np.array(bk); s += f" (desk {np.mean((q[:, 2] - q[:, 1]) ** 2):.4f} against the books' {np.mean((q[:, 0] - q[:, 1]) ** 2):.4f} on the {len(bk)} with both prices)"
+        gap = 0.0; out = []
+        for lo, hi in ((0, .35), (.35, .42), (.42, .46), (.46, .5), (.5, .54), (.54, .58), (.58, .65), (.65, 1.01)):
+            m = (p >= lo) & (p < hi)
+            if m.sum():
+                gap += m.sum() * abs(w[m].mean() - p[m].mean())
+                out.append(f"    said {p[m].mean():.0%} ({m.sum()}): happened {w[m].mean():.0%}, {'+' if w[m].mean() >= p[m].mean() else ''}{(w[m].mean() - p[m].mean()) * 100:.1f}")
+        print(s + f", average gap {gap / len(rows) * 100:.1f} points"); print("\n".join(out))
+    print("calibration (every graded side; said -> happened):")
+    block(R, "all days")
+    last = max(r["date"] for _, r in R); cut = (datetime.date.fromisoformat(last) - datetime.timedelta(days=13)).isoformat()
+    if min(r["date"] for _, r in R) < cut: block([x for x in R if x[1]["date"] >= cut], "last 14 days")
+    cl = [x for x in R if CFG["min_edge"] <= x[1].get("edge", 0) <= CFG["max_edge"]]
+    if cl: block(cl, f"edge inside the playable window ({CFG['min_edge'] * 100:.0f} to {CFG['max_edge'] * 100:.0f} points)")
 
 
 def cmd_audit():
@@ -1201,12 +1273,13 @@ def cmd_shadow():
                 if D is None: D = load()[0]
                 try: mk = market_est(D[b["lg"]], b)
                 except (KeyError, TypeError): mk = None
-            if not mk or mk["edge"] < CFG["mk_min_edge"] or not (CFG["min_odds"] <= mk["odds"] <= CFG["max_odds"]):
+            mk = market_ticket(mk)
+            if not mk:
                 continue
             try: desk = "picked" if k in took else "cleared" if eligible(b) else "no"
             except (KeyError, TypeError): desk = "no"
             M[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"], line=mk["line"], odds=mk["odds"],
-                        book=mk["book"], p=mk["p"], edge=mk["edge"], n=mk["n"], est=mk.get("est", 0), desk=desk, model_edge=b.get("edge"),
+                        book=mk["book"], p=mk["p"], edge=mk["edge"], edge_pw=mk.get("edge_pw"), n=mk["n"], est=mk.get("est", 0), desk=desk, model_edge=b.get("edge"),
                         q=int("questionable" in b.get("flags", [])))
     # v3.46: the closing number for every row that has one (wide_close). The latest pull stands.
     C = json.load(open(O + "closes.json")) if os.path.exists(O + "closes.json") else {}
@@ -1284,7 +1357,13 @@ def market_report(S, line):
         return
     now, est = [r for r in mk if not r["est"]], [r for r in mk if r["est"]]
     print(f"market lane (books only, no model; {len(now)} sides priced the v3.45 way, {len(est)} rebuilt from older files):")
-    for z, tag in ((now, ""), (est, " (older, rebuilt)")):
+    for zall, tag in ((now, ""), (est, " (older, rebuilt)")):
+        z = [r for r in zall if r["edge"] >= CFG["mk_min_edge"]]      # filed by the plain split; power-only rows are compared below
+        pw = [r for r in zall if (r.get("edge_pw") or -1) >= CFG["mk_min_edge"]]
+        if pw:      # v3.47: which way of removing the house cut finds the better bets
+            line(z, "de-vig: plain split files" + tag); line(pw, "de-vig: power method files" + tag)
+            line([r for r in z if (r.get("edge_pw") or -1) < CFG["mk_min_edge"]], "  only the plain split" + tag)
+            line([r for r in pw if r["edge"] < CFG["mk_min_edge"]], "  only the power method" + tag)
         if not z:
             continue
         line(z, "all filed" + tag)
