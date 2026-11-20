@@ -339,40 +339,94 @@
    "games": 17
   },
   {
+   "path": "data/lines/NBA_2026-11-19_late.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-19",
+   "kind": "lineups",
+   "et": "2026-11-19 19:06",
+   "rows": 2567,
+   "games": 4,
+   "books": {
+    "fanduel": 332,
+    "polymarket": 157,
+    "williamhill_us": 198,
+    "draftkings": 390,
+    "novig": 380,
+    "betmgm": 338,
+    "betrivers": 366,
+    "fanatics": 20,
+    "hardrockbet": 386
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/lines/NFL_2026-11-19_late.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-19",
+   "kind": "lineups",
+   "et": "2026-11-19 19:06",
+   "rows": 491,
+   "games": 1,
+   "books": {
+    "draftkings": 73,
+    "williamhill_us": 25,
+    "fanduel": 65,
+    "betrivers": 62,
+    "novig": 73,
+    "polymarket": 20,
+    "fanatics": 35,
+    "betmgm": 69,
+    "hardrockbet": 69
+   },
+   "markets": 9
+  },
+  {
    "path": "data/news/NBA_2026-11-19.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-19",
-   "kind": "midday",
-   "et": "2026-11-19 12:14",
-   "rows": 104
+   "kind": "lineups",
+   "et": "2026-11-19 19:06",
+   "rows": 108
   },
   {
    "path": "data/news/NFL_2026-11-19.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-19",
-   "kind": "midday",
-   "et": "2026-11-19 12:14",
+   "kind": "lineups",
+   "et": "2026-11-19 19:06",
    "rows": 800
+  },
+  {
+   "path": "data/lineups/NBA_2026-11-19.txt.enc",
+   "what": "lineups",
+   "lg": "NBA",
+   "date": "2026-11-19",
+   "kind": "lineups",
+   "et": "2026-11-19 19:06",
+   "rows": 180,
+   "confirmed": 140
   }
  ],
  "done": {
   "midday": "2026-11-19",
   "evening": "2026-11-18",
-  "lineups_a": "2026-11-18",
+  "lineups_a": "2026-11-19",
   "lineups_b": "2026-11-18",
   "early": "2026-11-19"
  },
  "quota": {
-  "remaining": 5010,
-  "used": 14990
+  "remaining": 4969,
+  "used": 15031
  },
- "updated_utc": "2026-11-19 17:14",
- "et": "2026-11-19 12:14",
- "kind": "midday",
+ "updated_utc": "2026-11-20 00:07",
+ "et": "2026-11-19 19:06",
+ "kind": "lineups",
  "tier": "full",
- "spent": 71,
+ "spent": 41,
  "errors": [],
  "notes": []
 }

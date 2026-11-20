@@ -13,4 +13,4 @@ bets 35, open 3
   AAA            12-9  hit 57.1%  units +4.25  dollars +94.00  avg model prob 60.3%
   AA             0-2  hit 0.0%  units -1.25  dollars -6.75  avg model prob 50.7%
   A              2-0  hit 100.0%  units +0.79  dollars +4.34  avg model prob 64.4%
-  closing line value: 4 bets tracked, average -4.3%, beat the close on 1
+  closing line value: 7 bets tracked, average -6.4%, beat the close on 1
