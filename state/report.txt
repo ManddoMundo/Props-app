@@ -1,4 +1,4 @@
-bets 38, open 0
+bets 41, open 3
   all            17-14  hit 54.8%  units +4.69  dollars +114.25  avg model prob 58.6%
   best bets      6-5  hit 54.5%  units +2.51  dollars +72.30  avg model prob 57.0%
   edge lane      17-14  hit 54.8%  units +4.69  dollars +114.25  avg model prob 58.6%

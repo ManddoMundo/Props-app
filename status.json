@@ -592,42 +592,106 @@
    "confirmed": 316
   },
   {
+   "path": "data/lines/NBA_2026-11-21.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-21",
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
+   "rows": 16438,
+   "games": 5,
+   "books": {
+    "fanduel": 2064,
+    "kalshi": 807,
+    "novig": 342,
+    "betrivers": 1750,
+    "williamhill_us": 3574,
+    "draftkings": 2226,
+    "fanatics": 2004,
+    "betmgm": 1307,
+    "hardrockbet": 2226,
+    "pinnacle": 138
+   },
+   "markets": 13
+  },
+  {
+   "path": "data/games/NBA_2026-11-21.txt.enc",
+   "what": "games",
+   "lg": "NBA",
+   "date": "2026-11-21",
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
+   "rows": 280,
+   "games": 5
+  },
+  {
+   "path": "data/lines/NFL_2026-11-21.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-21",
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
+   "rows": 21354,
+   "games": 10,
+   "books": {
+    "draftkings": 4167,
+    "williamhill_us": 2548,
+    "kalshi": 2363,
+    "fanduel": 3161,
+    "betrivers": 1730,
+    "novig": 689,
+    "betmgm": 1510,
+    "hardrockbet": 2342,
+    "pinnacle": 431,
+    "fanatics": 2413
+   },
+   "markets": 13
+  },
+  {
+   "path": "data/games/NFL_2026-11-21.txt.enc",
+   "what": "games",
+   "lg": "NFL",
+   "date": "2026-11-21",
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
+   "rows": 1102,
+   "games": 23
+  },
+  {
    "path": "data/news/NBA_2026-11-21.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-21",
-   "kind": "early",
-   "et": "2026-11-21 07:16",
-   "rows": 107
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
+   "rows": 106
   },
   {
    "path": "data/news/NFL_2026-11-21.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-21",
-   "kind": "early",
-   "et": "2026-11-21 07:16",
+   "kind": "midday",
+   "et": "2026-11-21 13:33",
    "rows": 800
   }
  ],
  "done": {
-  "midday": "2026-11-20",
+  "midday": "2026-11-21",
   "evening": "2026-11-20",
   "lineups_a": "2026-11-20",
   "lineups_b": "2026-11-20",
   "early": "2026-11-21"
  },
  "quota": {
-  "remaining": 4450,
-  "used": 15550
+  "remaining": 4249,
+  "used": 15751
  },
- "updated_utc": "2026-11-21 12:16",
- "et": "2026-11-21 07:16",
- "kind": "early",
+ "updated_utc": "2026-11-21 18:33",
+ "et": "2026-11-21 13:33",
+ "kind": "midday",
  "tier": "full",
- "spent": 0,
+ "spent": 201,
  "errors": [],
- "notes": [
-  "Morning refresh: no lines pulled, they post later in the morning"
- ]
+ "notes": []
 }
