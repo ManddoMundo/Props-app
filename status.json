@@ -542,21 +542,43 @@
    "games": 17
   },
   {
+   "path": "data/lines/NBA_2026-11-20_late.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-20",
+   "kind": "lineups",
+   "et": "2026-11-20 18:59",
+   "rows": 5588,
+   "games": 9,
+   "books": {
+    "fanduel": 755,
+    "novig": 823,
+    "betrivers": 811,
+    "williamhill_us": 433,
+    "draftkings": 843,
+    "betmgm": 672,
+    "fanatics": 45,
+    "hardrockbet": 864,
+    "pinnacle": 342
+   },
+   "markets": 8
+  },
+  {
    "path": "data/news/NBA_2026-11-20.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-20",
-   "kind": "evening",
-   "et": "2026-11-20 17:54",
-   "rows": 111
+   "kind": "lineups",
+   "et": "2026-11-20 18:59",
+   "rows": 107
   },
   {
    "path": "data/news/NFL_2026-11-20.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-20",
-   "kind": "evening",
-   "et": "2026-11-20 17:54",
+   "kind": "lineups",
+   "et": "2026-11-20 18:59",
    "rows": 800
   },
   {
@@ -564,28 +586,28 @@
    "what": "lineups",
    "lg": "NBA",
    "date": "2026-11-20",
-   "kind": "evening",
-   "et": "2026-11-20 17:54",
-   "rows": 90,
-   "confirmed": 0
+   "kind": "lineups",
+   "et": "2026-11-20 18:59",
+   "rows": 220,
+   "confirmed": 140
   }
  ],
  "done": {
   "midday": "2026-11-20",
   "evening": "2026-11-20",
-  "lineups_a": "2026-11-19",
+  "lineups_a": "2026-11-20",
   "lineups_b": "2026-11-19",
   "early": "2026-11-20"
  },
  "quota": {
-  "remaining": 4538,
-  "used": 15462
+  "remaining": 4466,
+  "used": 15534
  },
- "updated_utc": "2026-11-20 22:54",
- "et": "2026-11-20 17:54",
- "kind": "evening",
+ "updated_utc": "2026-11-20 23:59",
+ "et": "2026-11-20 18:59",
+ "kind": "lineups",
  "tier": "full",
- "spent": 78,
+ "spent": 72,
  "errors": [],
  "notes": [
   "NFL: no lines to save (0 games in the window)"
