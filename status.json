@@ -882,41 +882,115 @@
    "markets": 9
   },
   {
+   "path": "data/lines/NBA_2026-11-22_pm.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-22",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 2800,
+   "games": 5,
+   "books": {
+    "fanduel": 379,
+    "novig": 424,
+    "williamhill_us": 226,
+    "draftkings": 398,
+    "betrivers": 400,
+    "betmgm": 356,
+    "pinnacle": 184,
+    "hardrockbet": 408,
+    "fanatics": 25
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/games/NBA_2026-11-22_pm.txt.enc",
+   "what": "games",
+   "lg": "NBA",
+   "date": "2026-11-22",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 328,
+   "games": 7
+  },
+  {
+   "path": "data/lines/NFL_2026-11-22_pm.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-22",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 999,
+   "games": 2,
+   "books": {
+    "draftkings": 141,
+    "williamhill_us": 54,
+    "fanduel": 127,
+    "betmgm": 129,
+    "betrivers": 113,
+    "novig": 137,
+    "pinnacle": 88,
+    "hardrockbet": 136,
+    "fanatics": 74
+   },
+   "markets": 9
+  },
+  {
+   "path": "data/games/NFL_2026-11-22_pm.txt.enc",
+   "what": "games",
+   "lg": "NFL",
+   "date": "2026-11-22",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 792,
+   "games": 17
+  },
+  {
    "path": "data/news/NBA_2026-11-22.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-22",
-   "kind": "close",
-   "et": "2026-11-22 13:28",
-   "rows": 111
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 101
   },
   {
    "path": "data/news/NFL_2026-11-22.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-22",
-   "kind": "close",
-   "et": "2026-11-22 13:28",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
    "rows": 800
+  },
+  {
+   "path": "data/lineups/NBA_2026-11-22.txt.enc",
+   "what": "lineups",
+   "lg": "NBA",
+   "date": "2026-11-22",
+   "kind": "evening",
+   "et": "2026-11-22 18:37",
+   "rows": 207,
+   "confirmed": 177
   }
  ],
  "done": {
   "midday": "2026-11-22",
-  "evening": "2026-11-21",
+  "evening": "2026-11-22",
   "lineups_a": "2026-11-20",
   "lineups_b": "2026-11-21",
   "early": "2026-11-22",
   "close_early": "2026-11-22"
  },
  "quota": {
-  "remaining": 3821,
-  "used": 16179
+  "remaining": 3757,
+  "used": 16243
  },
- "updated_utc": "2026-11-22 18:28",
- "et": "2026-11-22 13:28",
- "kind": "close",
+ "updated_utc": "2026-11-22 23:37",
+ "et": "2026-11-22 18:37",
+ "kind": "evening",
  "tier": "full",
- "spent": 35,
+ "spent": 64,
  "errors": [],
  "notes": []
 }
