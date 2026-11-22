@@ -1,82 +1,84 @@
-bets 42, open 3
-  all            17-14  hit 54.8%  units +4.69  dollars +114.25  avg model prob 58.6%
-  best bets      6-5  hit 54.5%  units +2.51  dollars +72.30  avg model prob 57.0%
-  edge lane      17-14  hit 54.8%  units +4.69  dollars +114.25  avg model prob 58.6%
-  NBA            14-12  hit 53.8%  units +4.08  dollars +113.95  avg model prob 57.9%
+bets 45, open 3
+  all            19-15  hit 55.9%  units +7.09  dollars +174.25  avg model prob 57.9%
+  best bets      7-5  hit 58.3%  units +4.61  dollars +124.80  avg model prob 56.8%
+  edge lane      19-15  hit 55.9%  units +7.09  dollars +174.25  avg model prob 57.9%
+  NBA            16-13  hit 55.2%  units +6.48  dollars +173.95  avg model prob 57.2%
   NFL            3-2  hit 60.0%  units +0.61  dollars +0.30  avg model prob 62.1%
-  ast            6-7  hit 46.2%  units +1.57  dollars +112.69  avg model prob 54.3%
+  ast            8-8  hit 50.0%  units +3.97  dollars +172.69  avg model prob 53.7%
   pass_yds       0-1  hit 0.0%  units -1.00  dollars -0.50  avg model prob 62.8%
   pts            3-3  hit 50.0%  units -0.27  dollars -0.13  avg model prob 63.9%
   reb            5-2  hit 71.4%  units +2.78  dollars +1.39  avg model prob 59.4%
   rec_yds        2-0  hit 100.0%  units +1.74  dollars +0.87  avg model prob 61.8%
   rush_yds       1-1  hit 50.0%  units -0.13  dollars -0.07  avg model prob 62.1%
-  AAA            15-12  hit 55.6%  units +5.16  dollars +116.66  avg model prob 58.7%
+  AAA            17-13  hit 56.7%  units +7.56  dollars +176.66  avg model prob 57.9%
   AA             0-2  hit 0.0%  units -1.25  dollars -6.75  avg model prob 50.7%
   A              2-0  hit 100.0%  units +0.79  dollars +4.34  avg model prob 64.4%
   closing line value: 13 bets tracked, average -5.7%, beat the close on 3
 calibration (every graded side; said -> happened):
-  all days: 6930 sides, Brier 0.2496 (desk 0.2503 against the books' 0.2476 on the 5502 with both prices), average gap 1.9 points
-    said 30% (113): happened 49%, +18.6
-    said 39% (374): happened 40%, +0.7
-    said 44% (598): happened 48%, +4.2
-    said 48% (1775): happened 49%, +0.3
-    said 52% (2489): happened 52%, +0.6
-    said 56% (920): happened 51%, -4.3
-    said 61% (524): happened 60%, -0.4
-    said 69% (137): happened 55%, -13.9
-  edge inside the playable window (3 to 12 points): 296 sides, Brier 0.2533 (desk 0.2541 against the books' 0.2504 on the 276 with both prices), average gap 8.0 points
-    said 45% (2): happened 0%, -44.9
-    said 48% (23): happened 43%, -4.8
-    said 52% (31): happened 58%, +5.8
-    said 57% (74): happened 47%, -9.2
-    said 61% (130): happened 54%, -7.4
+  all days: 7830 sides, Brier 0.2494 (desk 0.2501 against the books' 0.2476 on the 6106 with both prices), average gap 1.7 points
+    said 30% (114): happened 49%, +19.1
+    said 39% (402): happened 40%, +0.4
+    said 44% (662): happened 48%, +3.9
+    said 48% (1999): happened 48%, -0.1
+    said 52% (2873): happened 53%, +0.7
+    said 56% (1057): happened 52%, -3.9
+    said 61% (579): happened 60%, -0.7
+    said 69% (144): happened 56%, -13.7
+  edge inside the playable window (3 to 12 points): 308 sides, Brier 0.2529 (desk 0.2541 against the books' 0.2506 on the 286 with both prices), average gap 8.1 points
+    said 45% (3): happened 33%, -11.8
+    said 48% (27): happened 41%, -7.7
+    said 52% (33): happened 61%, +8.3
+    said 56% (78): happened 47%, -9.1
+    said 61% (131): happened 54%, -7.0
     said 68% (36): happened 58%, -9.5
-shadow book (flat 1 unit a side, 11-16 to 11-20):
-  picked                     6-4  hit 60.0%  model said 54.8%  break-even 48.9%  flat units +2.25  per bet +22.5%  vs close -9.4%, beat it 0 of 3  vs Pinnacle -6.1%, beat it 0 of 1
-  cleared, not picked        20-23  hit 46.5%  model said 55.4%  break-even 51.1%  flat units -4.45  per bet -10.3%  vs close -1.5%, beat it 3 of 11  vs Pinnacle -2.6%, beat it 1 of 7
-  picked, 11-20              2-1  hit 66.7%  model said 50.6%  break-even 43.7%  flat units +1.50  per bet +50.0%  vs close -9.4%, beat it 0 of 3  vs Pinnacle -6.1%, beat it 0 of 1
-  cleared, not picked, 11-20 4-9  hit 30.8%  model said 55.0%  break-even 50.4%  flat units -5.05  per bet -38.9%  vs close -1.5%, beat it 3 of 11  vs Pinnacle -2.6%, beat it 1 of 7
-  all cleared: NBA ast       23-22  hit 51.1%  model said 54.9%  break-even 50.1%  flat units +0.38  per bet +0.9%  vs close -4.0%, beat it 2 of 13  vs Pinnacle -3.8%, beat it 0 of 7
-  all cleared: NBA pts       1-1  hit 50.0%  model said 52.9%  break-even 49.2%  flat units -0.07  per bet -3.7%  vs close +7.3%, beat it 1 of 1  vs Pinnacle +2.5%, beat it 1 of 1
+shadow book (flat 1 unit a side, 11-16 to 11-21):
+  picked                     8-4  hit 66.7%  model said 54.3%  break-even 48.6%  flat units +4.50  per bet +37.5%  vs close -6.2%, beat it 1 of 5  vs Pinnacle -4.9%, beat it 1 of 3
+  cleared, not picked        23-25  hit 47.9%  model said 55.1%  break-even 51.0%  flat units -3.36  per bet -7.0%  vs close -0.9%, beat it 6 of 16  vs Pinnacle -0.6%, beat it 3 of 9
+  picked, 11-21              2-0  hit 100.0%  model said 51.8%  break-even 47.1%  flat units +2.25  per bet +112.5%  vs close -1.3%, beat it 1 of 2  vs Pinnacle -4.2%, beat it 1 of 2
+  cleared, not picked, 11-21 3-2  hit 60.0%  model said 52.9%  break-even 49.5%  flat units +1.09  per bet +21.7%  vs close +0.5%, beat it 3 of 5  vs Pinnacle +6.4%, beat it 2 of 2
+  all cleared: NBA ast       27-24  hit 52.9%  model said 54.5%  break-even 49.9%  flat units +2.81  per bet +5.5%  vs close -2.8%, beat it 5 of 19  vs Pinnacle -2.4%, beat it 2 of 10
+  all cleared: NBA pts       2-1  hit 66.7%  model said 53.8%  break-even 50.3%  flat units +0.84  per bet +27.8%  vs close +4.6%, beat it 2 of 2  vs Pinnacle +2.2%, beat it 2 of 2
   all cleared: NBA reb       2-4  hit 33.3%  model said 59.2%  break-even 55.5%  flat units -2.51  per bet -41.9%
-  all cleared: edge 3 to 4   8-12  hit 40.0%  model said 53.8%  break-even 50.4%  flat units -4.61  per bet -23.0%  vs close +0.9%, beat it 1 of 3  vs Pinnacle -4.4%, beat it 1 of 3
-  all cleared: edge 4 to 6   14-14  hit 50.0%  model said 56.4%  break-even 51.5%  flat units -1.43  per bet -5.1%  vs close -3.5%, beat it 2 of 10  vs Pinnacle -2.2%, beat it 0 of 5
+  all cleared: edge 3 to 4   11-14  hit 44.0%  model said 53.6%  break-even 50.2%  flat units -3.52  per bet -14.1%  vs close +0.7%, beat it 4 of 8  vs Pinnacle -0.1%, beat it 3 of 5
+  all cleared: edge 4 to 6   16-14  hit 53.3%  model said 56.1%  break-even 51.2%  flat units +0.82  per bet +2.7%  vs close -3.1%, beat it 3 of 12  vs Pinnacle -2.8%, beat it 1 of 7
   all cleared: edge 6 to 12  4-1  hit 80.0%  model said 54.6%  break-even 47.3%  flat units +3.83  per bet +76.6%  vs close -12.7%, beat it 0 of 1
   near miss: hold: news?     2-1  hit 66.7%  model said 55.0%  break-even 48.8%  flat units +1.47  per bet +49.0%
   near miss: minutes         1-2  hit 33.3%  model said 62.8%  break-even 58.9%  flat units -1.37  per bet -45.7%  vs close +3.7%, beat it 1 of 1  vs Pinnacle +1.8%, beat it 1 of 1
   near miss: no second book  2-0  hit 100.0%  model said 66.6%  break-even 59.2%  flat units +1.38  per bet +69.0%
-  near miss: on trial        9-16  hit 36.0%  model said 52.1%  break-even 46.9%  flat units -8.16  per bet -32.6%  vs close +7.1%, beat it 4 of 4  vs Pinnacle +7.4%, beat it 1 of 1
+  near miss: on trial        9-17  hit 34.6%  model said 52.3%  break-even 47.2%  flat units -9.16  per bet -35.2%  vs close +7.1%, beat it 4 of 4  vs Pinnacle +7.4%, beat it 1 of 1
   near miss: questionable    3-3  hit 50.0%  model said 58.4%  break-even 52.5%  flat units -0.11  per bet -1.8%
-  cleared: price plays       3-2  hit 60.0%  model said 54.5%  break-even 50.8%  flat units +0.50  per bet +9.9%  vs close +7.3%, beat it 1 of 1  vs Pinnacle +2.5%, beat it 1 of 1
-  cleared: model plays       23-25  hit 47.9%  model said 55.4%  break-even 50.7%  flat units -2.70  per bet -5.6%  vs close -4.0%, beat it 2 of 13  vs Pinnacle -3.8%, beat it 0 of 7
-  all cleared: overs         14-13  hit 51.9%  model said 54.5%  break-even 50.0%  flat units +0.43  per bet +1.6%  vs close -3.8%, beat it 2 of 10  vs Pinnacle -3.0%, beat it 1 of 5
-  all cleared: unders        12-14  hit 46.2%  model said 56.1%  break-even 51.4%  flat units -2.63  per bet -10.1%  vs close -1.7%, beat it 1 of 4  vs Pinnacle -3.0%, beat it 0 of 3
-  all cleared: at home       11-12  hit 47.8%  model said 55.9%  break-even 51.4%  flat units -2.10  per bet -9.1%  vs close -0.7%, beat it 1 of 5  vs Pinnacle -1.6%, beat it 1 of 4
-  all cleared: on the road   15-15  hit 50.0%  model said 54.8%  break-even 50.2%  flat units -0.10  per bet -0.3%  vs close -4.6%, beat it 2 of 9  vs Pinnacle -4.4%, beat it 0 of 4
+  cleared: price plays       4-3  hit 57.1%  model said 54.0%  break-even 50.4%  flat units +0.41  per bet +5.8%  vs close +3.4%, beat it 3 of 3  vs Pinnacle +2.2%, beat it 2 of 2
+  cleared: model plays       27-26  hit 50.9%  model said 55.1%  break-even 50.5%  flat units +0.73  per bet +1.4%  vs close -3.1%, beat it 4 of 18  vs Pinnacle -2.4%, beat it 2 of 10
+  all cleared: overs         17-14  hit 54.8%  model said 53.9%  break-even 49.6%  flat units +2.89  per bet +9.3%  vs close -3.2%, beat it 4 of 14  vs Pinnacle -3.5%, beat it 2 of 7
+  all cleared: unders        14-15  hit 48.3%  model said 56.1%  break-even 51.4%  flat units -1.75  per bet -6.0%  vs close +0.1%, beat it 3 of 7  vs Pinnacle +0.9%, beat it 2 of 5
+  all cleared: at home       15-14  hit 51.7%  model said 55.4%  break-even 51.1%  flat units -0.11  per bet -0.4%  vs close +0.2%, beat it 5 of 11  vs Pinnacle -0.3%, beat it 4 of 8
+  all cleared: on the road   16-15  hit 51.6%  model said 54.5%  break-even 49.9%  flat units +1.25  per bet +4.0%  vs close -4.7%, beat it 2 of 10  vs Pinnacle -4.4%, beat it 0 of 4
+  all cleared: team SAC      3-2  hit 60.0%  model said 52.7%  break-even 49.0%  flat units +1.21  per bet +24.2%  vs close -0.3%, beat it 3 of 4  vs Pinnacle -3.8%, beat it 1 of 3
   all cleared: team ORL      4-1  hit 80.0%  model said 58.5%  break-even 54.1%  flat units +2.26  per bet +45.3%  vs close -0.0%, beat it 0 of 1  vs Pinnacle -0.0%, beat it 0 of 1
-  cleared: beat the close    1-2  hit 33.3%  model said 49.1%  break-even 45.3%  flat units -0.90  per bet -30.0%  vs close +2.7%, beat it 3 of 3  vs Pinnacle +0.3%, beat it 1 of 2
-  cleared: lost to the close 4-7  hit 36.4%  model said 55.0%  break-even 49.5%  flat units -2.78  per bet -25.3%  vs close -4.8%, beat it 0 of 11  vs Pinnacle -4.1%, beat it 0 of 6
-market lane (books only, no model; 58 sides priced the v3.45 way, 30 rebuilt from older files):
-  de-vig: plain split files  19-31  hit 38.0%  books said 53.6%  break-even 51.9%  flat units -13.58  per bet -27.2%  vs close +1.9%, beat it 23 of 30  vs Pinnacle +2.7%, beat it 8 of 12
-  de-vig: power method files 21-32  hit 39.6%  books said 53.9%  break-even 52.3%  flat units -13.11  per bet -24.7%  vs close +1.3%, beat it 24 of 33  vs Pinnacle +1.6%, beat it 9 of 14
+  cleared: beat the close    4-3  hit 57.1%  model said 52.2%  break-even 48.3%  flat units +0.89  per bet +12.7%  vs close +2.7%, beat it 7 of 7  vs Pinnacle +3.3%, beat it 4 of 5
+  cleared: lost to the close 6-8  hit 42.9%  model said 53.9%  break-even 48.9%  flat units -1.23  per bet -8.8%  vs close -4.5%, beat it 0 of 14  vs Pinnacle -5.2%, beat it 0 of 7
+market lane (books only, no model; 71 sides priced the v3.45 way, 30 rebuilt from older files):
+  de-vig: plain split files  25-35  hit 41.7%  books said 53.5%  break-even 51.8%  flat units -12.28  per bet -20.5%  vs close +2.4%, beat it 32 of 40  vs Pinnacle +2.6%, beat it 9 of 13
+  de-vig: power method files 29-37  hit 43.9%  books said 53.8%  break-even 52.3%  flat units -10.89  per bet -16.5%  vs close +1.6%, beat it 33 of 46  vs Pinnacle +1.1%, beat it 10 of 16
     only the plain split     1-4  hit 20.0%  books said 51.0%  break-even 49.8%  flat units -3.10  per bet -62.0%  vs close +10.7%, beat it 2 of 2  vs Pinnacle +15.4%, beat it 1 of 1
-    only the power method    3-5  hit 37.5%  books said 53.4%  break-even 53.3%  flat units -2.62  per bet -32.8%  vs close +1.2%, beat it 3 of 5  vs Pinnacle +1.7%, beat it 2 of 3
-  all filed                  19-31  hit 38.0%  books said 53.6%  break-even 51.9%  flat units -13.58  per bet -27.2%  vs close +1.9%, beat it 23 of 30  vs Pinnacle +2.7%, beat it 8 of 12
-    beat fair by 1 to 2      14-20  hit 41.2%  books said 53.3%  break-even 51.9%  flat units -7.22  per bet -21.2%  vs close +0.4%, beat it 11 of 17  vs Pinnacle -0.4%, beat it 3 of 7
-    beat fair by 2 to 3      5-8  hit 38.5%  books said 54.1%  break-even 51.8%  flat units -3.36  per bet -25.9%  vs close +2.2%, beat it 9 of 10  vs Pinnacle +6.9%, beat it 4 of 4
+    only the power method    5-6  hit 45.5%  books said 53.8%  break-even 53.6%  flat units -1.72  per bet -15.6%  vs close -0.0%, beat it 3 of 8  vs Pinnacle -0.4%, beat it 2 of 4
+  all filed                  25-35  hit 41.7%  books said 53.5%  break-even 51.8%  flat units -12.28  per bet -20.5%  vs close +2.4%, beat it 32 of 40  vs Pinnacle +2.6%, beat it 9 of 13
+    beat fair by 1 to 2      19-24  hit 44.2%  books said 53.2%  break-even 51.8%  flat units -6.82  per bet -15.9%  vs close +1.6%, beat it 19 of 26  vs Pinnacle -0.4%, beat it 3 of 7
+    beat fair by 2 to 3      6-8  hit 42.9%  books said 54.1%  break-even 51.8%  flat units -2.45  per bet -17.5%  vs close +2.2%, beat it 10 of 11  vs Pinnacle +5.9%, beat it 5 of 5
     beat fair by 3 and up    0-3  hit 0.0%  books said 55.7%  break-even 52.4%  flat units -3.00  per bet -100.0%  vs close +9.5%, beat it 3 of 3  vs Pinnacle +7.4%, beat it 1 of 1
-    top 3 a day              0-3  hit 0.0%  books said 55.7%  break-even 52.4%  flat units -3.00  per bet -100.0%  vs close +9.5%, beat it 3 of 3  vs Pinnacle +7.4%, beat it 1 of 1
-    not questionable         18-26  hit 40.9%  books said 53.8%  break-even 52.1%  flat units -9.37  per bet -21.3%  vs close +1.1%, beat it 20 of 27  vs Pinnacle +2.3%, beat it 7 of 11
-    the model passed         19-31  hit 38.0%  books said 53.6%  break-even 51.9%  flat units -13.58  per bet -27.2%  vs close +1.9%, beat it 23 of 30  vs Pinnacle +2.7%, beat it 8 of 12
-    beat the close           7-16  hit 30.4%  books said 54.6%  break-even 52.6%  flat units -9.55  per bet -41.5%  vs close +4.8%, beat it 23 of 23  vs Pinnacle +6.0%, beat it 8 of 9
-    lost to the close        3-4  hit 42.9%  books said 53.5%  break-even 52.0%  flat units -1.08  per bet -15.4%  vs close -7.8%, beat it 0 of 7  vs Pinnacle -7.2%, beat it 0 of 3
-    NBA ast                  2-6  hit 25.0%  books said 54.1%  break-even 52.8%  flat units -3.73  per bet -46.6%  vs close +5.6%, beat it 5 of 5  vs Pinnacle +5.5%, beat it 2 of 3
+    top 3 a day              3-3  hit 50.0%  books said 55.6%  break-even 53.0%  flat units -0.39  per bet -6.5%  vs close +8.7%, beat it 6 of 6  vs Pinnacle +4.6%, beat it 2 of 2
+    not questionable         24-30  hit 44.4%  books said 53.6%  break-even 52.0%  flat units -8.06  per bet -14.9%  vs close +1.8%, beat it 29 of 37  vs Pinnacle +2.2%, beat it 8 of 12
+    the model cleared it too 1-1  hit 50.0%  books said 51.3%  break-even 49.2%  flat units -0.09  per bet -4.5%  vs close +1.4%, beat it 2 of 2  vs Pinnacle +1.9%, beat it 1 of 1
+    the model passed         24-34  hit 41.4%  books said 53.6%  break-even 51.9%  flat units -12.19  per bet -21.0%  vs close +2.4%, beat it 30 of 38  vs Pinnacle +2.7%, beat it 8 of 12
+    beat the close           12-20  hit 37.5%  books said 54.2%  break-even 52.3%  flat units -9.20  per bet -28.7%  vs close +4.9%, beat it 32 of 32  vs Pinnacle +5.6%, beat it 9 of 10
+    lost to the close        4-4  hit 50.0%  books said 53.4%  break-even 51.9%  flat units -0.13  per bet -1.6%  vs close -7.6%, beat it 0 of 8  vs Pinnacle -7.2%, beat it 0 of 3
+    NBA ast                  3-7  hit 30.0%  books said 53.6%  break-even 52.3%  flat units -3.90  per bet -39.0%  vs close +4.3%, beat it 7 of 7  vs Pinnacle +5.5%, beat it 2 of 3
     NBA fg3                  2-3  hit 40.0%  books said 48.2%  break-even 46.8%  flat units -1.34  per bet -26.9%
-    NBA pa                   3-4  hit 42.9%  books said 55.0%  break-even 53.5%  flat units -1.43  per bet -20.4%  vs close -0.7%, beat it 3 of 5
-    NBA pr                   1-4  hit 20.0%  books said 56.1%  break-even 53.7%  flat units -3.20  per bet -64.0%  vs close +0.2%, beat it 3 of 4
+    NBA pa                   5-5  hit 50.0%  books said 54.4%  break-even 52.8%  flat units -0.61  per bet -6.1%  vs close -0.1%, beat it 5 of 8
+    NBA pr                   2-6  hit 25.0%  books said 54.8%  break-even 52.7%  flat units -4.29  per bet -53.6%  vs close +1.7%, beat it 6 of 7
     NBA pra                  2-3  hit 40.0%  books said 53.7%  break-even 51.6%  flat units -1.05  per bet -21.0%  vs close +2.0%, beat it 3 of 5  vs Pinnacle +1.8%, beat it 2 of 3
-    NBA pts                  5-7  hit 41.7%  books said 55.1%  break-even 53.3%  flat units -2.60  per bet -21.7%  vs close +2.6%, beat it 6 of 7  vs Pinnacle +4.1%, beat it 4 of 5
-    NBA ra                   1-3  hit 25.0%  books said 49.8%  break-even 47.9%  flat units -1.90  per bet -47.5%  vs close +3.5%, beat it 2 of 2
+    NBA pts                  6-7  hit 46.2%  books said 55.1%  break-even 53.2%  flat units -1.69  per bet -13.0%  vs close +2.6%, beat it 7 of 8  vs Pinnacle +3.7%, beat it 5 of 6
+    NBA ra                   2-3  hit 40.0%  books said 51.1%  break-even 49.2%  flat units -1.07  per bet -21.3%  vs close +9.0%, beat it 3 of 3
     NBA reb                  3-1  hit 75.0%  books said 53.4%  break-even 51.5%  flat units +1.67  per bet +41.7%  vs close -1.9%, beat it 1 of 2  vs Pinnacle -10.4%, beat it 0 of 1
   all filed (older, rebuilt) 15-15  hit 50.0%  books said 53.4%  break-even 51.6%  flat units -1.33  per bet -4.4%
     beat fair by 1 to 2 (older, rebuilt) 10-13  hit 43.5%  books said 52.2%  break-even 50.8%  flat units -3.41  per bet -14.8%
