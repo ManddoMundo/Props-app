@@ -838,21 +838,65 @@
    "games": 27
   },
   {
+   "path": "data/lines/NBA_2026-11-22_close13.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-22",
+   "kind": "close",
+   "et": "2026-11-22 13:28",
+   "rows": 644,
+   "games": 1,
+   "books": {
+    "fanduel": 88,
+    "novig": 92,
+    "draftkings": 94,
+    "williamhill_us": 49,
+    "betmgm": 84,
+    "betrivers": 95,
+    "pinnacle": 41,
+    "hardrockbet": 96,
+    "fanatics": 5
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/lines/NFL_2026-11-22_close13.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-22",
+   "kind": "close",
+   "et": "2026-11-22 13:28",
+   "rows": 1587,
+   "games": 3,
+   "books": {
+    "draftkings": 223,
+    "williamhill_us": 89,
+    "fanduel": 199,
+    "betrivers": 180,
+    "novig": 222,
+    "betmgm": 203,
+    "hardrockbet": 214,
+    "fanatics": 120,
+    "pinnacle": 137
+   },
+   "markets": 9
+  },
+  {
    "path": "data/news/NBA_2026-11-22.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-22",
-   "kind": "midday",
-   "et": "2026-11-22 07:48",
-   "rows": 110
+   "kind": "close",
+   "et": "2026-11-22 13:28",
+   "rows": 111
   },
   {
    "path": "data/news/NFL_2026-11-22.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-22",
-   "kind": "midday",
-   "et": "2026-11-22 07:48",
+   "kind": "close",
+   "et": "2026-11-22 13:28",
    "rows": 800
   }
  ],
@@ -861,17 +905,18 @@
   "evening": "2026-11-21",
   "lineups_a": "2026-11-20",
   "lineups_b": "2026-11-21",
-  "early": "2026-11-22"
+  "early": "2026-11-22",
+  "close_early": "2026-11-22"
  },
  "quota": {
-  "remaining": 3856,
-  "used": 16144
+  "remaining": 3821,
+  "used": 16179
  },
- "updated_utc": "2026-11-22 12:48",
- "et": "2026-11-22 07:48",
- "kind": "midday",
+ "updated_utc": "2026-11-22 18:28",
+ "et": "2026-11-22 13:28",
+ "kind": "close",
  "tier": "full",
- "spent": 240,
+ "spent": 35,
  "errors": [],
  "notes": []
 }
