@@ -950,17 +950,17 @@
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-22",
-   "kind": "evening",
-   "et": "2026-11-22 18:37",
-   "rows": 101
+   "kind": "lineups",
+   "et": "2026-11-22 21:02",
+   "rows": 103
   },
   {
    "path": "data/news/NFL_2026-11-22.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-22",
-   "kind": "evening",
-   "et": "2026-11-22 18:37",
+   "kind": "lineups",
+   "et": "2026-11-22 21:02",
    "rows": 800
   },
   {
@@ -968,17 +968,17 @@
    "what": "lineups",
    "lg": "NBA",
    "date": "2026-11-22",
-   "kind": "evening",
-   "et": "2026-11-22 18:37",
-   "rows": 207,
-   "confirmed": 177
+   "kind": "lineups",
+   "et": "2026-11-22 21:02",
+   "rows": 246,
+   "confirmed": 246
   }
  ],
  "done": {
   "midday": "2026-11-22",
   "evening": "2026-11-22",
   "lineups_a": "2026-11-20",
-  "lineups_b": "2026-11-21",
+  "lineups_b": "2026-11-22",
   "early": "2026-11-22",
   "close_early": "2026-11-22"
  },
@@ -986,11 +986,14 @@
   "remaining": 3757,
   "used": 16243
  },
- "updated_utc": "2026-11-22 23:37",
- "et": "2026-11-22 18:37",
- "kind": "evening",
+ "updated_utc": "2026-11-23 02:02",
+ "et": "2026-11-22 21:02",
+ "kind": "lineups",
  "tier": "full",
- "spent": 64,
+ "spent": 0,
  "errors": [],
- "notes": []
+ "notes": [
+  "NBA: no lines to save (0 games in the window)",
+  "NFL: no lines to save (0 games in the window)"
+ ]
 }
