@@ -13,7 +13,7 @@ bets 50, open 5
   AAA            18-15  hit 54.5%  units +5.80  dollars +132.66  avg model prob 57.6%
   AA             0-2  hit 0.0%  units -1.25  dollars -6.75  avg model prob 50.7%
   A              2-0  hit 100.0%  units +0.79  dollars +4.34  avg model prob 64.4%
-  closing line value: 16 bets tracked, average -3.3%, beat the close on 6
+  closing line value: 17 bets tracked, average -2.7%, beat the close on 7
 calibration (every graded side; said -> happened):
   all days: 9776 sides, Brier 0.2494 (desk 0.2499 against the books' 0.2476 on the 7286 with both prices), average gap 1.9 points
     said 30% (117): happened 49%, +18.6
