@@ -150,6 +150,11 @@ dl.case dd{margin:0;max-width:70ch}
 .flags li,.risks li{padding-left:18px;position:relative;max-width:70ch}.flags li::before,.risks li::before{content:"\2020";position:absolute;left:2px;top:0;color:var(--bad);font-style:normal}
 .clv{border:2px solid var(--ink);border-radius:7px;padding:11px 13px;background:var(--paper);display:grid;gap:5px;max-width:74ch}
 .clv b{font-weight:800}
+/* v3.51 the retest: an open ticket put through the pick test again at the latest prices. A strip on the ticket, a block in the case file. */
+.tk-rt{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:11px;padding:7px 10px;border-radius:6px;border:1.5px solid var(--rule);font:600 14px/1.3 var(--fx-ui);color:var(--ink)}
+.tk-rt small{font:700 11px var(--fx-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.tk-rt.ok{border-color:var(--good);background:var(--good-soft)}.tk-rt.no{border-color:var(--bad);background:var(--bad-soft)}.tk-rt.na{border-style:dashed}
+.clv.rt.no{border-color:var(--bad)}.clv.rt.ok{border-color:var(--good)}
 /* dot plots and bars inside the file: marks start on the reference line and travel to their value when the file opens */
 svg{display:block;width:100%;height:auto}
 svg text{font:12px var(--mono);fill:var(--mute)}
@@ -2787,6 +2792,20 @@ const unitOf = b => b.unit || DESK.legacy_unit || .5;      // v3.19: each ticket
 const stakeTxt = b => `${b.units % 1 ? (b.units === .25 ? '¼' : b.units === .5 ? '½' : b.units === .75 ? '¾' : b.units) : b.units}u · ${money(b.units * unitOf(b))}`;
 const betLabel = b => `${b.side}${b.mkt === 'any_td' ? ' anytime TD' : ' ' + b.line + ' ' + MK[b.lg][b.mkt].n.toLowerCase()}`;
 const shortLabel = b => `${b.side === 'Over' ? 'O' : b.side === 'Under' ? 'U' : b.side} ${b.mkt === 'any_td' ? 'TD' : b.line + ' ' + MK[b.lg][b.mkt].s}`;
+const rtTime = r => `${r.run === 'late' ? 'lineups pull' : 'evening pull'}, ${r.t}`;
+function retestStrip(b) {      // v3.51: only while the ticket is open; a graded ticket keeps the verdict in its case file
+  const r = b.retest; if (!r || b.status !== 'open') return '';
+  return `<span class="tk-rt ${r.ok === true ? 'ok' : r.ok === false ? 'no' : 'na'}"><small>Retest · ${esc(r.t)}</small><span>${r.ok === true ? 'Still clears at the latest prices' : r.ok === false ? `Would not be picked now: ${esc(String(r.code).toLowerCase())}` : 'No line to test it against'}</span></span>`;
+}
+function retestHtml(b) {
+  const r = b.retest; if (!r) return '';
+  const now = r.line != null ? `${esc(bkn(r.book || b.book || 'hardrockbet', 1))} has the ${esc(b.side)} ${r.line} at <b class="num">${odds(r.odds)}</b> now. The desk makes that a <b class="num">${pct(r.p)}</b> shot, edge <b class="num ${r.edge >= 0 ? 'pos' : 'neg'}">${sgn(r.edge * 100)}</b>.` : '';
+  const held = r.held != null ? `The ticket as held (${esc(b.side)} ${b.line} at ${odds(b.odds)}) is a <b class="num">${pct(r.held)}</b> shot by the desk's latest number, edge <b class="num ${r.hedge >= 0 ? 'pos' : 'neg'}">${sgn(r.hedge * 100)}</b>.` : '';
+  return `<div class="clv rt ${r.ok === true ? 'ok' : r.ok === false ? 'no' : 'na'}"><span class="lbl">Retest · ${esc(rtTime(r))}</span>
+    <span><b>${r.ok === true ? 'Still clears.' : r.ok === false ? 'Would not be picked now.' : 'Could not be retested.'}</b> ${r.ok === true ? now : esc(r.why) + (now ? ' ' + now : '')}</span>
+    ${held ? `<span>${held}</span>` : ''}
+    <span>A retest changes nothing on the ticket. It says whether the bet still passes the desk's test at the latest prices${r.first && r.first.ok !== r.ok ? `; at the ${esc(r.first.t)} pull it ${r.first.ok === true ? 'still cleared' : r.first.ok === false ? 'did not clear' : 'had no line'}` : ''}.</span></div>`;
+}
 function closeHtml(b) {
   const c = b.close; if (!c) return '';
   const px = b.alt ? null : b.side === 'Over' ? c.o : c.u, up = c.move != null && c.move >= 0;
@@ -2803,6 +2822,7 @@ function caseHtml(b) {
   return `<div class="file">${figs.length ? `<div class="file-g">${figs.join('')}</div>` : ''}
     <dl class="case">${w.pts.map(([k, t]) => `<div><dt>${esc(k)}</dt><dd>${esc(t)}</dd></div>`).join('')}</dl>
     <div><span class="lbl" style="display:block;margin-bottom:6px">What beats it</span><ul class="risks">${w.risks.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>
+    ${retestHtml(b)}
     ${closeHtml(b)}
     ${b.status === 'open' ? `<div><button class="btn ghost sm" data-desk="${esc(b.lg + '|' + b.game + '|' + b.pid + '|' + b.mkt)}">Open the full memo and move the line</button></div>` : ''}</div>`;
 }
@@ -2815,7 +2835,7 @@ function ticketHtml(b, i) {
       <span class="tk-body"><span class="lbl tk-eye">${b.lane === 'confident' ? '<b>Confident play</b> · ' : ''}${b.lean ? '<b>Lean</b> · ' : ''}${b.run === 'pm' ? '<b>Evening</b> · ' : b.run === 'late' ? '<b>Late swap</b> · ' : ''}${b.best ? '<b>Best bet</b> · ' : ''}${esc(b.lg)} · ${esc(b.gl)}${g && g.time ? ' · ' + esc(t12(g.time)) : ''} · ${esc(b.date.slice(5))}</span>
         <span class="tk-title">${esc(b.name)} <em>${esc(betLabel(b))}</em></span>
         ${w ? `<span class="tk-head">${esc(w.head)}</span>` : ''}
-        <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('Line val.', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span></span>
+        <span class="tk-cells">${b.lane === 'confident' ? cell('Books say', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model says', pct(b.p0)) : cell('Desk says', pct(b.p)) + cell('Needs', pct(be)) + cell('Edge', sgn(b.edge * 100), 'pos') + cell('Model', f1(b.mu))}${b.mm != null ? cell('Books', f1(b.mm)) : ''}${b.muf != null ? cell('Desk no.', f1(b.muf)) : ''}${b.close ? cell('Line val.', sgn(b.close.clv * 100) + '%', b.close.clv >= 0 ? 'pos' : 'neg') : ''}</span>${retestStrip(b)}</span>
       <span class="tk-stub"><span class="odds">${odds(b.odds)}</span><span class="stake">${stakeTxt(b)}</span><span class="seal sm g">${esc(b.rating)}</span><span class="bar" aria-hidden="true"></span><span class="serial">No. ${serial}</span></span>
       <span class="tk-more"><span>${op ? 'Close the case file' : 'Open the case file: why the desk made this bet'}</span><i aria-hidden="true">&#9662;</i></span>
     </button>

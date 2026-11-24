@@ -614,7 +614,7 @@ html,body{overflow-x:clip}
 .sm-leg i::after{content:"IN";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #1a6a3d;border-radius:50%;font:800 11px/1 var(--fx-ui);letter-spacing:.05em;color:#1a6a3d;opacity:0;transform:scale(1.9) rotate(-30deg);transition:transform .24s cubic-bezier(.2,1.5,.4,1),opacity .1s ease-out}
 .sm-leg:active{transform:scale(.96)}
 .sm-leg.on{transform:translateY(-2px) rotate(var(--tilt))}.sm-leg.on:active{transform:translateY(0) rotate(var(--tilt)) scale(.97)}
-.sm-leg.on .tk{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
+.sm-leg.on .slp{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
 .sm-leg.on i::before{opacity:0;transform:rotate(45deg) scale(.4)}
 .sm-leg.on i::after{opacity:.92;transform:scale(1) rotate(-12deg)}
 .sm-leg:focus-visible{outline:2px solid var(--c-sim);outline-offset:3px}
@@ -633,7 +633,6 @@ html,body{overflow-x:clip}
 .sm-bgl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,192px),1fr))}.sm-glr:has(em),.sm-pl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,208px),1fr))}.sm-bpr .sm-pl:has(em){grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
 .sm-leg.mini{min-height:40px}
   .sm-box summary{min-height:40px}
-}
 /* ===== v3.42 legs are bet slips =====
    Every leg you can add (Parlay and Sim) is a paper stub, the same paper the press prints its ticket on: cream stock with
    faint rules, a colour strip down the left, and a tear-off end past a perforation with a notch punched top and bottom.
@@ -656,7 +655,7 @@ html,body{overflow-x:clip}
 .sm-leg i::after{content:"IN";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;box-sizing:border-box;display:grid;place-items:center;border:2px solid #1a6a3d;border-radius:50%;font:800 11px/1 var(--fx-ui);letter-spacing:.05em;color:#1a6a3d;opacity:0;transform:scale(1.9) rotate(-30deg);transition:transform .24s cubic-bezier(.2,1.5,.4,1),opacity .1s ease-out}
 .sm-leg:active{transform:scale(.96)}
 .sm-leg.on{transform:translateY(-2px) rotate(var(--tilt))}.sm-leg.on:active{transform:translateY(0) rotate(var(--tilt)) scale(.97)}
-.sm-leg.on .tk{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
+.sm-leg.on .slp{border-left-color:#1a6a3d}.sm-leg.on b{color:#1a6a3d}.sm-leg.on i{background:rgba(26,106,61,.1)}
 .sm-leg.on i::before{opacity:0;transform:rotate(45deg) scale(.4)}
 .sm-leg.on i::after{opacity:.92;transform:scale(1) rotate(-12deg)}
 .sm-leg:focus-visible{outline:2px solid var(--c-sim);outline-offset:3px}

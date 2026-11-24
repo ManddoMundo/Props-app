@@ -23,7 +23,9 @@ BASE = nba.BASE
 LINES_PATH = "/home/claude/props/out/nba_lines.jsonl"
 
 
-def load_lines():
+def load_lines(which="o"):
+    """{game id: (home spread line, total)} from the DraftKings numbers ESPN keeps on each game. which="o" is the opening
+    line (known before the desk prices a game), "c" the closing line (not known at midday: using it is a look-ahead)."""
     out = {}
     if not os.path.exists(LINES_PATH):
         raise FileNotFoundError(f"Missing {LINES_PATH}. Run nba_lines.py first.")
@@ -33,16 +35,10 @@ def load_lines():
         r = json.loads(ln)
         if not r.get("pc"):
             continue
-        c = r["pc"][0]
-        oc = (c.get("oc") or {}).get("c") or [c.get("spread"), c.get("ou")]
-        if oc[0] is None or oc[1] is None or not c.get("det"):
+        v = ((r["pc"][0].get("oc") or {}).get(which)) or []
+        if len(v) < 2 or v[0] is None or v[1] is None:
             continue
-        tm, v = c["det"].rsplit(" ", 1)
-        try:
-            v = float(v)
-        except ValueError:
-            v = 0.0
-        out[str(r["id"])] = (tm, v, float(oc[1]))
+        out[str(r["id"])] = (float(v[0]), float(v[1]))
     return out
 
 
@@ -87,23 +83,23 @@ def boot_diff(e0, e1, gds, n_boot=2000, seed=7):
 
 
 if __name__ == "__main__":
-    lines = load_lines()
+    WHICH = sys.argv[1] if len(sys.argv) > 1 else "o"
+    lines = load_lines(WHICH)
+    print("lines used:", "opening (fair test)" if WHICH == "o" else "closing (look-ahead, for comparison only)", len(lines), "games")
     d = nba.load()
     pr, tr, _ = nba.walk(d)
-    # Attach Vegas implied team score & |spread| to tr
     ha_map = d.drop_duplicates(["game_id", "team"]).set_index(["game_id", "team"])["home_away"].to_dict()
     imp_pts, abs_sp = [], []
     for r in tr.itertuples():
-        ln = lines.get(str(r.game_id))
-        if not ln:
+        ln = lines.get(str(r.game_id)); ha = ha_map.get((r.game_id, r.team))
+        if not ln or ha not in ("home", "away"):
             imp_pts.append(np.nan); abs_sp.append(np.nan); continue
-        fav_tm, sp_val, ou = ln
-        # det says e.g. "BOS -7.5" -> fav_tm is favored by |sp_val|
-        margin = abs(sp_val) if r.team == fav_tm else -abs(sp_val)
-        imp_pts.append((ou + margin) / 2.0)
-        abs_sp.append(abs(sp_val))
+        hl, ou = ln      # home spread line: negative when the home side is favoured
+        imp_pts.append((ou - hl) / 2.0 if ha == "home" else (ou + hl) / 2.0)
+        abs_sp.append(abs(hl))
     tr["imp_pts"] = imp_pts
     tr["abs_spread"] = abs_sp
+    print("team-games with a line:", int(tr.imp_pts.notna().sum()), "of", len(tr), "| mean implied points", round(float(tr.imp_pts.mean()), 1), "| mean model T_pts", round(float(tr.T_pts.mean()), 1))
 
     # Fit base nba.py parameters on 2024-25 after warmup
     first = pr[pr.season == 2025].gd.min()

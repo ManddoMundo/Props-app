@@ -1,17 +1,19 @@
 """Market grades: every book's quote on every prop in the latest lines pull, set against the consensus of the books.
 Display only. The desk's picks come from daily.py and are untouched by this file.
 
-v3.52: normalizes whole-number lines for pushes (ov / (ov + un)) so integer lines (e.g. 20.0 pts) no longer get
-artificially depressed edge/grades, and uses power_fair() devigging to match daily.py.
+For each prop the books quote, each book's line and two prices are turned into the projection they imply (on the model's
+own curve, as daily.py does). The consensus is the median of the other books' implied projections (Hard Rock left out, so
+Hard Rock is graded against everyone else). Each book's over and under is then priced at that consensus: its edge is the
+consensus chance minus the price's break-even. Hard Rock's better side gets a letter.
 
 Writes out/books.json: {lg: {asof, file, props: {"lg|game|pid|mkt": {...}}}}. Called from build.py; never fatal."""
 import glob, json, os, re, time
 import numpy as np
-from daily import MK, CFG, dec, probs, implied_mean, power_fair, parse
+from daily import MK, CFG, dec, probs, implied_mean, parse
 from common import norm
 
 O = "/home/claude/props/out/"
-GRADES = [(0.02, "A"), (0.0, "B"), (-0.025, "C"), (-0.05, "D")]
+GRADES = [(0.02, "A"), (0.0, "B"), (-0.025, "C"), (-0.05, "D")]      # Hard Rock's best side, edge against the consensus
 
 
 def latest(lg):
@@ -39,6 +41,9 @@ def build(D):
             continue
         L = D[lg]
         head = open(f).readline().strip()
+        # v3.27: a team can have two games on the slate (the NBA board runs three days). The pull is for one day, so tie each
+        # team to its game on the file's date, else to its next game. Before, the last game won, and tonight's lines were filed
+        # under a game two days out (the hit rates then listed the player twice).
         gday = {g["id"]: g.get("day") for g in L["games"]}
         fd = re.search(r"_(\d{4}-\d\d-\d\d)", os.path.basename(f))
         sides = {}
@@ -60,18 +65,17 @@ def build(D):
             p = c[0]; s = sides[p["team"]]
             bin_ = mkt == "any_td"
 
-            def imp(x):
+            def imp(x):          # what one book's quote implies: a mean (counts) or a yes chance (anytime TD)
                 if x["o"] is None:
                     return None
                 if bin_:
                     po = 1 / dec(x["o"])
-                    return power_fair(x["o"], x["u"]) if x["u"] is not None else po * 0.93
+                    return po / (po + 1 / dec(x["u"])) if x["u"] is not None else po * 0.93      # one-way TD price: take out a typical margin
                 if x["line"] is None or x["u"] is None:
                     return None
-                p_ov = power_fair(x["o"], x["u"]) if CFG.get("use_power_devig", True) else (1 / dec(x["o"])) / (1 / dec(x["o"]) + 1 / dec(x["u"]))
-                return implied_mean(L, lg, mkt, x["line"], p_ov)
-
-            if not bin_:
+                po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
+                return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
+            if not bin_:      # v3.22: drop stale or one-sided quotes (an exchange's Under at 1.01): both sides must add to 1.00 to 1.12
                 books = {bk: x for bk, x in books.items() if x["o"] is not None and x["u"] is not None and CFG["sane"][0] <= 1 / dec(x["o"]) + 1 / dec(x["u"]) <= CFG["sane"][1]}
                 if not books:
                     continue
@@ -88,15 +92,16 @@ def build(D):
                 if cons is not None and x["o"] is not None:
                     if bin_:
                         eo = cons - 1 / dec(x["o"])
-                        if x["u"] is not None:
-                            eu = (1 - cons) - 1 / dec(x["u"])
+                        if x["u"] is not None: eu = (1 - cons) - 1 / dec(x["u"])
                     elif x["line"] is not None:
                         ov, un, _ = probs(L, lg, mkt, cons, x["line"])
+                        # v3.52: on a whole-number line part of the chance is a push. Grade each side on its chance of
+                        # winning given the bet is settled, the way the desk prices it; before, the push share was
+                        # taken off both sides, so every book looked worse on a whole-number line than on a half.
                         den = ov + un
                         if den > 0:
-                            eo = (ov / den) - 1 / dec(x["o"])
-                            if x["u"] is not None:
-                                eu = (un / den) - 1 / dec(x["u"])
+                            eo = ov / den - 1 / dec(x["o"])
+                            if x["u"] is not None: eu = un / den - 1 / dec(x["u"])
                 q.append([bk, x["line"], int(x["o"]) if x["o"] is not None else None, int(x["u"]) if x["u"] is not None else None,
                           None if eo is None else round(eo, 4), None if eu is None else round(eu, 4), None if ims[bk] is None else round(ims[bk], 3)])
             row = dict(q=q, nb=len(books), ml=float(np.median(lines)) if lines and not bin_ else None, cm=None if cons is None else round(cons, 3))

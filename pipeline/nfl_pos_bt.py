@@ -98,10 +98,14 @@ if __name__ == "__main__":
 
     m0, m1 = fit_cfg(0.0, 0.0), fit_cfg(wc, wt)
     te0, te1 = project_pos(pr[is_te], tr, m0, P, 0.0, 0.0), project_pos(pr[is_te], tr, m1, P, wc, wt)
-    print("\nTEST 2025-26 MAE (baseline -> positional-room):")
-    for k in ("rec", "rec_yds", "rush_att", "rush_yds"):
-        col, fcol, mn = nfl.STATS[k]
-        mm = te0[fcol] >= mn
-        e0 = np.abs(te0.loc[mm, col] - te0.loc[mm, "mu_" + k]).mean()
-        e1 = np.abs(te1.loc[mm, col] - te1.loc[mm, "mu_" + k]).mean()
-        print(f"  {k:<10} n={int(mm.sum()):5d}  {e0:.4f} -> {e1:.4f}  ({100*(e1/e0 - 1):+.2f}%)")
+    for lab, fold in (("TEST 2025", te0.season == 2025), ("TEST 2026", te0.season == 2026)):
+        print(f"\n{lab} MAE (baseline -> positional-room):")
+        for k in ("rec", "rec_yds", "rush_att", "rush_yds"):
+            col, fcol, mn = nfl.STATS[k]
+            mm = (te0[fcol] >= mn) & fold
+            e0 = np.abs(te0.loc[mm, col] - te0.loc[mm, "mu_" + k]).values
+            e1 = np.abs(te1.loc[mm, col] - te1.loc[mm, "mu_" + k]).values
+            g = te0.loc[mm, "game_id"].values; ug = np.unique(g); idx = {u: np.where(g == u)[0] for u in ug}; rng = np.random.default_rng(7)
+            bs = [(e1 - e0)[np.concatenate([idx[u] for u in rng.choice(ug, len(ug))])].mean() for _ in range(500)]
+            print(f"  {k:<10} n={int(mm.sum()):5d}  {e0.mean():.4f} -> {e1.mean():.4f}  ({100*(e1.mean()/e0.mean() - 1):+.2f}%, better in {np.mean(np.array(bs) < 0):.0%} of game resamples)")
+    print("production beta in nfl.py is fitted on the same seasons; this script fixes it at 0.8. nfl.py prints the fitted value.")

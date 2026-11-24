@@ -83,6 +83,7 @@ See the scheduled task prompt. Rules that always hold:
 - Tested and rejected in v1.4: NBA back to back and home or away factors (no gain on unseen games).
 - The page is the product now: type, motion and the case file layout live in index.src.html. Fonts load from Google Fonts (Ultra, Besley, Sometype Mono, Doto). Keep motion on transform and opacity and keep the reduced motion block working.
 - NBA: no rest or back to back adjustment, no home and away split, no defense by position, no pace by opponent beyond team totals.
+- NBA rate memory (v3.53): rebounds per minute use a 20-game half-life (HLRB in nba.py), every other rate 15 (HLR). Retest with lab `hl_bt.py <reb> <ast>`, choosing on 2024-25 only. Watch next: the NBA hold band (centred model 12 to 25 points from break-even) went 35-51 through Nov 23, almost all on one night; it needs 200 sides before the hold moves.
 - NFL: no weather, no snap or route share (snap counts are now downloaded: data/nfl_snaps_2026.csv), yardage curve may be too skewed for low volume players.
 - No closing line tracking. It needs a second odds pull near tip, which the 15 credit budget does not cover.
 - Odds pass through a summarising fetch tool. Treat any odd looking number as suspect.
@@ -225,6 +226,9 @@ site_job.sh writes lineup news (daily.py news) for each league on every early, m
 - The morning reveal remembers the last night it showed under `fl-fx-night`.
 - Testing: the harness must set `fl-fx-night` to a far date before load, or the reveal covers the first screenshot.
 
+## Retest (v3.51)
+`retest()` in daily.py runs at the top of `cmd_evening` (both the evening and the late pass), before any new pick, on the freshly priced file. For each open edge ticket or lean dated today it finds the same prop and side, runs `eligible()` (a lean: the lean bar) and saves `retest` on the ticket: `t, run, book, line, odds, p, edge, muf, ok, code, why, held, hedge, first`. `ok` is true, false, or null when no book had the side. Tracking only: nothing in the pick code reads it and it never changes a ticket. `retest_note()` adds the split to `daily.py report`. Do not turn a failed retest into a void: a placed bet cannot be taken back, and the record has to match that.
+
 ## Shot build (v3.50)
 nba.py builds the points and threes per-minute rates from shot volume and steadied percentages (State.player_feat; settings SH_N, HL3, N3 at the top of the file, chosen by the lab shot_bt.py on 2024-25). `SHOT_ON = False` restores the old rates exactly. The engine still reads `players[].r`, so check.js is unchanged. `players[].sh` (State.shot_view) is for the page only: `v` shots, threes and free throws tried per 36; `p` the steadied percentages (twos, threes, free throws, and the long-memory three-point one); `r0` the old build's rates; `a` and `b` his last 10 and last 60 games (games, shots, threes tried, true shooting, three-point percentage). To retest after a season of new data: `python3 shot_bt.py` (it turns SHOT_ON off to rebuild the baseline). Do not retune the settings on the seasons they were scored on.
 
@@ -245,3 +249,12 @@ relay_pull.py BOOKS carries "pinnacle" where "polymarket" was (ten books is one 
 
 ## Spare start times (v3.44)
 GitHub starts scheduled runs late and drops some. lines.yml adds second and third tries: 47 16,17 and 17 18 (midday), 17 23,0 (evening pass or lineups), 42 2 (late lineups), all UTC. due() in relay_pull.py is unchanged, so a spare run that finds the job done exits with nothing due. The workflow file in the repo is .github/workflows/lines.yaml; pipeline/lines.yml is the copy. Replace the contents of the existing file. Do not add a second workflow file, or every start runs twice.
+
+## v3.52: NBA box grading, the Hard Rock lane, tests, replays
+- NBA tickets and audit sides are graded from the newest `data/nba_pb_*.parquet` (daily.py nba_box), keyed by game id and player id, the way NFL uses the weekly stats file. A player with no minutes in a game whose box score is in (16 players with minutes) is a void. If the file cannot be read, grading falls back to the page logs as before.
+- Player ids: always through `common.pid_str()`. Every NBA id on file is the text of a float ('4066261.0'). Never write `astype(str)` on an id column.
+- Hard Rock lane: price_all() puts `hr` on each priced side (Hard Rock's line, price, the desk's chance and edge there, and whether it clears the whole test). `daily.py shadow` files the ones that clear under `hr_only` in shadow.json and grades them at Hard Rock's line; the report prints "cleared at Hard Rock's price". Tracking only.
+- `cal_w_max` is 0.45. To see what the weights are: `out/calib.json` after any `daily.py lines` run.
+- `python3 test_fairline.py` after any edit to daily.py or common.py. It needs no data.
+- Before any change to how the market number or the model weight is built, rerun the replays (they read out/lines, out/priced, out/audit.json and change nothing): `python3 policy_replay.py` (de-vig and consensus methods), `python3 calib_replay.py` (how the weight is learned, against the market alone), `python3 lanes_replay.py` (leans, and the confident lane on alternate rungs). The v3.52 results are in the changelog; a change needs to beat "live" there, not just match it.
+- simtab.css holds the v3.42 slip block twice. The two copies are not the same (the first has the wrapping and narrow-slip rules). Do not delete either without checking every rule in it.

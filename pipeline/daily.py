@@ -12,51 +12,67 @@
   python3 daily.py grade                                           settle open bets from the latest box scores
   python3 daily.py report                                          print the record
   python3 daily.py audit                                           grade every priced side (model vs book), update out/audit.json
-  python3 daily.py shadow                                          update and report the shadow book (including market lane and Hard Rock-only cut)
-Run after nfl.py / nba.py / build_data.py so out/data.json and the *_check.json files are current.
-
-v3.52 upgrades:
-  - Leave-one-out, sharp-weighted, power-devigged consensus in price_all() (toggled via use_loo_cons / use_power_devig).
-  - Log-loss calib() restricted to market-checked post-v1.3 rows with tighter w cap (0.45) and prior (250).
-  - Direct multi-book power-devig on alternate rungs in cmd_confident() when >= conf_books other books quote the same rung.
-  - Direct NBA parquet grading (nba_box / nba_actual) so 4+ day schedule gaps never drop or mis-void NBA tickets.
-  - Midday-only glob filter in cmd_audit() so _pm/_late priced files never leak into audit.json.
-  - Hard Rock-only shadow tracking (hr_edge / hr_elig) for Florida execution visibility.
-  - fill_live=False option so sub-3% leans track in shadow.json rather than diluting live history.json."""
+Run after nfl.py / nba.py / build_data.py so out/data.json and the *_check.json files are current."""
 import json, math, os, re, sys, unicodedata, datetime
 import numpy as np
-from scipy import stats, optimize
+from scipy import stats
 from common import nb_k, norm, pid_str, load_lineups
 
 O = "/home/claude/props/out/"
 D = "/home/claude/props/data/"
-CFG = dict(bankroll=500.0, unit=25.0,
-           max_units=2.0, day_units=10.0,
-           min_daily=2, lean_edge=0.01, lean_units=0.25,
-           fill_live=False,                  # v3.52: keep sub-3% leans in shadow tracking until 200+ graded sides prove +EV
+# Pick policy. The weekly review may tune these, one change at a time, and must log why in CHANGELOG.md.
+CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and confident plays each), one unit $25. Bets before v3.7 used $0.50 units and keep them.
+           max_units=2.0, day_units=10.0,  # most on one bet, and on one day across both lanes and leagues
+           min_daily=2, lean_edge=0.01, lean_units=0.25,   # at least two bets a day when anything is positive: leans fill the gap at a quarter unit
            max_picks=3, max_per_game=2, min_edge=0.03, max_edge=0.12, min_adj_ev=0.025,
            min_odds=-160, max_odds=150, min_games=8, nba_min_minutes=20.0, book="hardrockbet",
+           # v3.22: the desk bets wherever the price is best among these books (it used to bet Hard Rock only). To go back to
+           # one book, list only that one. Exchanges (Polymarket, Novig, Kalshi) are shown in the app and count toward the
+           # market view, but the desk does not bet them.
            bet_books=["hardrockbet", "draftkings", "fanduel", "betmgm", "williamhill_us", "betrivers", "fanatics"],
-           sane=(1.0, 1.12),
+           sane=(1.0, 1.12),                 # a quote counts only if its two sides' implied chances add to 1.00 to 1.12 (drops stale exchange prices)
+           # v3.22: how far the model on its own may sit from the market before a side goes on hold, by league. Was 0.12 for
+           # both. Closing-line replay, 2026 season: NBA sides the 0.12 hold removed went about 60%, NFL sides lost.
            hold_edge={"NBA": 0.25, "NFL": 0.12},
-           min_books=2,
+           min_books=2,                      # other books that must quote the same player and market before a side can be picked
+           # v3.37: quotes overrule an "Out" on the injury report only when enough sportsbooks still post the player's main
+           # market with both prices. It used to take one row from anyone, so a leftover alternate line or an exchange that
+           # never closed its market kept a scratched player in the lineup (Scottie Barnes, Nov 18).
+           # v3.39: "enough" is a share of the sportsbooks pricing his game, not a fixed 3: at least half of them, and never
+           # fewer than news_min (or all of them when fewer than that are pricing the game). Seven books need 4, four need 2.
+           # In the saved pulls a player who is playing has every book or all but one (46 of 49 had 4 of 4, the rest 3 of 4),
+           # so half leaves room for a slow book or two without letting stragglers overrule the report.
            news_share=0.5, news_min=2,
-           use_power_devig=True,             # v3.52: use power_fair() instead of proportional vig split
-           use_loo_cons=True,                # v3.52: leave-one-out sharp-weighted consensus per candidate book
+           # v3.45 the market lane of the shadow book (tracking only, never a pick). The fair price is the books' own: each
+           # book's two prices with the house cut taken out, averaged with these weights (a book not listed counts 1.0), the
+           # book being bet left out. FanDuel and DraftKings count more because their prop prices move first; Kalshi and
+           # Polymarket count less because the pull has no volume to judge their prices by. The weights are a judgement, not
+           # fitted: the first review of this lane is where they get tested.
            mk_w={"fanduel": 1.5, "draftkings": 1.5, "kalshi": 0.5, "polymarket": 0.5},
+           # v3.49: a book pulled as a yardstick only. Its rows are in the lines files but parse() leaves them out, so the
+           # desk's market number, the market lane, the board, the news rule and the page never see it. Only wide_close reads
+           # it, to say how the shadow book's sides did against its closing price.
            ref_books=["pinnacle"],
-           mk_min_edge=0.01,
+           mk_min_edge=0.01,                 # a side is filed in the market lane when the best price beats the books' fair price by this much
+           # v3.19: restores the v1.6 guard the RUNBOOK describes (it had dropped out of the code). Model picks (edge plays and
+           # leans) come only from these markets; the rest are on trial: priced, shown and graded in the audit, not picked until a
+           # market has 200 graded sides and the weekly review adds it here. The confident lane follows the books, not the model.
            pick_markets={"NBA": ["pts", "reb", "ast"], "NFL": ["rec_yds", "rush_yds", "pass_yds"]},
-           cal_w0=0.25, cal_w_n0=250,        # v3.52: stronger prior (was 150) & lower cap (was 0.70) to prevent 1-week spikes
-           cal_c_n0=5, cal_w_max=0.45,
-           use_logloss_calib=True,           # v3.52: fit w by binary log-loss at the line on post-v1.3 market-checked rows
+           cal_w0=0.25, cal_w_n0=150,        # prior weight on the model vs the market, and how many graded lines that prior is worth
+           # v3.52: cal_w_max 0.70 -> 0.45 (asked for by Armanddo). The most the desk may ever lean on the model in any market.
+           # On Nov 19 the assists weight had run up to 0.67 on four days of graded lines and every cleared side was an assist.
+           # No weight is above the new cap today (assists 0.34), so this is a guard rail, not a change to today's prices.
+           cal_c_n0=5, cal_w_max=0.45,       # cal_c_n0: lines of "no lean" prior in the per-slate centring
+           # confident-plays lane (v3.6): likely outcomes at any price, as long as Hard Rock's price is no worse than fair.
+           # "Likely" is the other books' consensus, not the model: graded history showed the model alone overconfident.
            conf_fair=0.72, conf_model=0.68, conf_edge=0.01, conf_min_odds=-500, conf_max_odds=-140, conf_books=3,
            conf_max=3, conf_nba_min=24.0,
-           conf_exit=0.02, conf_cap=0.93)
-VER = "1.7"
+           conf_exit=0.02, conf_cap=0.93)    # conf_cap: the curve is checked against history up to about 90%; past 93% it is not trusted                   # an over can die to an early exit the box-score curve does not see: take 2 points off its chance
+VER = "1.6"
 BOOKN = {"hardrockbet": "Hard Rock", "draftkings": "DraftKings", "fanduel": "FanDuel", "betmgm": "BetMGM", "williamhill_us": "Caesars",
          "espnbet": "ESPN Bet", "pinnacle": "Pinnacle", "betrivers": "BetRivers", "fanatics": "Fanatics", "bovada": "Bovada",
          "polymarket": "Polymarket", "novig": "Novig", "kalshi": "Kalshi", "polymarket_us": "Polymarket US"}
+# injury tables name the club; the model uses box score codes
 TEAM = {"NBA": {"hawks": "ATL", "celtics": "BOS", "nets": "BKN", "hornets": "CHA", "bulls": "CHI", "cavaliers": "CLE", "mavericks": "DAL", "nuggets": "DEN",
                 "pistons": "DET", "warriors": "GS", "rockets": "HOU", "pacers": "IND", "clippers": "LAC", "lakers": "LAL", "grizzlies": "MEM", "heat": "MIA",
                 "bucks": "MIL", "timberwolves": "MIN", "pelicans": "NO", "knicks": "NY", "thunder": "OKC", "magic": "ORL", "76ers": "PHI", "suns": "PHX",
@@ -99,7 +115,7 @@ def load():
 def history():
     p = O + "history.json"
     h = json.load(open(p)) if os.path.exists(p) else {"bets": [], "days": [], "updated": ""}
-    if "legacy_unit" not in h:
+    if "legacy_unit" not in h:      # v3.7 stakes: bets already logged keep the unit they were made at (b["unit_usd"]), and every dollar figure uses it
         h["legacy_unit"] = h.get("unit", 0.5)
     h.update(bankroll=CFG["bankroll"], unit=CFG["unit"], lanes={"edge": CFG["bankroll"], "confident": CFG["bankroll"]})
     return h
@@ -109,6 +125,8 @@ EDGE_U = {"AAA": 1.5, "AA": 1.0, "A": 0.75, "BBB": 0.5}
 
 
 def stake_units(b):
+    """How much the desk puts on a bet, in units of CFG unit. Edge plays by rating (best bet of the day +0.5),
+    confident plays by how far the price beats the books' fair chance and how likely the books rate it, leans a quarter."""
     if b.get("lean"):
         u = CFG["lean_units"]
     elif b.get("lane") == "confident":
@@ -120,6 +138,7 @@ def stake_units(b):
 
 
 def scratched(b):
+    """v3.37: a ticket voided before the game because the player was ruled out. It no longer holds a slot or a stake."""
     return b.get("status") == "void" and bool(b.get("scratch"))
 
 
@@ -128,6 +147,7 @@ def day_units(h, date):
 
 
 def put_stake(h, b):
+    """Size the bet and keep the day inside day_units. Returns False when the day is full."""
     u = stake_units(b); room = CFG["day_units"] - day_units(h, b["date"])
     if room < CFG["lean_units"]:
         return False
@@ -146,7 +166,6 @@ def probs(L, lg, mkt, mu, line):
         p = 1 - math.exp(-max(mu, 0.0))
         return p, 1 - p, 0.0
     a, b = L["model"]["disp"][mkt]
-    mu = max(float(mu), 1e-4)
     k = float(nb_k(mu, a, b)); pr = k / (k + mu)
     under = float(stats.nbinom.cdf(math.ceil(line) - 1, k, pr))
     push = float(stats.nbinom.pmf(int(line), k, pr)) if float(line).is_integer() else 0.0
@@ -164,45 +183,12 @@ def implied_mean(L, lg, mkt, line, p_over):
     return (lo + hi) / 2
 
 
-def power_fair(o, u):
-    """v3.47/v3.52 the over's fair chance with the house cut removed via the power method:
-    find k >= 1 such that (1/dec(o))^k + (1/dec(u))^k = 1; fair over chance = (1/dec(o))^k."""
-    a, b = 1 / dec(o), 1 / dec(u)
-    if a + b <= 1:
-        return a / (a + b)
-    lo, hi = 1.0, 6.0
-    for _ in range(40):
-        k = (lo + hi) / 2
-        if a ** k + b ** k > 1: lo = k
-        else: hi = k
-    return a ** ((lo + hi) / 2)
-
-
-def devig_over(o, u):
-    """Over no-vig probability using power method (default since v3.52) or proportional split."""
-    if CFG.get("use_power_devig", True):
-        return power_fair(o, u)
-    po, pu = 1 / dec(o), 1 / dec(u)
-    return po / (po + pu)
-
-
-def weighted_cons(impd, exclude=None):
-    """Leave-one-out sharp-weighted mean of implied projections (falls back to unweighted median if disabled)."""
-    items = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in impd.items() if k != exclude]
-    if not items:
-        items = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in impd.items()]
-    if not items:
-        return None
-    if CFG.get("use_loo_cons", True):
-        return float(sum(v * w for v, w in items) / sum(w for _, w in items))
-    return float(np.median([v for v, _ in items]))
-
-
 _CAL, _CEN = {}, {}
 
 
 def centre(pairs):
-    """Per-slate centring: the factor that puts the model's average projection on the market's average for one market."""
+    """Per-slate centring: the factor that puts the model's average projection on the market's average for one market.
+    pairs = [(model mean, market mean)]. Pulled toward 1 on thin slates and capped, so it only removes a general lean."""
     n = len(pairs)
     if not n or sum(p[0] for p in pairs) <= 0:
         return 1.0
@@ -212,9 +198,8 @@ def centre(pairs):
 
 def calib(D):
     """w per market: how far to move off the market toward the model. 0 trusts the market, 1 trusts the model.
-    v3.52: restricted to post-v1.3 market-checked rows (ver present, nb >= min_books, mm present) and fitted by
-    regularized binary log-loss at the posted line (with prior pull toward cal_w0), preventing outlier box scores
-    and pre-v1.3 unanchored rows from distorting w."""
+    Relearned every run from every graded side in out/audit.json and pulled toward a neutral prior.
+    Final mean used for pricing = market + w * (c * model - market), with c the per-slate centring above."""
     if _CAL:
         return _CAL
     A = json.load(open(O + "audit.json")) if os.path.exists(O + "audit.json") else {}
@@ -222,59 +207,25 @@ def calib(D):
     for k, r in A.items():
         pairs.setdefault(k.rsplit("|", 1)[0], {})[r["side"]] = r
     for pr in pairs.values():
-        o = pr.get("Over")
-        if not o or o["mkt"] not in D[o["lg"]]["model"]["disp"]:
+        o, u = pr.get("Over"), pr.get("Under")
+        if not o or not u or o["mkt"] not in D[o["lg"]]["model"]["disp"]:
             continue
-        if not o.get("ver") or o.get("nb", 0) < CFG["min_books"] or o.get("mm") is None:
-            continue
-        acc.setdefault((o["lg"] + "|" + o["mkt"], o["date"]), []).append((o["mu"], o["mm"], o["line"], o["win"], o["result"]))
+        mm = o.get("mm")
+        if mm is None:      # graded before v1.3: the only market view is the book's own line
+            po, pu = 1 / dec(o["odds"]), 1 / dec(u["odds"])
+            mm = implied_mean(D[o["lg"]], o["lg"], o["mkt"], o["line"], po / (po + pu))
+        acc.setdefault((o["lg"] + "|" + o["mkt"], o["date"]), []).append((o["mu"], mm, o["result"]))
     for lg in MK:
-        L = D[lg]
         for mkt in sorted(set(MK[lg].values())):
-            if mkt not in L["model"]["disp"]:
-                _CAL[lg + "|" + mkt] = dict(w=round(CFG["cal_w0"], 4), n=0)
-                continue
-            pts = []
+            d, e = [], []
             for (key, date), rows in acc.items():
                 if key != lg + "|" + mkt:
                     continue
-                c = centre([(r[0], r[1]) for r in rows])
-                for mu, mm, line, win, res in rows:
-                    pts.append((c * mu, mm, line, win, res))
-            n = len(pts)
-            if n < 10:
-                _CAL[lg + "|" + mkt] = dict(w=round(CFG["cal_w0"], 4), n=n)
-                continue
-            if CFG.get("use_logloss_calib", True):
-                a, b = L["model"]["disp"][mkt]
-                cmu = np.array([x[0] for x in pts], float)
-                mmv = np.array([x[1] for x in pts], float)
-                lnv = np.array([x[2] for x in pts], float)
-                yov = np.array([x[3] for x in pts], float)
-                is_int = np.isclose(lnv, np.round(lnv))
-                ceil_m1 = np.ceil(lnv) - 1
-                ln_int = np.round(lnv).astype(int)
-
-                def obj(w):
-                    m = np.maximum(mmv + w * (cmu - mmv), 1e-4)
-                    k = nb_k(m, a, b)
-                    p = k / (k + m)
-                    un = stats.nbinom.cdf(ceil_m1, k, p)
-                    push = np.where(is_int, stats.nbinom.pmf(ln_int, k, p), 0.0)
-                    ov = np.maximum(1.0 - un - push, 0.0)
-                    pov = np.clip(ov / np.maximum(ov + un, 1e-9), 1e-4, 1 - 1e-4)
-                    nll = -(yov * np.log(pov) + (1 - yov) * np.log(1 - pov)).sum()
-                    # quadratic prior pull equivalent to cal_w_n0 pseudo-observations centered at cal_w0
-                    prior = 0.5 * CFG["cal_w_n0"] * 0.25 * (w - CFG["cal_w0"]) ** 2
-                    return float(nll + prior)
-
-                res = optimize.minimize_scalar(obj, bounds=(0.0, CFG["cal_w_max"]), method="bounded")
-                w = float(np.clip(res.x, 0.0, CFG["cal_w_max"]))
-            else:
-                d = np.array([x[0] - x[1] for x in pts], float)
-                e = np.array([x[4] - x[1] for x in pts], float)
-                wh = float((d * e).sum() / (d * d).sum()) if (d * d).sum() > 0 else CFG["cal_w0"]
-                w = float(np.clip((n * wh + CFG["cal_w_n0"] * CFG["cal_w0"]) / (n + CFG["cal_w_n0"]), 0.0, CFG["cal_w_max"]))
+                c = centre([(r[0], r[1]) for r in rows])      # each past day centred the same way a live slate is
+                d += [r[0] * c - r[1] for r in rows]; e += [r[2] - r[1] for r in rows]
+            d, e, n = np.array(d), np.array(e), len(d)
+            wh = float((d * e).sum() / (d * d).sum()) if n >= 5 and (d * d).sum() > 0 else CFG["cal_w0"]
+            w = float(np.clip((n * wh + CFG["cal_w_n0"] * CFG["cal_w0"]) / (n + CFG["cal_w_n0"]), 0, CFG["cal_w_max"]))
             _CAL[lg + "|" + mkt] = dict(w=round(w, 4), n=n)
     json.dump(_CAL, open(O + "calib.json", "w"))
     return _CAL
@@ -304,10 +255,12 @@ def confidence(lg, p, mkt, mu, edge, game, side=None):
 
 
 def parse(path, ref=False):
+    """Rows of a lines file. ref=False (every reader but wide_close): the reference books in CFG ref_books are left out.
+    ref=True: only those books."""
     rows = []
     for ln in open(path):
         t = ln.strip()
-        c = [x.strip() for x in (t.strip("|") if t.startswith("|") else t).split("|")]
+        c = [x.strip() for x in (t.strip("|") if t.startswith("|") else t).split("|")]      # only a markdown row has outer pipes to drop
         if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: "):
             continue
         num = lambda s: (float(s.replace("+", "")) if re.fullmatch(r"[+-]?\d+(\.\d+)?", s) else None)
@@ -318,6 +271,13 @@ def parse(path, ref=False):
 
 
 def cmd_news(date, lg, files):
+    """Lineup news for one league. files[0] is an injury table (team | player | pos | est_return | status | comment) or "-",
+    the rest are book lines files. A player the books are quoting is expected to play; in NFL files a `# game: AWAY @ HOME`
+    line before each game's table lets the passing yards market name each team's starting QB.
+    v3.37/v3.39: quotes overrule a listed "Out" only when at least news_share of the sportsbooks pricing his game still
+    post his main market with both prices (never fewer than news_min).
+    FL_NEWS=late (the lineups and close runs, where the lines on file are older than the injury report): a plain "Out"
+    always stands; only a coarse status (injured reserve and the like) can still be overruled by the books."""
     out, q, inn, qb_game, by_team, firm, coarse, strong, gbooks, pgame = set(), set(), set(), {}, {}, set(), set(), {}, {}, {}
     late = os.environ.get("FL_NEWS") == "late"
     if files and files[0] != "-":
@@ -328,9 +288,9 @@ def cmd_news(date, lg, files):
             st = c[4].lower(); code = TEAM[lg].get(c[0].lower().split()[-1]) if c[0].split() else None
             if any(k in st for k in ("out", "injured reserve", "doubtful", "suspen", "unable to perform", "non-football")):
                 out.add(norm(c[1]))
-                if "out" in st: firm.add(norm(c[1]))
-                elif "doubtful" not in st: coarse.add(norm(c[1]))
-                if code: by_team.setdefault(code, []).append([c[1], c[2]])
+                if "out" in st: firm.add(norm(c[1]))          # ruled out of this game, by name: the only status a ticket is scratched on
+                elif "doubtful" not in st: coarse.add(norm(c[1]))      # a roster designation, which can lag a player's return
+                if code: by_team.setdefault(code, []).append([c[1], c[2]])      # who is out, by club, for the write-ups
             elif any(k in st for k in ("day-to-day", "questionable", "game-time", "gtd")): q.add(norm(c[1]))
     num = lambda x: bool(re.fullmatch(r"[+-]?\d+(\.\d+)?", x))
     for fi, f in enumerate(files[1:]):
@@ -342,18 +302,20 @@ def cmd_news(date, lg, files):
             if len(c) < 6 or c[0] in ("bookmaker_key", "") or set(c[0]) <= set("-: ") or c[0] in CFG["ref_books"]:
                 continue
             inn.add(norm(c[2]))
+            # a quote that counts against an "Out": a sportsbook the desk bets at, a main market, both prices posted
             if c[0] in CFG["bet_books"] and c[1] in MK[lg] and num(c[4]) and (c[1] == "player_anytime_td" or num(c[5])):
                 strong.setdefault(norm(c[2]), set()).add(c[0])
-                gk = (fi, game); gbooks.setdefault(gk, set()).add(c[0]); pgame.setdefault(norm(c[2]), set()).add(gk)
+                gk = (fi, game); gbooks.setdefault(gk, set()).add(c[0]); pgame.setdefault(norm(c[2]), set()).add(gk)      # a file with no game markers counts as one game
             if lg == "NFL" and c[1] == "player_pass_yds" and game and norm(c[2]) not in qb_game.setdefault(game, []):
                 qb_game[game].append(norm(c[2]))
     cur = json.load(open(NEWS)) if os.path.exists(NEWS) else {}
+    # Books pull a prop the moment a player is ruled out, so live quotes from several books beat a stale or coarse status
+    # (for example "injured reserve" on a player who has been designated to return). One leftover row does not.
     both = out & inn
 
-    def enough(n):
+    def enough(n):      # the books still posting him, against the books pricing his game
         ng = max((len(gbooks[g]) for g in pgame.get(n, ())), default=0)
         return ng > 0 and len(strong.get(n, ())) >= max(min(CFG["news_min"], ng), math.ceil(CFG["news_share"] * ng))
-
     quoted_out = sorted(n for n in both if enough(n) and (not late or n in coarse))
     stays = sorted(both - set(quoted_out))
     out -= set(quoted_out); inn -= out
@@ -368,9 +330,30 @@ def cmd_news(date, lg, files):
           + (f", listed out and kept out despite a leftover quote: {[(n, sorted(strong.get(n, ()))) for n in stays]}" if stays else ""))
 
 
+def power_fair(o, u):
+    """v3.47 the over's fair chance with the house cut removed the power way: both implied chances are raised to the one
+    power that makes them add to 1. Next to the plain split (each side's share of the total) it takes more of the cut off
+    the longer price. Used only by the market lane, to compare the two methods."""
+    a, b = 1 / dec(o), 1 / dec(u)
+    if a + b <= 1:
+        return a / (a + b)
+    lo, hi = 1.0, 6.0
+    for _ in range(40):
+        k = (lo + hi) / 2
+        if a ** k + b ** k > 1: lo = k
+        else: hi = k
+    return a ** ((lo + hi) / 2)
+
+
 def market_view(L, lg, mkt, side, bet, impd, impw=None):
+    """v3.45 the market's own fair price for one side, and the book that beats it by most. For each book the desk can bet,
+    the other books' implied projections are averaged (weights in CFG mk_w), turned into a chance at that book's line, and
+    set against that book's break-even. Needs min_books other books. The model is not in this number: the only thing
+    borrowed from it is the shape of the curve, used to carry a price from one line to another. Tracking only.
+    v3.47: the same sum is also done with the power de-vig (edge_pw). When the plain split finds nothing at the bar and the
+    power method does, that ticket rides along as `pw`, so the shadow book can follow what only the power method would bet."""
     if mkt == "any_td":
-        return None
+        return None      # one-sided price: the house cut cannot be taken out
     def at(bk, r, imps):
         odds = r["o"] if side != "Under" else r["u"]
         oth = [(v, CFG["mk_w"].get(k, 1.0)) for k, v in imps.items() if k != bk]
@@ -394,6 +377,8 @@ def market_view(L, lg, mkt, side, bet, impd, impw=None):
 
 
 def market_ticket(mk):
+    """The ticket the market lane files for a side, or None: the plain-split ticket when it clears the bar, else the
+    power-only ticket when there is one. Either way inside the desk's price window."""
     if not mk:
         return None
     t = mk if mk["edge"] >= CFG["mk_min_edge"] else mk.get("pw")
@@ -401,6 +386,8 @@ def market_ticket(mk):
 
 
 def market_est(L, b):
+    """A side priced before v3.45 carries no market view, only the plain median of every book's implied projection (mm),
+    the bet book included. This rebuilds the nearest thing from it, at the row's own book and price. Marked est in the file."""
     if b["mkt"] == "any_td" or b.get("mm") is None or b.get("nb", 0) < CFG["min_books"] or b["mkt"] not in L["model"]["disp"]:
         return None
     ov, un, _ = probs(L, b["lg"], b["mkt"], b["mm"], b["line"])
@@ -420,7 +407,7 @@ def price_all(date, lg, files):
         if lg == "NBA" and g["day"] != date:
             continue
         side_of[s["team"]] = s
-    quotes = {}
+    quotes = {}     # (player, market) -> {book: row}. v3.22: every book is a candidate to bet at; all of them are the market view.
     for f in files:
         for r in parse(f):
             quotes.setdefault((norm(r["player"]), r["market"]), {})[r["book"]] = r
@@ -432,7 +419,6 @@ def price_all(date, lg, files):
         if x["line"] is None or x["o"] is None or x["u"] is None:
             return False
         return CFG["sane"][0] <= 1 / dec(x["o"]) + 1 / dec(x["u"]) <= CFG["sane"][1]
-
     for (nm, market), books in quotes.items():
         mkt = MK[lg].get(market)
         if not mkt:
@@ -453,49 +439,46 @@ def price_all(date, lg, files):
         if mu <= 0:
             continue
 
-        def imp_prop(x):
+        # What the market thinks: each book's line and prices turned into the projection they imply; the median of all of them
+        def imp(x):
             if mkt == "any_td":
                 return None
             po, pu = 1 / dec(x["o"]), 1 / dec(x["u"])
             return implied_mean(L, lg, mkt, x["line"], po / (po + pu))
-
-        impd_prop = {bk: v for bk, v in ((bk, imp_prop(x)) for bk, x in good.items()) if v is not None}
-        impw = {} if mkt == "any_td" else {bk: implied_mean(L, lg, mkt, x["line"], power_fair(x["o"], x["u"])) for bk, x in good.items() if bk in impd_prop}
-        imp_live = impw if CFG.get("use_power_devig", True) else impd_prop
-        mm = weighted_cons(imp_live, exclude=None) if imp_live else None
-        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imp_live) - 1, 0),
-                         q=good, impd=impd_prop, impw=impw, imp_live=imp_live))
-
+        impd = {bk: v for bk, v in ((bk, imp(x)) for bk, x in good.items()) if v is not None}
+        # v3.47: the same quotes with the house cut taken out the power way, for the shadow book's comparison only
+        impw = {} if mkt == "any_td" else {bk: implied_mean(L, lg, mkt, x["line"], power_fair(x["o"], x["u"])) for bk, x in good.items() if bk in impd}
+        imps = list(impd.values())
+        mm = float(np.median(imps)) if imps else None
+        rows.append(dict(bet=bet, mkt=mkt, p=p, s=s, g=g, m=m, mu=mu, mm=mm, nb=max(len(imps) - 1, 0), q=good, impd=impd, impw=impw))
+    # Centre the model on the market for this slate, market by market, so a general lean (it used to run low: the Under
+    # lean) cannot create bets. What is left is where the model disagrees about one player more than about the rest.
     cen = {}
     for mkt in {x["mkt"] for x in rows}:
         z = [x for x in rows if x["mkt"] == mkt and x["mm"] is not None]
-        good_z = [x for x in z if x["nb"] >= CFG["min_books"]]
-        cen[mkt] = centre([(x["mu"], x["mm"]) for x in (good_z or z)])
-
+        good = [x for x in z if x["nb"] >= CFG["min_books"]]
+        cen[mkt] = centre([(x["mu"], x["mm"]) for x in (good or z)])
     for x in rows:
         mkt, p, s, g, m, mu, mm, nb = (x[k] for k in ("mkt", "p", "s", "g", "m", "mu", "mm", "nb"))
         w = CAL.get(lg + "|" + mkt, {}).get("w", CFG["cal_w0"]); c0 = cen[mkt]
+        muf = mu if mm is None else mm + w * (c0 * mu - mm)
         hold_at = CFG["hold_edge"].get(lg, CFG["max_edge"])
-        best, hr_rec = {}, {}
+        best, hr_rec = {}, {}      # side -> the book where the desk's value is highest, with everything priced at that book's own line and price
         for bk, r in x["bet"].items():
             line = .5 if mkt == "any_td" else r["line"]
             o = int(r["o"]) if r["o"] is not None else None
             u = int(r["u"]) if (r["u"] is not None and mkt != "any_td") else None
-            # v3.52: leave-one-out sharp-weighted consensus (excludes bk itself so a stale soft book doesn't pull fair value)
-            mm_bk = weighted_cons(x["imp_live"], exclude=bk) if x["imp_live"] else None
-            nb_bk = sum(1 for k in x["imp_live"] if k != bk)
-            muf = mu if mm_bk is None else mm_bk + w * (c0 * mu - mm_bk)
             pov, pun, _ = probs(L, lg, mkt, muf, line)
             pov0, pun0, _ = probs(L, lg, mkt, mu, line)
-            povc, punc, _ = probs(L, lg, mkt, c0 * mu, line)
-            for side, pw, pl, pw0, pl0, pwc, plc, odds in (("Over" if mkt != "any_td" else "Yes", pov, pun, pov0, pun0, povc, punc, o),
-                                                           ("Under", pun, pov, pun0, pov0, punc, povc, u)):
+            povc, punc, _ = probs(L, lg, mkt, c0 * mu, line)      # the model on its own, after centring
+            for side, pw, pl, pw0, pl0, pwc, plc, odds in (("Over" if mkt != "any_td" else "Yes", pov, pun, pov0, pun0, povc, punc, o), ("Under", pun, pov, pun0, pov0, punc, povc, u)):
                 if odds is None:
                     continue
                 pn = pw / (pw + pl); be = 1 / dec(odds); edge = pn - be; ev = pw * (dec(odds) - 1) - pl
                 c, flags = confidence(lg, p, mkt, mu, edge, g, s)
-                if nb_bk < CFG["min_books"]: flags.append("no market check")
+                if nb < CFG["min_books"]: flags.append("no market check")
                 edgec = pwc / (pwc + plc) - be
+                # the hold: the model on its own this far from the market is usually news it lacks (v3.22: by league)
                 if edgec > hold_at: flags.append("model far from market, check news")
                 adj = ev * (c if ev > 0 else 1)
                 rec = dict(id=f"{date}|{lg}|{p['id']}|{mkt}", date=date, lg=lg, game=s["game"], gl=f'{g["away"]} @ {g["home"]}',
@@ -503,27 +486,28 @@ def price_all(date, lg, files):
                            book=bk, mu=round(mu, 2), p=round(pn, 4), be=round(be, 4), edge=round(edge, 4), ev=round(ev, 4),
                            conf=round(c, 3), adj=round(adj, 4), rating=next(t[1] for t in TIERS if adj >= t[0]), flags=flags,
                            n=p["n"], mn=m.get("mn"), tag=(date[5:] if lg == "NBA" else "26W" + re.sub(r"\D", "", L["label"])),
-                           ver=VER, nb=nb_bk, nbet=len(x["bet"]), muf=round(muf, 2), mm=(None if mm_bk is None else round(mm_bk, 2)),
-                           cen=round(c0, 3), p0=round(pw0 / (pw0 + pl0), 4), edge0=round(pw0 / (pw0 + pl0) - be, 4), edgec=round(edgec, 4))
+                           ver=VER, nb=nb, nbet=len(x["bet"]), muf=round(muf, 2), mm=(None if mm is None else round(mm, 2)), cen=round(c0, 3),
+                           p0=round(pw0 / (pw0 + pl0), 4), edge0=round(pw0 / (pw0 + pl0) - be, 4), edgec=round(edgec, 4))
+                # v3.52: the same side at Hard Rock's own line and price, whichever book the desk would use. Tracking only
+                # (the Hard Rock lane of the shadow book): Hard Rock is the one book that can actually be bet in Florida.
                 if bk == CFG["book"]:
-                    hr_rec[side] = dict(line=line, odds=odds, p=rec["p"], edge=rec["edge"], adj=rec["adj"], elig=eligible(rec))
-                k = (adj, ev, bk == CFG["book"])
+                    hr_rec[side] = dict(line=line, odds=odds, p=rec["p"], edge=rec["edge"], adj=rec["adj"], elig=bool(eligible(rec)))
+                k = (adj, ev, bk == CFG["book"])      # ties go to the home book
                 if side not in best or k > best[side][0]:
                     best[side] = (k, rec)
+        # v3.45: what the books alone say about each side (no model in it). Rides on the priced row for the shadow book.
         for side, v in best.items():
             mk = market_view(L, lg, mkt, side, x["bet"], x["impd"], x["impw"])
             if mk: v[1]["mk"] = mk
-            if side in hr_rec:
-                v[1]["hr"] = hr_rec[side]
+            if side in hr_rec: v[1]["hr"] = hr_rec[side]
         out += [v[1] for v in best.values()]
+        # the board's line for this prop: the book the desk would use on its better side; every book's quote rides along
         top = max(best.values(), key=lambda v: v[0])[1]
         tb = x["bet"][top["book"]]
         hold = next((sd for sd, v in best.items() if v[1]["edgec"] > hold_at), None)
         feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}'] = {"line": top["line"], "o": int(tb["o"]) if tb["o"] is not None else None,
-                                                    "u": int(tb["u"]) if (tb["u"] is not None and mkt != "any_td") else None,
-                                                    "book": top["book"], "nb": top["nb"],
-                                                    **({} if top["mm"] is None else {"m": round(top["muf"], 3), "mm": round(top["mm"], 3)}),
-                                                    **({"hold": hold} if hold else {})}
+                                                    "u": int(tb["u"]) if (tb["u"] is not None and mkt != "any_td") else None, "book": top["book"], "nb": nb,
+                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)}), **({"hold": hold} if hold else {})}
     _CEN[lg] = cen
     return out, feed, miss
 
@@ -532,6 +516,9 @@ RELAY = "https://raw.githubusercontent.com/ManddoMundo/Props-app/main/"
 
 
 def cmd_relay(date):
+    """Fetch what the GitHub lines relay saved for this date: book lines and injury reports, stored encrypted in the repo.
+    The passphrase is read from the RELAY_PASS environment variable and is never written anywhere.
+    Returns 0 when a midday lines file for the date was saved, 3 when there is nothing usable (then use the WebFetch route)."""
     import subprocess
     base = os.environ.get("RELAY_BASE", RELAY)
 
@@ -577,6 +564,7 @@ def cmd_relay(date):
 
 
 def cmd_today(date, src, dst):
+    """Keep only the games that tip on this US Eastern date (the relay marks each game with a '# tip:' line). Returns 3 if none."""
     out, keep, hold, n = [], True, None, 0
     for ln in open(src):
         if ln.startswith("# game:"):
@@ -586,7 +574,7 @@ def cmd_today(date, src, dst):
                 keep = ln.split(":", 1)[1].strip().startswith(date)
                 if keep: out += [hold, ln]
                 continue
-            keep = True; out.append(hold)
+            keep = True; out.append(hold)        # a game with no tip line (a hand-typed file) is kept
         if keep:
             out.append(ln); n += ("|" in ln and not ln.startswith(("#", "bookmaker_key")))
     open(dst, "w").writelines(out)
@@ -595,6 +583,7 @@ def cmd_today(date, src, dst):
 
 
 def cmd_mirror():
+    """GitHub now runs the day. Copy its books here: download the encrypted state and unpack it into out/."""
     import subprocess
     r = subprocess.run(f"curl -sfL -m 120 {RELAY}state/state.tar.gz.enc | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass env:RELAY_PASS | tar -C /home/claude/props -xzf -",
                        shell=True, capture_output=True, text=True, executable="/bin/bash")
@@ -617,7 +606,7 @@ def cmd_lines(date, lg, files):
     cur.update(feed)
     json.dump(cur, open(fp, "w"))
     os.makedirs(O + "priced", exist_ok=True)
-    sfx = {"pm": "_pm", "late": "_late"}.get(os.environ.get("FL_RUN"), "")
+    sfx = {"pm": "_pm", "late": "_late"}.get(os.environ.get("FL_RUN"), "")      # v3.17: the evening pass keeps its own priced file; the audit grades the midday one. v3.24: the lineups pass ("late") reprices the board only
     for b in priced:
         if sfx: b["run"] = sfx[1:]
     json.dump(priced, open(O + f"priced/{lg}_{date}{sfx}.json", "w"))
@@ -631,13 +620,13 @@ def cmd_lines(date, lg, files):
 
 
 def eligible(b):
-    if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False
+    if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False     # market on trial
     if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]): return False
     if b["n"] < CFG["min_games"]: return False
     if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
     if "missed last game" in b["flags"] or "questionable" in b["flags"]: return False
-    if b.get("nb", 0) < CFG["min_books"]: return False
-    if b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]): return False
+    if b.get("nb", 0) < CFG["min_books"]: return False      # no bet without the market check
+    if b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]): return False     # model alone is too far from the market: likely news
     return CFG["min_edge"] <= b["edge"] <= CFG["max_edge"] and b["adj"] >= CFG["min_adj_ev"]
 
 
@@ -666,13 +655,20 @@ def cmd_pick(date, lg):
         h["bets"].append(b); logged += 1
         print(f'  {"BEST" if i == 0 else "pick"}: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} ({b["nb"]} books) blended {b["muf"]}  {b["flags"]}')
     h["days"] = [d for d in h["days"] if not (d["date"] == date and d["lg"] == lg)]
-    h["days"].append(dict(date=date, lg=lg, sides_priced=len(priced), cleared_bar=len(pool), picks=logged, skipped_large_edge=big))
+    h["days"].append(dict(date=date, lg=lg, sides_priced=len(priced), cleared_bar=len(pool), picks=logged, skipped_large_edge=big))      # v3.19: a pick the full day dropped is not counted
     save_history(h)
     print(f"{lg} {date}: {len(priced)} sides priced, {len(pool)} cleared the bar, {logged} logged, {big} skipped for an edge too large to trust")
     cmd_explain(date, lg)
 
 
 def retest(h, date, lg, pm, run):
+    """v3.51 the retest. On every later pass with fresh prices (evening, late), each ticket already open for today is put
+    through the pick test again at the line and price on the board now. It answers one question: would the desk make this
+    bet now. Tracking and display only: the ticket's line, odds, stake and status never change, no ticket is added or
+    voided because of it, and the pick policy does not read it. Each pass writes over the last one (first verdict kept in
+    `first`). Fields: t, run, book, line, odds, p, edge (the side as priced now); ok (it clears the same test the ticket
+    was picked under); code and why (the test it fails, from pass_reason); held and hedge (the desk's chance and edge now on
+    the ticket as held: its own line and price against the fresh desk number)."""
     X = {(x["id"], x["side"]): x for x in pm}; n = 0
     from zoneinfo import ZoneInfo
     t = datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%-I:%M %p")
@@ -684,15 +680,15 @@ def retest(h, date, lg, pm, run):
         if x is None:
             r = dict(t=t, run=run, ok=None, code="NO LINE", why="No book had this side at this pull, so it could not be retested.")
         else:
-            if b.get("lean"):
+            if b.get("lean"):      # a lean was picked under the lean bar, so it is retested under the lean bar
                 soft = dict(x, edge=max(x["edge"], CFG["min_edge"]), adj=max(x["adj"], CFG["min_adj_ev"]))
                 ok = eligible(soft) and CFG["lean_edge"] <= x["edge"] <= CFG["max_edge"] and x["adj"] > 0
             else:
                 ok = eligible(x)
             code, why = ("CLEARS", "It clears every test again at the line and price on the board now.") if ok else pass_reason(x)
-            if not ok and b.get("lean") and code in ("THIN EDGE", "HAIRCUT"):
+            if not ok and b.get("lean") and code in ("THIN EDGE", "HAIRCUT"):      # say the lean's own bar, not the full one
                 code, why = "THIN EDGE", f"Edge {x['edge'] * 100:+.1f} points. A lean needs {CFG['lean_edge'] * 100:.0f}."
-            if not ok and code == "CAP":
+            if not ok and code == "CAP":      # pass_reason found nothing wrong, so the edge is past the ceiling (or a lean under its own bar)
                 code, why = ("EDGE TOO WIDE", f"Edge {x['edge'] * 100:+.1f} points is past the {CFG['max_edge'] * 100:.0f} point ceiling. A gap that wide is usually news.") if x["edge"] > CFG["max_edge"] else ("THIN EDGE", f"Edge {x['edge'] * 100:+.1f} points. A lean needs {CFG['lean_edge'] * 100:.0f}.")
             r = dict(t=t, run=run, book=x.get("book"), line=x["line"], odds=x["odds"], p=x["p"], edge=x["edge"], muf=x.get("muf"), ok=bool(ok), code=code, why=why)
             try:
@@ -707,6 +703,7 @@ def retest(h, date, lg, pm, run):
 
 
 def retest_note(h):
+    """v3.51 for the report: graded tickets split by what the retest said at the last later pull before the game."""
     R = [b for b in h["bets"] if b.get("retest") and not b.get("superseded") and b["status"] in ("won", "lost")]
     if not R: return
     pl = lambda b: (dec(b["odds"]) - 1) * b["units"] if b["status"] == "won" else -b["units"]
@@ -718,6 +715,12 @@ def retest_note(h):
 
 
 def cmd_evening(date, lg, sfx="_pm"):
+    """v3.39: sfx="_late" is the same pass on the lineups run's own fresh pull (about 6:40 and 9:15 PM), with one
+    difference: it only refills slots that scratched tickets gave back. It never adds a ticket to a day that is merely short.
+    v3.17 evening pass (about 6 PM). Same pick rules as midday, on the evening lines, for games still to come:
+    never a second ticket on a player already bet today, never past max_picks edge plays per league a day, max_per_game and
+    day_units as always. Tickets from midday are never changed. Also records what moved since midday: line, prices and the
+    desk's own chance on every prop priced both times."""
     late = sfx == "_late"
     fp = O + f"priced/{lg}_{date}{sfx}.json"
     if not os.path.exists(fp):
@@ -733,15 +736,15 @@ def cmd_evening(date, lg, sfx="_pm"):
         n_both += 1
         dl = (x["line"] or 0) - (a["line"] or 0); dp = x["p"] - a["p"]
         if dl or x["odds"] != a["odds"]: n_moved += 1
-        elif abs(dp) < .05: continue
+        elif abs(dp) < .05: continue          # no line or price move and the desk barely changed: not worth a row
         moves.append(dict(name=x["name"], team=x["team"], mkt=x["mkt"], l0=a["line"], l1=x["line"], o0=a["odds"], o1=x["odds"],
                           p0=round(a["p"], 4), p1=round(x["p"], 4), m0=a.get("muf"), m1=x.get("muf"), dl=dl, dp=round(dp, 4)))
     moves.sort(key=lambda m: (-abs(m["dl"]), -abs(m["dp"])))
-    try: retest(h, date, lg, pm, sfx[1:])
+    try: retest(h, date, lg, pm, sfx[1:])      # v3.51: tickets already open are tested again at the fresh prices. Tracking only; nothing below reads it.
     except Exception as e: print("  retest skipped:", e)
     today = [b for b in h["bets"] if b["date"] == date and b["lg"] == lg and not b.get("superseded")]
     taken = {b["pid"] for b in today}; per_game = {}
-    live = [b for b in today if not scratched(b)]
+    live = [b for b in today if not scratched(b)]      # v3.37: a scratched ticket gives its slot back; its player stays off limits
     gone = [b for b in today if scratched(b) and b.get("lane") != "confident" and not b.get("lean") and not b["scratch"].get("replaced_by")]
     for b in live:
         per_game[b["game"]] = per_game.get(b["game"], 0) + 1
@@ -756,7 +759,7 @@ def cmd_evening(date, lg, sfx="_pm"):
             b.pop(k, None)
         if not put_stake(h, b):
             print("  day is full at", CFG["day_units"], "units:", b["name"]); break
-        if gone:
+        if gone:      # this pick takes the slot a scratched ticket gave back
             g = gone.pop(0); b["replaces"] = g["name"]; g["scratch"]["replaced_by"] = b["name"]
         h["bets"].append(b); picks.append(b); taken.add(b["pid"]); per_game[b["game"]] = per_game.get(b["game"], 0) + 1; room -= 1
         print(f'  {"late" if late else "evening"} pick: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  prob {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["rating"]}  | model {b["mu"]} market {b["mm"]} blended {b["muf"]}')
@@ -765,7 +768,7 @@ def cmd_evening(date, lg, sfx="_pm"):
     rec = next((d for d in h["days"] if d["date"] == date and d["lg"] == lg), None)
     if rec is None:
         rec = dict(date=date, lg=lg, sides_priced=0, cleared_bar=0, picks=0); h["days"].append(rec)
-    if late:
+    if late:      # the evening record (what moved since midday) is left as it was
         rec["late"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks))
     else:
         rec["pm"] = dict(t=t, sides_priced=len(pm), cleared_bar=len(pool), picks=len(picks), moved=n_moved, compared=n_both, moves=moves[:12])
@@ -773,7 +776,7 @@ def cmd_evening(date, lg, sfx="_pm"):
     print(f"{lg} {date} {'late' if late else 'evening'}: {len(pm)} sides priced, {len(pool)} cleared the bar, {len(picks)} new" + ("" if late else f", {n_moved} of {n_both} props moved since midday"))
     if picks:
         cmd_explain(date, lg, sfx)
-        h = history()
+        h = history()      # the case file says which ticket it replaced
         for b in h["bets"]:
             if b["date"] == date and b["lg"] == lg and b.get("replaces") and b.get("why") and not b["why"].get("repl"):
                 g = next((x for x in h["bets"] if x["date"] == date and x["lg"] == lg and x["name"] == b["replaces"] and x.get("scratch")), None)
@@ -783,6 +786,11 @@ def cmd_evening(date, lg, sfx="_pm"):
 
 
 def cmd_scratch(date, lg):
+    """v3.37: void today's open tickets on players who are ruled out, before the game, the way a book voids the prop.
+    A ticket is scratched only on a plain "Out" on today's injury report (after the book-quote check in cmd_news) or,
+    for the NBA, the league's own inactive list. Doubtful, questionable and roster designations never scratch a ticket.
+    The ticket keeps every number it was logged with; only status and the scratch note change. If he plays after all,
+    grading puts the ticket back and settles it on the result."""
     news = (json.load(open(NEWS)) if os.path.exists(NEWS) else {}).get(lg, {})
     firm = set(news.get("out_firm", [])) if news.get("date") == date else set()
     LU = load_lineups(lg, date) if lg == "NBA" else {}
@@ -810,6 +818,9 @@ def cmd_scratch(date, lg):
     print(f"{lg} {date}: {n} tickets scratched")
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# The case file: why the desk made each bet, and why it passed on the near misses. Built only from numbers the pricing
+# already produced, so it explains the decision and cannot change it.
 def _last(name):
     t = [x for x in name.split() if x.strip(".").lower() not in ("jr", "sr", "ii", "iii", "iv", "v")]
     return t[-1] if t else name
@@ -846,15 +857,15 @@ def explain(b, D, quotes, news, mn=None):
     def sidep(mean):
         ov, un, _ = probs(L, lg, mkt, mean, line)
         return (ov if over else un) / (ov + un)
-
+    # --- the books
     books = []
     for bk, r in quotes.get((norm(b["name"]), INV[lg].get(mkt)), {}).items():
         imp = None
         if mkt != "any_td" and r["line"] is not None and r["o"] is not None and r["u"] is not None:
-            imp = implied_mean(L, lg, mkt, r["line"], devig_over(r["o"], r["u"]))
+            po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imp = implied_mean(L, lg, mkt, r["line"], po / (po + pu))
         books.append(dict(k=bk, n=BOOKN.get(bk, bk), line=r["line"], o=None if r["o"] is None else int(r["o"]), u=None if r["u"] is None else int(r["u"]),
                           imp=None if imp is None else round(imp, 2), fair=None if imp is None else round(sidep(imp), 4)))
-    BB = b.get("book") or CFG["book"]; BN = BOOKN.get(BB, BB)
+    BB = b.get("book") or CFG["book"]; BN = BOOKN.get(BB, BB)      # v3.22: the book the bet is at
     books.sort(key=lambda x: (x["k"] != BB, x["n"]))
     others = [x for x in books if x["k"] != BB and x["imp"] is not None]
     hr = next((x for x in books if x["k"] == BB), None)
@@ -869,6 +880,7 @@ def explain(b, D, quotes, news, mn=None):
             "both": f"Price and model agree. {BN} is softer than the other books on the {sw}, and the model leans the same way.",
             "thin": "A thin one. A small price gap and a small model lean add up to just enough."}[kind]
     pts = []
+    # --- price
     oq = "; ".join(f"{x['n']} {x['line']:g} ({x['o']:+d}/{x['u']:+d})" for x in others)
     t = f"{BN} has the {sw} {line:g} at {odds:+d}, which needs {pc(be)} to break even."
     if others and p_mkt is not None:
@@ -878,6 +890,7 @@ def explain(b, D, quotes, news, mn=None):
             t += (f" That {gap * 100:.1f} point gap is the price edge." if gap >= .02 else f" {BN} is the worst of the prices on this side, so the model has to carry the bet." if gap <= -.02
                   else f" No real gap: {BN} is in line with the market.")
     pts.append(["Price", t])
+    # --- model
     t = f"The model projects {mu:.1f} {unit}" + (f" on {mn:.0f} minutes" if (lg == "NBA" and mn) else "") + "."
     if lg == "NBA" and p and mkt in p.get("r", {}):
         t += f" That is {p['r'][mkt] * 36:.1f} per 36 minutes by its blend of this season and last" + (", built from the shots he takes and a steadied shooting percentage." if mkt in ("pts", "fg3") and p.get("sh") else ".")
@@ -892,6 +905,7 @@ def explain(b, D, quotes, news, mn=None):
         w = (muf - mm) / den if abs(den) > 1e-6 else 0
         t += f" The other books imply {mm:.1f}. The desk number is {muf:.1f}: the market, moved {max(0, min(1, w)) * 100:.0f}% of the way toward the model."
     pts.append(["Model", t])
+    # --- form
     l10 = None
     if p:
         v, tags, opp, mins = _logs(lg, p, mkt); n = len(v)
@@ -903,13 +917,12 @@ def explain(b, D, quotes, news, mn=None):
             r = hit / n
             t += (" Recent form backs the bet." if r >= .6 else " Recent form argues against it. This bet rests on the price and the projection, not on a streak." if r <= .4 else " Recent form is close to a coin flip.")
             pts.append(["Form", t]); l10 = dict(v=v, t=tags, o=opp, hit=hit, n=n)
-
+    # --- lineup
     def outs(team):
         inm = {norm(x["name"]): x for x in L["players"] if x["team"] == team}
         z = [x for x in news.get("out_team", {}).get(team, []) if lg == "NBA" or x[1] in ("QB", "RB", "WR", "TE", "FB")]
         z.sort(key=lambda x: -(inm.get(norm(x[0]), {}).get("m", 0) if lg == "NBA" else 0))
         return [x[0] + (f" ({inm[norm(x[0])]['m']:.0f} min)" if lg == "NBA" and norm(x[0]) in inm else f" ({x[1]})" if lg == "NFL" else "") for x in z[:5]]
-
     if news.get("date") == b["date"]:
         a, o2 = outs(b["team"]), outs(b["opp"])
         t = (f"Out for {b['team']}: {', '.join(a)}. " if a else f"Nobody is listed out for {b['team']}. ") + (f"Out for {b['opp']}: {', '.join(o2)}." if o2 else f"Nobody is listed out for {b['opp']}.")
@@ -918,6 +931,7 @@ def explain(b, D, quotes, news, mn=None):
         if lg == "NBA" and p and mn: t += f" The model has {last} at {mn:.0f} minutes against a recent average of {p['m']:.0f}."
         if lg == "NFL" and s.get("qbnew"): t += f" {b['team']} start a quarterback who did not play their last game."
         pts.append(["Lineup", t])
+    # --- matchup
     t = ""
     if lg == "NBA":
         ks = COMBO.get(mkt, [mkt]); f = float(np.mean([s.get("oppf", {}).get(k, 1.0) for k in ks])) if s.get("oppf") else None
@@ -929,7 +943,9 @@ def explain(b, D, quotes, news, mn=None):
         if adj: t = f"{b['opp']} have allowed {abs(adj - 1) * 100:.0f}% {'more' if adj > 1 else 'less'} {'through the air' if mkt.startswith(('rec', 'pass')) else 'on the ground'} than an average defense."
         if g.get("spread") is not None: t += f" The {'home' if g['spread'] > 0 else 'road'} side is favored by {abs(g['spread']):g} with a total of {g.get('total', 0):g}."
     if t.strip(): pts.append(["Matchup", t.strip()])
+    # --- math
     pts.append(["Math", f"At {odds:+d} the bet needs {pc(be)}. The desk makes it {pc(p_desk)}. Edge {b['edge'] * 100:+.1f} points, worth {b['ev'] * 100:+.1f} cents per dollar staked. Rated {b['rating']}."])
+    # --- what beats it
     risks = []
     ec = b.get("edgec", 0)
     if ec >= .08: risks.append(f"The model on its own is {ec * 100:.0f} points from the book. The hold starts at {CFG['hold_edge'].get(lg, CFG['max_edge']) * 100:.0f}. If something changed today that box scores do not show, this is the kind of bet it burns.")
@@ -947,6 +963,7 @@ def explain(b, D, quotes, news, mn=None):
 
 
 def pass_reason(b):
+    """Why a side that looked interesting was not bet. Same tests as eligible(), in the order a person would ask them."""
     if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []):
         return "ON TRIAL", "A market on trial: priced and graded in the audit, not picked until it has 200 graded sides and the weekly review adds it."
     if b.get("nb", 0) < CFG["min_books"]:
@@ -971,6 +988,8 @@ def pass_reason(b):
 
 
 def cmd_explain(date, lg, sfx=""):
+    """Write the case file onto each of the day's bets and the pass list onto the day record. Safe to rerun.
+    sfx="_pm": the evening pass, case files for its own bets only, from the evening lines."""
     fp = O + f"priced/{lg}_{date}{sfx}.json"
     if not os.path.exists(fp):
         return
@@ -1005,20 +1024,23 @@ def cmd_explain(date, lg, sfx=""):
 
 
 def cmd_close(date, lg, label, files):
+    """Closing line check. Feed it a late odds pull (same row format) for the games with open bets. For each open bet it
+    records where the bet's book closed, the market's fair chance of the bet at the close, and closing line value:
+    clv = what a dollar at the price we took is worth at the closing fair price, minus one. Above zero means we beat the close."""
     D, _ = load(); L = D[lg]; h = history(); quotes = _quotes(files); n = 0
     for b in h["bets"]:
         if b["date"] != date or b["lg"] != lg or b["status"] != "open" or b["mkt"] == "any_td":
             continue
-        books = quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}); imps = {}
-        for bk, r in books.items():
+        books = quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}); imps = []
+        for r in books.values():
             if r["line"] is not None and r["o"] is not None and r["u"] is not None:
-                imps[bk] = implied_mean(L, lg, b["mkt"], r["line"], devig_over(r["o"], r["u"]))
+                po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imps.append(implied_mean(L, lg, b["mkt"], r["line"], po / (po + pu)))
         if not imps:
             continue
         over = b["side"] == "Over"
         def sidep(mean):
             ov, un, _ = probs(L, lg, b["mkt"], mean, b["line"]); return (ov if over else un) / (ov + un)
-        mc = weighted_cons(imps, exclude=None); fair = sidep(mc); hr = books.get(b.get("book") or CFG["book"]) or {}
+        mc = float(np.median(imps)); fair = sidep(mc); hr = books.get(b.get("book") or CFG["book"]) or {}
         opened = sidep(b["mm"]) if b.get("mm") else None
         b["close"] = dict(t=label, line=hr.get("line"), o=None if hr.get("o") is None else int(hr["o"]), u=None if hr.get("u") is None else int(hr["u"]),
                           nb=len(imps), mm=round(mc, 2), fair=round(fair, 4), clv=round(dec(b["odds"]) * fair - 1, 4),
@@ -1026,16 +1048,21 @@ def cmd_close(date, lg, label, files):
         n += 1
         print(f"  {b['name']} {b['side']} {b['line']} {b['mkt']} {b['odds']:+d}: closed {hr.get('line')} {hr.get('o')}/{hr.get('u')}, fair {fair:.1%}, CLV {b['close']['clv'] * 100:+.1f}%, market moved {0 if opened is None else (fair - opened) * 100:+.1f} pts")
     save_history(h); print(f"{lg} {date}: closing lines recorded for {n} bets")
-    try: wide_close(date, lg, label, quotes, L, files)
+    try: wide_close(date, lg, label, quotes, L, files)      # v3.46: tracking only, never fatal
     except Exception as e: print("  wide close not recorded:", e)
 
 
 def wide_close(date, lg, label, quotes, L, files=()):
+    """v3.46 the closing number for every side the shadow book follows, not only the desk's tickets: each midday side that
+    cleared the test, and each side in the market lane. Same sum as cmd_close: the median of the books' implied projections
+    at this pull, turned into a fair chance at the row's line; clv = the price taken times that chance, minus one. Kept in
+    out/closes.json (a later pull overwrites an earlier one while the player is still quoted) and merged into shadow.json
+    by `shadow`. Tracking only: nothing here is read by pick, evening or the stakes."""
     f = O + f"priced/{lg}_{date}.json"
     if not os.path.exists(f):
         return
     cp = O + "closes.json"; C = json.load(open(cp)) if os.path.exists(cp) else {}; n = 0
-    refq = {}
+    refq = {}      # v3.49: the reference book's own quotes at this pull (Pinnacle), kept apart from the market number
     for fl in files:
         if os.path.exists(fl):
             for r in parse(fl, ref=True):
@@ -1049,20 +1076,20 @@ def wide_close(date, lg, label, quotes, L, files=()):
         except (KeyError, TypeError): cleared = False
         if not (cleared or mkok):
             continue
-        imps = {}
-        for bk, r in quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}).items():
+        imps = []
+        for r in quotes.get((norm(b["name"]), INV[lg].get(b["mkt"])), {}).values():
             if r["line"] is not None and r["o"] is not None and r["u"] is not None:
-                imps[bk] = implied_mean(L, lg, b["mkt"], r["line"], devig_over(r["o"], r["u"]))
+                po, pu = 1 / dec(r["o"]), 1 / dec(r["u"]); imps.append(implied_mean(L, lg, b["mkt"], r["line"], po / (po + pu)))
         if len(imps) < 2:
             continue
-        mc = weighted_cons(imps, exclude=None)
+        mc = float(np.median(imps))
         def fair(line):
             ov, un, _ = probs(L, lg, b["mkt"], mc, line); return (un if b["side"] == "Under" else ov) / (ov + un)
         C[b["id"] + "|" + b["side"]] = dict(date=date, t=label, nb=len(imps), clv=round(dec(b["odds"]) * fair(b["line"]) - 1, 4),
                                             mclv=round(dec(mk["odds"]) * fair(mk["line"]) - 1, 4) if mkok else None)
         rq = refq.get((norm(b["name"]), INV[lg].get(b["mkt"])))
-        if rq:
-            mc = implied_mean(L, lg, b["mkt"], rq["line"], devig_over(rq["o"], rq["u"]))
+        if rq:      # the same sum against the reference book alone: its two prices with the cut split out, carried to the row's line
+            po, pu = 1 / dec(rq["o"]), 1 / dec(rq["u"]); mc = implied_mean(L, lg, b["mkt"], rq["line"], po / (po + pu))
             C[b["id"] + "|" + b["side"]].update(pclv=round(dec(b["odds"]) * fair(b["line"]) - 1, 4),
                                                 mpclv=round(dec(mk["odds"]) * fair(mk["line"]) - 1, 4) if mkok else None)
         n += 1
@@ -1084,6 +1111,9 @@ def actual(lg, p, mkt, tag):
 
 
 def nfl_box():
+    """NFL box scores straight from the weekly stats file. The page data only carries players whose team still has a game
+    left this week, so a Thursday bet could not be graded until the week rolled over, and a bye the week after would have
+    voided it. Returns None if the file cannot be read (callers then fall back to the page logs)."""
     if not _NFL_BOX:
         rows, games = {}, set()
         try:
@@ -1095,7 +1125,7 @@ def nfl_box():
             for (pid, se, wk), r in d.groupby(["player_id", "season", "week"])[num].sum().iterrows():
                 rows[(pid, f"{int(se) % 100}W{int(wk)}")] = r
             _NFL_BOX.update(ok=True, rows=rows, games=games, snaps=None, snap_games=set())
-            try:
+            try:      # snap counts say who actually played: the stats file drops a player who played and recorded nothing
                 sc = pd.read_csv(DATA + "nfl_snaps_2026.csv", usecols=["game_id", "player", "offense_snaps", "defense_snaps", "st_snaps"])
                 on = sc[(sc.offense_snaps.fillna(0) + sc.defense_snaps.fillna(0) + sc.st_snaps.fillna(0)) > 0]
                 _NFL_BOX.update(snaps={(g, norm(n)) for g, n in zip(on.game_id.astype(str), on.player.astype(str))},
@@ -1112,6 +1142,7 @@ def nfl_actual(box, b):
     pid, mkt, tag = b["pid"], b["mkt"], b["tag"]
     r = box["rows"].get((pid, tag))
     if r is None:
+        # no stat line. If the snap counts show he played, every counting stat is a real zero and the bet stands.
         if box["snaps"] is not None and (b["game"], norm(b["name"])) in box["snaps"]:
             return 0
         return None
@@ -1121,67 +1152,77 @@ def nfl_actual(box, b):
 
 
 def nba_box():
-    """v3.52: NBA box scores straight from nba_pb_2027.parquet, mirroring nfl_box() so a 4+ day schedule lull
-    (All-Star break, NBA Cup) never drops a team from grading or mis-voids an open ticket."""
+    """v3.52 NBA box scores straight from the season's player box file, the way nfl_box() reads the NFL stats file. The page
+    data only carries players whose team is on the three-day slate, so a ticket on a team with a few days off could not be
+    graded until that team came back onto the slate. Rows are keyed by (game id, player id); a player counts as having
+    played only with minutes above zero. A game counts as final for voiding once 16 players have minutes in it.
+    Returns None if the file cannot be read (callers then fall back to the page logs, as before)."""
     if not _NBA_BOX:
-        rows, games = {}, set()
         try:
-            import pandas as pd
-            cols = ["game_id", "game_date", "athlete_id", "minutes", "points", "rebounds", "assists", "three_point_field_goals_made"]
-            d = pd.read_parquet(DATA + "nba_pb_2027.parquet", columns=cols)
-            d = d[d.minutes.notna() & (d.minutes > 0)]
-            games = set(d.game_id.dropna().astype(int).astype(str)) | set(d.game_id.dropna().astype(str))
-            for r in d.itertuples():
-                v = dict(pts=int(r.points or 0), reb=int(r.rebounds or 0), ast=int(r.assists or 0), fg3=int(r.three_point_field_goals_made or 0))
+            import glob, pandas as pd
+            f = sorted(glob.glob(DATA + "nba_pb_*.parquet"))[-1]      # the newest season on file
+            d = pd.read_parquet(f, columns=["game_id", "athlete_id", "minutes", "points", "rebounds", "assists", "three_point_field_goals_made"])
+            d = d[pd.to_numeric(d.minutes, errors="coerce").fillna(0) > 0]
+            st = d[["points", "rebounds", "assists", "three_point_field_goals_made"]].apply(pd.to_numeric, errors="coerce").fillna(0).astype(int)
+            gid = d.game_id.astype("int64").astype(str); rows = {}
+            for g, a, pt, rb, ast, f3 in zip(gid, d.athlete_id, st.points, st.rebounds, st.assists, st.three_point_field_goals_made):
+                v = dict(pts=int(pt), reb=int(rb), ast=int(ast), fg3=int(f3))
                 for c, parts in COMBO.items():
                     v[c] = sum(v[q] for q in parts)
-                gid = str(int(r.game_id)) if str(r.game_id).replace(".", "", 1).isdigit() else str(r.game_id)
-                pid = pid_str(r.athlete_id)
-                rows[(gid, pid)] = v
-                rows[(str(r.game_date)[5:10], pid)] = v
-            _NBA_BOX.update(ok=True, rows=rows, games=games)
+                rows[(g, pid_str(a))] = v
+            cnt = gid.value_counts()
+            _NBA_BOX.update(ok=True, rows=rows, games=set(cnt[cnt >= 16].index))
         except Exception as e:
-            print("NBA box parquet not readable, grading NBA from page logs:", e)
+            print("NBA box score file not readable, grading NBA from page logs:", e)
             _NBA_BOX.update(ok=False)
     return _NBA_BOX if _NBA_BOX["ok"] else None
 
 
 def nba_actual(box, b):
-    pid = pid_str(b["pid"])
-    r = box["rows"].get((str(b["game"]), pid)) or box["rows"].get((b["tag"], pid))
+    r = box["rows"].get((str(b["game"]), pid_str(b["pid"])))
     return None if r is None else r.get(b["mkt"])
+
+
+def box_actual(b, p):
+    """The result for one ticket or priced side: from the league's own stats file when it can be read, else the page logs."""
+    box = nfl_box() if b["lg"] == "NFL" else nba_box()
+    if box:
+        return box, (nfl_actual(box, b) if b["lg"] == "NFL" else nba_actual(box, b))
+    return None, (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
 
 
 def cmd_grade():
     D, _ = load(); h = history(); n = 0
     by = {lg: {p["id"]: p for p in D[lg]["players"]} for lg in ("NBA", "NFL")}
     for b in h["bets"]:
-        back = scratched(b) and not b["scratch"].get("final")
+        back = scratched(b) and not b["scratch"].get("final")      # v3.37: scratched before the game; check that he really sat
         if b["status"] != "open" and not back:
             continue
         p = by[b["lg"]].get(b["pid"])
-        box = nfl_box() if b["lg"] == "NFL" else nba_box()
-        if b["lg"] == "NFL":
-            v = nfl_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
-        else:
-            v = nba_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
+        box, v = box_actual(b, p)
         if v is None:
             thru = D[b["lg"]]["data_through"]
-            if b["lg"] == "NFL" and box:
+            if box and b["lg"] == "NBA":
+                past = str(b["game"]) in box["games"]      # v3.52: the game's box score is in and he has no minutes in it
+            elif box:
+                # void only once we know he did not play: the game is in the snap counts and he has no snaps.
+                # Without snap counts, fall back to "stats have landed and the player has no line in them".
                 past = (b["game"] in box["snap_games"]) if box["snaps"] is not None else (b["game"] in box["games"])
-            elif b["lg"] == "NBA" and box:
-                past = str(b["game"]) in box["games"]
             else:
                 past = (thru > b["date"]) if b["lg"] == "NBA" else (int(re.sub(r"\D", "", thru.split("Week")[-1])) >= int(b["tag"].split("W")[1]))
+                # v3.43: do not wait a whole extra day to void an NBA ticket. Once the stats run through the game's own date and
+                # at least five of his teammates have a line for that game while he has none, he did not play. The old rule only
+                # voided when the stats had moved past that date, so a ticket on a player who sat (Scottie Barnes, Nov 18) stayed
+                # on the desk as open through the whole next day.
                 if not past and b["lg"] == "NBA" and p and thru >= b["date"]:
                     mates = sum(1 for q in D["NBA"]["players"] if q.get("team") == p.get("team") and q["id"] != p["id"] and b["tag"] in q["logs"]["d"])
                     past = mates >= 5
             if past and back:
-                b["scratch"]["final"] = True
+                b["scratch"]["final"] = True      # he sat: the scratch stands
             elif past:
-                b["status"] = "void"; n += 1
+                b["status"] = "void"; n += 1      # player did not play: books void the prop
             continue
-        if back:
+        if back:      # he played after all, so a book would have had action: settle the ticket on the result
             b["scratch"].update(final=True, played=True)
             if b.get("why"): b["why"]["head"] = "He played after being listed out, so the ticket stands and is graded. " + b["why"]["head"]
         b["result"] = v
@@ -1198,7 +1239,7 @@ def cmd_report(h=None):
     def line(bs, label):
         w = sum(b["status"] == "won" for b in bs); l = sum(b["status"] == "lost" for b in bs)
         pl = lambda b: (dec(b["odds"]) - 1) * b["units"] if b["status"] == "won" else -b["units"] if b["status"] == "lost" else 0
-        u = sum(pl(b) for b in bs); usd = sum(pl(b) * b.get("unit", h.get("legacy_unit", 0.5)) for b in bs)
+        u = sum(pl(b) for b in bs); usd = sum(pl(b) * b.get("unit", h.get("legacy_unit", 0.5)) for b in bs)        # v3.19: each ticket at the unit it was made at, matching the page
         if w + l:
             print(f"  {label:<14} {w}-{l}  hit {w/(w+l):.1%}  units {u:+.2f}  dollars {usd:+.2f}  avg model prob {np.mean([b['p'] for b in bs if b['status'] in ('won','lost')]):.1%}")
     done = [b for b in h["bets"] if b["status"] != "open"]
@@ -1211,15 +1252,19 @@ def cmd_report(h=None):
     cl = [b["close"]["clv"] for b in h["bets"] if b.get("close") and not b.get("superseded")]
     if cl:
         print(f"  closing line value: {len(cl)} bets tracked, average {np.mean(cl) * 100:+.1f}%, beat the close on {sum(c > 0 for c in cl)}")
-    try: retest_note(h)
+    try: retest_note(h)       # v3.51: did tickets that failed the later retest do worse
     except Exception as e: print("  retest note not readable:", e)
-    try: calib_report()
+    try: calib_report()       # v3.47: are the desk's chances honest, on every graded side
     except Exception as e: print("  calibration not readable:", e)
-    try: shadow_report()
+    try: shadow_report()      # v3.44: picked against cleared-but-passed, when the shadow book is on file
     except Exception as e: print("  shadow book not readable:", e)
 
 
 def calib_report():
+    """v3.47 calibration on every graded side in audit.json, not only the bets: when the desk says 55%, does it happen 55%
+    of the time. Brier score is the average squared miss of the stated chance (lower is better; always saying 50% scores
+    0.2500). The books' score uses each prop's own two prices with the house cut split out, where both sides are on file.
+    Each prop is in here twice (over and under), so the counts are sides, not independent props."""
     if not os.path.exists(O + "audit.json"):
         return
     A = json.load(open(O + "audit.json"))
@@ -1251,23 +1296,17 @@ def calib_report():
 
 
 def cmd_audit():
-    """Grade EVERY midday side priced against a book line.
-    v3.52: restricts glob to midday files only (no _pm/_late leakage) and reads NBA parquet directly."""
+    """Grade EVERY side priced against a book line, not just the picks. This is the sample that says whether the model
+    beats the book, and where. Box-score logs only reach back 10 games, so run it at least weekly."""
     import glob
     D, _ = load(); by = {lg: {p["id"]: p for p in D[lg]["players"]} for lg in ("NBA", "NFL")}
     ap = O + "audit.json"; A = json.load(open(ap)) if os.path.exists(ap) else {}
     for f in sorted(glob.glob(O + "priced/*.json")):
-        if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):
-            continue
         for b in json.load(open(f)):
             k = b["id"] + "|" + b["side"]
             if k in A:
                 continue
-            p = by[b["lg"]].get(b["pid"])
-            if b["lg"] == "NFL":
-                box = nfl_box(); v = nfl_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
-            else:
-                box = nba_box(); v = nba_actual(box, b) if box else (actual(b["lg"], p, b["mkt"], b["tag"]) if p else None)
+            p = by[b["lg"]].get(b["pid"]); box, v = box_actual(b, p)
             if v is None:
                 continue
             if b["mkt"] == "any_td": win = (v > 0) == (b["side"] == "Yes")
@@ -1290,7 +1329,7 @@ def cmd_audit():
         tab("by version (1.3 on: probabilities anchored to the market)", lambda r: "v" + str(r.get("ver", "1.2")))
         v13 = [r for r in rows if r.get("ver") and r.get("nb", 0) >= CFG["min_books"]]
         if v13:
-            rows = v13; print("v1.3+ sides with a market check only:"); tab("  by edge", eb); tab("  by side", lambda r: r["side"])
+            rows = v13; print("v1.3 sides with a market check only:"); tab("  by edge", eb); tab("  by side", lambda r: r["side"])
             rows = list(A.values())
         ov = [r for r in rows if r["side"] in ("Over", "Yes") and r["mkt"] != "any_td"]
         for m in sorted({r["lg"] + " " + r["mkt"] for r in ov}):
@@ -1299,27 +1338,36 @@ def cmd_audit():
 
 
 def cmd_shadow():
+    """v3.44 the shadow book. Every side that clears the desk's test is worth grading, not only the three the desk takes.
+    This sorts each day's midday sides (the same file `pick` used) into: picked, cleared but passed (the day was full, or the
+    desk already had the player or two bets in the game), and near misses (an edge inside the playable window that failed
+    exactly one kind of test: questionable, a market on trial, price, minutes and so on). Results come from audit.json,
+    which grades every priced side. Tracking only: nothing here prices, picks or stakes.
+    A side is classified once, under the rules in force the first time this runs after it was priced, and kept in
+    out/shadow.json, so a later rule change does not rewrite what the desk would have done then (priced files are deleted
+    after 21 days; this file is not)."""
     import glob
     sp = O + "shadow.json"; S = json.load(open(sp)) if os.path.exists(sp) else {"rows": {}}
     R = S.setdefault("rows", {})
-    HR = S.setdefault("hr_only", {})     # v3.52: Florida-executable Hard Rock-only shadow lane
+    HR = S.setdefault("hr_only", {})      # v3.52 the Hard Rock lane (see below)
     A = json.load(open(O + "audit.json")) if os.path.exists(O + "audit.json") else {}
     h = history()
     took = {b["id"] + "|" + b["side"] for b in h["bets"] if not b.get("superseded") and b.get("lane") != "confident"}
     for f in sorted(glob.glob(O + "priced/*.json")):
-        if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):
+        if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):      # the midday file only: _pm and _late are second looks at the same games
             continue
         try:
             priced = json.load(open(f))
             pool = sorted([b for b in priced if eligible(b)], key=lambda b: -b["adj"])
-        except (KeyError, TypeError):
+        except (KeyError, TypeError):      # a file priced before v1.3 has no market check to test against
             continue
         rank = {b["id"] + "|" + b["side"]: i + 1 for i, b in enumerate(pool)}
         for b in priced:
             k = b["id"] + "|" + b["side"]
-            if not b.get("ver"):
+            if not b.get("ver"):      # no version tag: priced before v1.3, with no market view to judge it by
                 continue
-            # Hard Rock-only shadow lane
+            # v3.52 the Hard Rock lane: every side that clears the desk's whole test at Hard Rock's own line and price.
+            # Rows priced before v3.52 carry no Hard Rock record, so this lane starts with the first v3.52 midday run.
             hr = b.get("hr")
             if hr and hr.get("elig") and k not in HR:
                 HR[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"],
@@ -1334,24 +1382,20 @@ def cmd_shadow():
                 continue
             R[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"], line=b["line"], odds=b["odds"],
                         book=b.get("book"), p=b["p"], edge=b["edge"], adj=b.get("adj"), grp=grp, stamp=stamp, rank=rank.get(k),
-                        home=(int(b["team"] == b["gl"].split(" @ ")[-1]) if b.get("gl") and b.get("team") else None),
-                        ver=open(os.path.dirname(os.path.abspath(__file__)) + "/VERSION").read().strip() if os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "/VERSION") else VER)
+                        home=(int(b["team"] == b["gl"].split(" @ ")[-1]) if b.get("gl") and b.get("team") else None), ver=open(os.path.dirname(os.path.abspath(__file__)) + "/VERSION").read().strip())
     n = 0
     for k, r in R.items():
         if r.get("win") is None and k in A:
             r.update(win=A[k]["win"], result=A[k]["result"]); n += 1
-    for k, r in HR.items():
+    for k, r in HR.items():      # graded at Hard Rock's own line, which may differ from the row's best book
         if r.get("win") is None and k in A and A[k].get("result") is not None:
             v = A[k]["result"]
             if v == r["line"]: r.update(win=-1, result=v)
             else: r.update(win=int((v > r["line"]) == (r["side"] != "Under")), result=v)
-    # Grade shadow leans if present
-    for k, r in S.setdefault("leans", {}).items():
-        if r.get("win") is None and k in A and A[k].get("result") is not None:
-            v = A[k]["result"]
-            if v == r["line"]: r.update(win=-1, result=v)
-            else: r.update(win=int((v > r["line"]) == (r["side"] != "Under")), result=v)
-
+    # v3.45 the market lane: what a desk that only shopped prices would have bet. No model in the choice: a side is filed
+    # when the best price among the desk's books beats the other books' fair price by mk_min_edge, inside the desk's price
+    # window. Every market is filed (this method does not need a market to have a model record). It is graded at its own
+    # book, line and price, which may differ from the model's row for the same side.
     M = S.setdefault("market", {}); D = None
     for f in sorted(glob.glob(O + "priced/*.json")):
         if not re.search(r"/(NBA|NFL)_\d{4}-\d\d-\d\d\.json$", f):
@@ -1375,6 +1419,7 @@ def cmd_shadow():
             M[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"], line=mk["line"], odds=mk["odds"],
                         book=mk["book"], p=mk["p"], edge=mk["edge"], edge_pw=mk.get("edge_pw"), n=mk["n"], est=mk.get("est", 0), desk=desk, model_edge=b.get("edge"),
                         q=int("questionable" in b.get("flags", [])))
+    # v3.46: the closing number for every row that has one (wide_close). The latest pull stands.
     C = json.load(open(O + "closes.json")) if os.path.exists(O + "closes.json") else {}
     for k, c in C.items():
         if k in R and c.get("clv") is not None: R[k]["clv"] = c["clv"]
@@ -1384,8 +1429,9 @@ def cmd_shadow():
     for k, r in M.items():
         if r.get("win") is None and k in A and A[k].get("result") is not None:
             v = A[k]["result"]
-            if v == r["line"]: r.update(win=-1, result=v)
+            if v == r["line"]: r.update(win=-1, result=v)      # landed on the number: a push, money back, left out of the record
             else: r.update(win=int((v > r["line"]) == (r["side"] != "Under")), result=v)
+    # the label on the desk's own cleared sides: was the price itself good (price play), or is the model carrying it (model play)
     for k, r in R.items():
         if "kind" not in r and r["grp"] != "near":
             m = M.get(k)
@@ -1397,13 +1443,16 @@ def cmd_shadow():
 
 
 def clv_note(z):
+    """The closing-number part of a report line: the average value against the close and how many beat it."""
     c = [r["clv"] for r in z if r.get("clv") is not None]
     s = f"  vs close {np.mean(c):+.1%}, beat it {sum(v > 0 for v in c)} of {len(c)}" if c else ""
-    pc = [r["pclv"] for r in z if r.get("pclv") is not None]
+    pc = [r["pclv"] for r in z if r.get("pclv") is not None]      # v3.49: against Pinnacle's own closing price, where it posted one
     return s + (f"  vs Pinnacle {np.mean(pc):+.1%}, beat it {sum(v > 0 for v in pc)} of {len(pc)}" if pc else "")
 
 
 def shadow_report(S=None):
+    """Picked against cleared-but-passed, flat one unit a side so the two are compared like for like (the desk's own
+    record uses its real stakes). Small samples: the weekly review needs 200 graded sides before a rule changes."""
     if S is None:
         if not os.path.exists(O + "shadow.json"):
             return
@@ -1422,12 +1471,7 @@ def shadow_report(S=None):
     line([r for r in rows if r["grp"] == "passed"], "cleared, not picked")
     line([r for r in rows if r["grp"] == "picked" and r["date"] == last], f"picked, {last[5:]}")
     line([r for r in rows if r["grp"] == "passed" and r["date"] == last], f"cleared, not picked, {last[5:]}")
-    hr_g = [r for r in S.get("hr_only", {}).values() if r.get("win") in (0, 1)]
-    if hr_g:
-        line(hr_g, "Hard Rock-only cleared")
-    ln_g = [r for r in S.get("leans", {}).values() if r.get("win") in (0, 1)]
-    if ln_g:
-        line(ln_g, "shadow leans (1-3% edge)")
+    line([r for r in S.get("hr_only", {}).values() if r.get("win") in (0, 1)], "cleared at Hard Rock's price")      # v3.52
     for m in sorted({r["lg"] + " " + r["mkt"] for r in rows if r["grp"] != "near"}):
         line([r for r in rows if r["grp"] != "near" and r["lg"] + " " + r["mkt"] == m], "all cleared: " + m)
     for lo, hi in ((.03, .04), (.04, .06), (.06, .13)):
@@ -1436,6 +1480,7 @@ def shadow_report(S=None):
         line([r for r in rows if r["grp"] == "near" and r["stamp"] == st], "near miss: " + st.lower())
     for kd, lab in (("price", "cleared: price plays"), ("model", "cleared: model plays")):
         line([r for r in rows if r["grp"] != "near" and r.get("kind") == kd], lab)
+    # v3.46 more cuts of the cleared sides, and the test that matters most: did the price we took beat the closing number
     cl = [r for r in rows if r["grp"] != "near"]
     for sd in ("Over", "Under"): line([r for r in cl if r["side"] == sd], "all cleared: " + sd.lower() + "s")
     line([r for r in cl if r.get("home") == 1], "all cleared: at home"); line([r for r in cl if r.get("home") == 0], "all cleared: on the road")
@@ -1449,15 +1494,16 @@ def shadow_report(S=None):
 
 
 def market_report(S, line):
+    """v3.45 the market lane next to the desk. Flat one unit a side. "books said" is the books' own fair chance."""
     mk = [r for r in S.get("market", {}).values() if r.get("win") in (0, 1)]
     if not mk:
         return
     now, est = [r for r in mk if not r["est"]], [r for r in mk if r["est"]]
     print(f"market lane (books only, no model; {len(now)} sides priced the v3.45 way, {len(est)} rebuilt from older files):")
     for zall, tag in ((now, ""), (est, " (older, rebuilt)")):
-        z = [r for r in zall if r["edge"] >= CFG["mk_min_edge"]]
+        z = [r for r in zall if r["edge"] >= CFG["mk_min_edge"]]      # filed by the plain split; power-only rows are compared below
         pw = [r for r in zall if (r.get("edge_pw") or -1) >= CFG["mk_min_edge"]]
-        if pw:
+        if pw:      # v3.47: which way of removing the house cut finds the better bets
             line(z, "de-vig: plain split files" + tag); line(pw, "de-vig: power method files" + tag)
             line([r for r in z if (r.get("edge_pw") or -1) < CFG["mk_min_edge"]], "  only the plain split" + tag)
             line([r for r in pw if r["edge"] < CFG["mk_min_edge"]], "  only the power method" + tag)
@@ -1486,8 +1532,15 @@ ALTK = {"NBA": {"player_points_alternate": "pts", "player_rebounds_alternate": "
 
 
 def cmd_confident(date, lg, files):
-    """v3.52: when >= conf_books other books quote the exact same alternate rung with both prices, devig that rung
-    directly via power_fair() instead of extrapolating into the 72%-93% tail from the main-line NB mean."""
+    """The confident-plays lane: outcomes the books themselves rate very likely, bet only where the best price (v3.22: any book in bet_books) is no worse
+    than the books' own fair chance, and only where the model agrees on its own. Runs after `pick`, on the same lines.
+    Candidates: every Hard Rock quote on the main line and on the alternate ladder. Each is priced three ways:
+      fair  = the chance on the other books' consensus number (median of what each book's main line and prices imply)
+      model = the chance on the model's own number, centred on the slate like the edge lane
+      be    = what Hard Rock's price needs to break even
+    A play needs fair >= conf_fair, model >= conf_model, fair - be >= conf_edge, the price inside the odds band, at least
+    conf_books other books on the main line, and the same lineup tests as the edge lane. Up to conf_max a league a day,
+    one a game, one a player, never a player the edge lane already bet today. Written with lane="confident"."""
     h = history()
     if any(b["date"] == date and b["lg"] == lg and b.get("lane") == "confident" for b in h["bets"]):
         print("confident lane already ran for", lg, date); return
@@ -1502,20 +1555,9 @@ def cmd_confident(date, lg, files):
     byname = {}
     for (pid, mkt), x in base.items():
         byname.setdefault(norm(x["name"]), set()).add(pid)
-    all_rows = []
+    rows = []
     for f in files:
-        all_rows += parse(f)
-    # Build direct two-sided rung map across ALL books (excluding ref_books already dropped by parse())
-    rung_fair = {}
-    for r in all_rows:
-        mkt = ALTK[lg].get(r["market"]) or MK[lg].get(r["market"])
-        if not mkt or mkt == "any_td" or r["line"] is None or r["o"] is None or r["u"] is None:
-            continue
-        if not (CFG["sane"][0] <= 1 / dec(r["o"]) + 1 / dec(r["u"]) <= CFG["sane"][1]):
-            continue
-        rung_fair.setdefault((norm(r["player"]), mkt, r["line"]), {})[r["book"]] = power_fair(r["o"], r["u"])
-
-    rows = [r for r in all_rows if r["book"] in CFG["bet_books"] and (r["u"] is None or r["o"] is None or CFG["sane"][0] <= 1 / dec(r["o"]) + 1 / dec(r["u"]) <= CFG["sane"][1])]
+        rows += [r for r in parse(f) if r["book"] in CFG["bet_books"] and (r["u"] is None or r["o"] is None or CFG["sane"][0] <= 1 / dec(r["o"]) + 1 / dec(r["u"]) <= CFG["sane"][1])]
     cands = []
     for r in rows:
         alt = r["market"] in ALTK[lg]
@@ -1526,7 +1568,6 @@ def cmd_confident(date, lg, files):
         x = next((base[(i, mkt)] for i in ids if (i, mkt) in base), None)
         if x is None or x.get("mm") is None:
             continue
-        oth_rung = [p for bk, p in rung_fair.get((norm(r["player"]), mkt, r["line"]), {}).items() if bk != r["book"]]
         for side, odds in (("Over", r["o"]), ("Under", r["u"])):
             if odds is None or not (CFG["conf_min_odds"] <= odds <= CFG["conf_max_odds"]):
                 continue
@@ -1535,13 +1576,7 @@ def cmd_confident(date, lg, files):
                 return (ov if side == "Over" else un) / (ov + un)
             cut = (1 - CFG["conf_exit"]) if side == "Over" else 1.0
             cap = lambda q: min(q, CFG["conf_cap"])
-            direct_alt = alt and len(oth_rung) >= CFG["conf_books"]
-            if direct_alt:
-                raw_fair = float(np.median(oth_rung)) if side == "Over" else float(1.0 - np.median(oth_rung))
-                fair = cap(raw_fair)     # direct market rung already prices injury/early-exit risk
-            else:
-                fair = cap(chance(x["mm"]) * cut)
-            model, desk = cap(chance(x["mu"] * x.get("cen", 1.0)) * cut), cap(chance(x.get("muf", x["mm"])) * cut)
+            fair, model, desk = cap(chance(x["mm"]) * cut), cap(chance(x["mu"] * x.get("cen", 1.0)) * cut), cap(chance(x.get("muf", x["mm"])) * cut)
             be = 1 / dec(odds)
             why_not = []
             if fair < CFG["conf_fair"]: why_not.append("books not sure enough")
@@ -1552,9 +1587,9 @@ def cmd_confident(date, lg, files):
             if lg == "NBA" and (x.get("mn") or 0) < CFG["conf_nba_min"]: why_not.append("minutes too low")
             if any(f in x["flags"] for f in ("missed last game", "questionable", "model far from market, check news", "minutes swing")): why_not.append("lineup or role question")
             if x["pid"] in taken: why_not.append("already bet today")
-            cands.append(dict(x=x, r=r, alt=alt, direct_alt=direct_alt, mkt=mkt, side=side, odds=int(odds), fair=fair, model=model, desk=desk, be=be, edge=fair - be, ok=not why_not, why_not=why_not))
+            cands.append(dict(x=x, r=r, alt=alt, mkt=mkt, side=side, odds=int(odds), fair=fair, model=model, desk=desk, be=be, edge=fair - be, ok=not why_not, why_not=why_not))
     os.makedirs(O + "conf", exist_ok=True)
-    json.dump([dict(name=c["x"]["name"], pid=c["x"]["pid"], game=c["x"]["game"], mkt=c["mkt"], alt=c["alt"], direct_alt=c["direct_alt"], side=c["side"], line=c["r"]["line"], odds=c["odds"],
+    json.dump([dict(name=c["x"]["name"], pid=c["x"]["pid"], game=c["x"]["game"], mkt=c["mkt"], alt=c["alt"], side=c["side"], line=c["r"]["line"], odds=c["odds"],
                     fair=round(c["fair"], 4), model=round(c["model"], 4), desk=round(c["desk"], 4), edge=round(c["edge"], 4), ok=c["ok"], why_not=c["why_not"], tag=c["x"]["tag"])
                for c in cands], open(O + f"conf/{lg}_{date}.json", "w"))
     pool = sorted([c for c in cands if c["ok"]], key=lambda c: (-c["edge"], -c["fair"]))
@@ -1575,16 +1610,14 @@ def cmd_confident(date, lg, files):
         b = dict(id=f'{date}|{lg}|{x["pid"]}|{c["mkt"]}|{"alt" if c["alt"] else "main"}{r["line"]}', date=date, lg=lg, game=x["game"], gl=x["gl"], pid=x["pid"], name=x["name"],
                  team=x["team"], opp=x["opp"], mkt=c["mkt"], side=c["side"], line=r["line"], odds=c["odds"], book=r["book"], mu=x["mu"], p=round(c["fair"], 4),
                  edge=round(c["edge"], 4), ev=round(c["fair"] * (dec(c["odds"]) - 1) - (1 - c["fair"]), 4), rating="CONF", flags=[], tag=x["tag"], ver=VER, nb=x.get("nb"),
-                 muf=x.get("muf"), mm=x.get("mm"), cen=x.get("cen"), p0=round(c["model"], 4), pd=round(c["desk"], 4), lane="confident", alt=c["alt"],
-                 direct_alt=c["direct_alt"], best=False, status="open", result=None, mn=x.get("mn"))
+                 muf=x.get("muf"), mm=x.get("mm"), cen=x.get("cen"), p0=round(c["model"], 4), pd=round(c["desk"], 4), lane="confident", alt=c["alt"], best=False,
+                 status="open", result=None, mn=x.get("mn"))
         if not put_stake(h, b):
             print("  day is full at", CFG["day_units"], "units:", b["name"]); continue
-        src_note = (f'Other books quoting this exact alternate rung power-devig to {pc(c["fair"])}.' if c["direct_alt"]
-                    else f'{x.get("nb")} other books on the main line imply {x["mm"]:.1f} {unit}. On that number the {c["side"].lower()} {r["line"]} lands {pc(c["fair"])} of the time{", after 2 points off for an early exit" if c["side"] == "Over" else ""}.')
         b["why"] = dict(kind="confident",
             head=f'A confident play: the books rate {c["side"].lower()} {r["line"]} {unit} a {pc(c["fair"])} shot, the model agrees, and {BOOKN.get(r["book"], r["book"])} charges no more than that.',
             pts=[["Price", f'{BOOKN.get(r["book"], r["book"])} has the {c["side"]} {r["line"]}{" (alternate line)" if c["alt"] else ""} at {c["odds"]:+d}, which needs {pc(c["be"])} to break even: you risk 1 to win {dec(c["odds"]) - 1:.2f}.'],
-                 ["Books", src_note],
+                 ["Books", f'{x.get("nb")} other books on the main line imply {x["mm"]:.1f} {unit}. On that number the {c["side"].lower()} {r["line"]} lands {pc(c["fair"])} of the time{", after 2 points off for an early exit" if c["side"] == "Over" else ""}.'],
                  ["Model", f'The model on its own projects {x["mu"] * x.get("cen", 1.0):.1f} after centring, which makes it {pc(c["model"])}. It agrees.'],
                  ["Form", f'Last {len(v)}: {", ".join(str(int(y)) for y in v)}. {"Cleared" if c["side"] == "Over" else "Stayed under"} {r["line"]} in {hit} of {len(v)}.' if v else "No recent games on file."],
                  ["Math", f'Fair chance {pc(c["fair"])} against {pc(c["be"])} needed: {c["edge"] * 100:+.1f} points, worth {b["ev"] * 100:+.1f} cents a dollar on the books\' own numbers.']],
@@ -1593,7 +1626,7 @@ def cmd_confident(date, lg, files):
                    "The chance comes from the other books. If they are all wrong the same way, so is this."],
             l10=dict(v=[int(y) for y in v], t=list(tags), o=list(opps), hit=hit, n=len(v)) if v else None)
         h["bets"].append(b)
-        print(f'  confident: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]}{" alt" if c["alt"] else ""}{" (direct)" if c["direct_alt"] else ""} {b["odds"]:+d}  books {c["fair"]:.1%}  model {c["model"]:.1%}  needs {c["be"]:.1%}  {b["units"]}u ${b["usd"]:.2f}')
+        print(f'  confident: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]}{" alt" if c["alt"] else ""} {b["odds"]:+d}  books {c["fair"]:.1%}  model {c["model"]:.1%}  needs {c["be"]:.1%}  {b["units"]}u ${b["usd"]:.2f}')
     day = next((d for d in h["days"] if d["date"] == date and d["lg"] == lg), None)
     if day is None:
         day = dict(date=date, lg=lg, sides_priced=0, cleared_bar=0, picks=0); h["days"].append(day)
@@ -1602,9 +1635,11 @@ def cmd_confident(date, lg, files):
     print(f"{lg} {date} confident lane: {len(cands)} quotes in the band ({sum(c['alt'] for c in cands)} alternate), {len(pool)} cleared, {len(picks)} logged")
 
 
+
 def cmd_fill(date):
-    """v3.52: when CFG['fill_live'] is False (default), leans (1%-3% edge) are recorded into shadow.json['leans']
-    instead of live history.json so thin edges don't dilute the desk record before 200+ graded sides prove +EV."""
+    """At least CFG min_daily bets a day, but never a side the desk prices below break-even. If the two lanes logged fewer,
+    take the best remaining sides across both leagues that pass every lineup test and carry an edge of at least
+    lean_edge on the desk number, at lean_units each. Marked lean=True; on a slate with nothing positive the day stays short."""
     h = history()
     today = [b for b in h["bets"] if b["date"] == date and not b.get("superseded")]
     need = CFG["min_daily"] - len(today)
@@ -1620,41 +1655,27 @@ def cmd_fill(date):
         if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
         if any(f in b["flags"] for f in ("missed last game", "questionable")): return False
         if b.get("nb", 0) < CFG["min_books"] or b.get("edgec", 0) > CFG["hold_edge"].get(b["lg"], CFG["max_edge"]): return False
-        if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False
+        if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False     # leans follow the same market guard
         return CFG["lean_edge"] <= b["edge"] <= CFG["max_edge"] and b["adj"] > 0
     taken_p = {b["pid"] for b in today}; taken_g = {}
     for b in today: taken_g[b["game"]] = taken_g.get(b["game"], 0) + 1
-    cands = []
+    added = []
     for b in sorted([x for x in pool if ok(x)], key=lambda x: -x["adj"]):
         if b["pid"] in taken_p or taken_g.get(b["game"], 0) >= CFG["max_per_game"]:
             continue
-        cands.append(b); taken_p.add(b["pid"]); taken_g[b["game"]] = taken_g.get(b["game"], 0) + 1
-        if len(cands) == need:
-            break
-    if not CFG.get("fill_live", False):
-        sp = O + "shadow.json"; S = json.load(open(sp)) if os.path.exists(sp) else {"rows": {}}
-        L = S.setdefault("leans", {})
-        for b in cands:
-            k = b["id"] + "|" + b["side"]
-            if k not in L:
-                L[k] = dict(date=b["date"], lg=b["lg"], name=b["name"], team=b.get("team"), mkt=b["mkt"], side=b["side"],
-                            line=b["line"], odds=b["odds"], book=b.get("book"), p=b["p"], edge=b["edge"], adj=b["adj"])
-        json.dump(S, open(sp, "w"))
-        print(f"fill {date}: fill_live=False; logged {len(cands)} leans to shadow.json instead of live history")
-        return
-    added = []
-    for b in cands:
         b = dict(b); b.update(best=False, status="open", result=None, lane="edge", lean=True)
         for k in ("be", "conf", "adj", "n"):
             b.pop(k, None)
         if not put_stake(h, b):
             break
-        h["bets"].append(b); added.append(b)
+        h["bets"].append(b); added.append(b); taken_p.add(b["pid"]); taken_g[b["game"]] = taken_g.get(b["game"], 0) + 1
         print(f'  lean: {b["name"]} {b["side"]} {b["line"]} {b["mkt"]} {b["odds"]:+d}  desk {b["p"]:.1%}  edge {b["edge"]*100:+.1f}  {b["units"]}u ${b["usd"]:.2f}')
+        if len(added) == need:
+            break
     save_history(h)
     for lg in {b["lg"] for b in added}:
         cmd_explain(date, lg)
-    if added:
+    if added:      # the case file says what a lean is
         h = history()
         for b in h["bets"]:
             if b.get("lean") and b["date"] == date and b.get("why") and not b["why"].get("lean"):
@@ -1666,6 +1687,9 @@ def cmd_fill(date):
 
 
 def cmd_gpicks(date, mode="grade"):
+    """Game picks record (not staked). mode "log": write today's NBA picks and the NFL week's picks that have a spread and
+    are not yet on file, each once, at the numbers of that moment. Every call grades what has finished:
+    NFL from the nflverse schedule, NBA from the box scores."""
     gp = O + "gpicks.json"; P = json.load(open(gp)) if os.path.exists(gp) else []
     have = {(x["lg"], x["id"]) for x in P}
     G = json.load(open(O + "games.json")) if os.path.exists(O + "games.json") else {}
@@ -1702,17 +1726,16 @@ def cmd_gpicks(date, mode="grade"):
         if x.get("ou") and x.get("total") is not None and tot != x["total"]:
             x["ou_hit"] = int((tot > x["total"]) == (x["ou"] == "Over"))
         if x.get("nf") and c != 0:
-            x["nf_cover"] = int((c > 0) == (x["nf"] == x["home"]))
+            x["nf_cover"] = int((c > 0) == (x["nf"] == x["home"]))          # nfelo's side, graded at the line we logged
         if x.get("wind") is not None and x["wind"] >= 10 and x.get("total") is not None and tot != x["total"]:
             x["wind_under"] = int(tot < x["total"])
         if x.get("itilt") and c != 0:
-            x["inj_cover"] = int((c > 0) == (x["itilt"] == x["home"]))
+            x["inj_cover"] = int((c > 0) == (x["itilt"] == x["home"]))     # the healthier side, graded at the line we logged
         x["status"] = "done"; n += 1
     json.dump(P, open(gp, "w"))
     done = [x for x in P if x["status"] == "done"]
     w = sum(x["su"] == 1 for x in done); l = sum(x["su"] == 0 for x in done); cw = sum(x["cover"] == 1 for x in done); cl = sum(x["cover"] == 0 for x in done)
     print(f"game picks: {len(P)} on file, {n} graded now; straight up {w}-{l}, against the spread {cw}-{cl}")
-
 
 if __name__ == "__main__":
     a = sys.argv[1:]

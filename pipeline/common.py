@@ -1,4 +1,4 @@
-"""Shared pieces: negative binomial distribution fit, canonical IDs, and calibration scoring."""
+"""Shared pieces: negative binomial distribution fit, the player id key, and calibration scoring."""
 import json, os, re, unicodedata
 import numpy as np
 from scipy import stats, optimize
@@ -12,8 +12,10 @@ def norm(s):
 
 
 def pid_str(x):
-    """Canonical NBA player ID string matching historical history.json/audit.json keys (e.g. '4066261.0').
-    Guards against ESPN parquet schema drift between float64 and int64."""
+    """v3.52 the one way an NBA player id is written everywhere: as the text of a float ('4066261.0'), which is what every
+    ticket, priced side and audit row on file already carries. The box score file has stored the id as a whole number and
+    as a float at different times; this keeps a change there from breaking the match to the books. Ids that are not
+    numbers (the NFL's '00-0036900') pass through unchanged."""
     if x is None:
         return ""
     s = str(x).strip()
@@ -96,6 +98,8 @@ def score(mu, y, a, b, rng):
     q10 = stats.nbinom.ppf(0.10, k, p)
     q90 = stats.nbinom.ppf(0.90, k, p)
     med = stats.nbinom.ppf(0.5, k, p)
+    # reliability: price a half-point line near each projection and see how often the
+    # over actually lands, bucketed by the model's stated probability
     off = rng.choice([-0.35, -0.2, -0.1, 0.0, 0.1, 0.2, 0.35], size=len(y))
     line = np.floor(mu * (1 + off)) + 0.5
     pov = 1 - stats.nbinom.cdf(np.floor(line), k, p)

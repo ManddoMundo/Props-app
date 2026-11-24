@@ -4,7 +4,7 @@ Walk-forward: every feature for a game is built only from games played before it
 import json, os
 from collections import defaultdict, deque
 import numpy as np, pandas as pd
-from common import fit_dispersion, score, norm, load_news, load_lineups
+from common import fit_dispersion, score, norm, pid_str, load_news, load_lineups
 
 D = "/home/claude/props/data/"
 OUT = "/home/claude/props/out/"
@@ -15,6 +15,12 @@ DM, DR, DT = 0.5 ** (1 / HLM), 0.5 ** (1 / HLR), 0.5 ** (1 / HLT)
 PM0 = 15.0  # pseudo-minutes of positional prior in each rate
 MW0 = 0.05    # pseudo-games of a 14-minute prior in the minutes average
 CARRY = 0.6   # weight kept on last season's per-minute rates when a new season starts
+# v3.53 (weekly review 2026-11-24): rebounds per minute get a 20-game memory instead of the 15 the other rates use. Chosen on
+# 2024-25 (miss 1.99028 at 15, 1.98999 at 20 and 22, lowest), scored once on 2025-26 and 2026-27: rebounds miss -0.060% and
+# -0.095%, better in 100% and 97% of game resamples (lab hl_bt.py). Assists tested the same way: 15 was already best on
+# 2024-25, so assists are unchanged. HLRB = HLR restores the old build exactly.
+HLRB = 20.0
+DRB = 0.5 ** (1 / HLRB)
 # v3.24: the league's starting lineups. A player starting tonight after coming off the bench in his last game plays about
 # 21% more than his minutes average says, one back on the bench after starting about 15% less (fitted on 2024-25; scored
 # on 2025-26 and 2026-27: points CRPS +3.3% and +6.5%, rebounds +3.1% and +3.5%, assists +2.4% and +3.3% on those players,
@@ -48,7 +54,7 @@ def load():
     d = d[d.team.isin(teams) & d.opp.isin(teams)]
     d["pos"] = d.posr.map(lambda p: "G" if p in ("PG", "SG", "G") else ("C" if p == "C" else "F"))
     d["gd"] = d.game_date.astype(str)
-    d["pid"] = d.athlete_id.astype(str)
+    d["pid"] = d.athlete_id.map(pid_str)      # v3.52: one id format whatever type the file stores
     d[BASE] = d[BASE].fillna(0)
     num = lambda c: pd.to_numeric(d[c], errors="coerce").fillna(0)
     d["a3"], d["m3"] = num("three_point_field_goals_attempted"), d["fg3"]
@@ -77,7 +83,7 @@ class State:
         s = self.pl[pid]
         f = dict(m=(s["mw"] + MW0 * 14.0) / (s["w"] + MW0), n=s["n"])
         for k in BASE:
-            f["r_" + k] = (s[k] + PM0 * self.pri[pos][k]) / (s["min"] + PM0)
+            f["r_" + k] = (s[k] + PM0 * self.pri[pos][k]) / (s["minr" if k == "reb" else "min"] + PM0)      # v3.53: rebounds on their own memory
         if self.spri:      # v3.50 the shot build (see SHOT_ON above)
             P = self.spri[pos]
             v2, v3, vf = ((s[a] + PM0 * P[v]) / (s["min"] + PM0) for v, a in (("v2", "a2"), ("v3", "a3"), ("vf", "fa")))
@@ -118,14 +124,15 @@ class State:
             pid = r["pid"]; s = self.pl[pid]
             if self.ps.get(pid, season) != season:
                 s["mw"] *= 0.35; s["w"] *= 0.35
-                for k in BASE + ["min"] + SHOT + ["a3L", "m3L"]:
+                for k in BASE + ["min", "minr"] + SHOT + ["a3L", "m3L"]:
                     s[k] *= CARRY
             self.ps[pid] = season
             s["mw"] *= DM; s["w"] *= DM
             for k in BASE + ["min"] + SHOT:
-                s[k] *= DR
+                s[k] *= DRB if k == "reb" else DR
+            s["minr"] *= DRB      # v3.53: the minutes behind the rebounds rate, on the rebounds memory
             s["a3L"] *= D3; s["m3L"] *= D3
-            s["mw"] += r["min"]; s["w"] += 1; s["min"] += r["min"]; s["n"] += 1
+            s["mw"] += r["min"]; s["w"] += 1; s["min"] += r["min"]; s["minr"] += r["min"]; s["n"] += 1
             for k in BASE + SHOT:
                 s[k] += r[k]
             s["a3L"] += r["a3"]; s["m3L"] += r["m3"]
