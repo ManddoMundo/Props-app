@@ -1,4 +1,4 @@
-"""Shared pieces: negative binomial distribution fit and calibration scoring."""
+"""Shared pieces: negative binomial distribution fit, canonical IDs, and calibration scoring."""
 import json, os, re, unicodedata
 import numpy as np
 from scipy import stats, optimize
@@ -9,6 +9,18 @@ def norm(s):
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().lower()
     s = re.sub(r"[^a-z ]", "", s.replace("-", " "))
     return " ".join(t for t in s.split() if t not in ("jr", "sr", "ii", "iii", "iv", "v"))
+
+
+def pid_str(x):
+    """Canonical NBA player ID string matching historical history.json/audit.json keys (e.g. '4066261.0').
+    Guards against ESPN parquet schema drift between float64 and int64."""
+    if x is None:
+        return ""
+    s = str(x).strip()
+    try:
+        return str(float(s))
+    except ValueError:
+        return s
 
 
 def load_news(lg, dates, path="/home/claude/props/out/news.json"):
@@ -84,8 +96,6 @@ def score(mu, y, a, b, rng):
     q10 = stats.nbinom.ppf(0.10, k, p)
     q90 = stats.nbinom.ppf(0.90, k, p)
     med = stats.nbinom.ppf(0.5, k, p)
-    # reliability: price a half-point line near each projection and see how often the
-    # over actually lands, bucketed by the model's stated probability
     off = rng.choice([-0.35, -0.2, -0.1, 0.0, 0.1, 0.2, 0.35], size=len(y))
     line = np.floor(mu * (1 + off)) + 0.5
     pov = 1 - stats.nbinom.cdf(np.floor(line), k, p)
