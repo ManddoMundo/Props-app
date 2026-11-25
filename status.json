@@ -1280,17 +1280,17 @@
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-25",
-   "kind": "evening",
-   "et": "2026-11-25 18:18",
-   "rows": 91
+   "kind": "lineups",
+   "et": "2026-11-25 18:44",
+   "rows": 92
   },
   {
    "path": "data/news/NFL_2026-11-25.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-25",
-   "kind": "evening",
-   "et": "2026-11-25 18:18",
+   "kind": "lineups",
+   "et": "2026-11-25 18:44",
    "rows": 800
   },
   {
@@ -1298,16 +1298,16 @@
    "what": "lineups",
    "lg": "NBA",
    "date": "2026-11-25",
-   "kind": "evening",
-   "et": "2026-11-25 18:18",
-   "rows": 149,
-   "confirmed": 69
+   "kind": "lineups",
+   "et": "2026-11-25 18:44",
+   "rows": 208,
+   "confirmed": 138
   }
  ],
  "done": {
   "midday": "2026-11-25",
   "evening": "2026-11-25",
-  "lineups_a": "2026-11-24",
+  "lineups_a": "2026-11-25",
   "lineups_b": "2026-11-24",
   "early": "2026-11-25",
   "close_early": "2026-11-22"
@@ -1316,11 +1316,13 @@
   "remaining": 2931,
   "used": 17069
  },
- "updated_utc": "2026-11-25 23:18",
- "et": "2026-11-25 18:18",
- "kind": "evening",
- "tier": "full",
- "spent": 198,
+ "updated_utc": "2026-11-25 23:44",
+ "et": "2026-11-25 18:44",
+ "kind": "lineups",
+ "tier": "lite",
+ "spent": 0,
  "errors": [],
- "notes": []
+ "notes": [
+  "Lineups run: no late prices on a small plan, so scratched tickets are not replaced"
+ ]
 }
