@@ -22,6 +22,7 @@ O = D.O
 DATA, _ = D.load()
 A = json.load(open(O + "audit.json"))
 VAR = {"live": (0, "med_all"), "power": (1, "med_all"), "loo_med": (0, "med_oth"), "loo_wavg": (0, "wavg_oth"), "package": (1, "wavg_oth")}
+W_FIXED = None      # set to a number to price every market at that weight on the model
 COMPUTED = ("large edge, check news", "no market check", "model far from market, check news")
 
 
@@ -72,7 +73,7 @@ def day(lg, date):
             cen[mkt] = centre(g)
         sides = []
         for x in rows:
-            b, mkt = x["b"], x["mkt"]; mu = b["mu"]; c0 = cen[mkt]; w = wd.get(mkt, CFG["cal_w0"])
+            b, mkt = x["b"], x["mkt"]; mu = b["mu"]; c0 = cen[mkt]; w = wd.get(mkt, CFG["cal_w0"]) if W_FIXED is None else W_FIXED
             flags0 = [f for f in b["flags"] if f not in COMPUTED]
             cb = b["conf"] / (0.85 if "large edge, check news" in b["flags"] else 1.0)
             res = (A.get(b["id"] + "|Over") or A.get(b["id"] + "|Under") or {}).get("result")

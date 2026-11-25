@@ -43,7 +43,7 @@ class Desk(unittest.TestCase):
     def test_pick_guards(self):
         base = dict(lg="NBA", mkt="pts", odds=-110, n=20, mn=30.0, flags=[], nb=3, edge=0.05, edgec=0.18, adj=0.04)
         self.assertTrue(daily.eligible(base))
-        self.assertFalse(daily.eligible(dict(base, lg="NFL", mkt="rec_yds")))      # NFL holds at 12 points from the market
+        self.assertFalse(daily.eligible(dict(base, lg="NFL", mkt="rec_yds")))      # NFL: paused since v3.54 (and holds at 12 points)
         self.assertFalse(daily.eligible(dict(base, edgec=0.26)))                   # NBA holds at 25
         self.assertFalse(daily.eligible(dict(base, edge=0.13)))                    # the edge ceiling is 12 in both leagues
         self.assertFalse(daily.eligible(dict(base, mkt="fg3")))                    # a market on trial
@@ -60,6 +60,52 @@ class Desk(unittest.TestCase):
         self.assertEqual(daily.nba_actual(box, t), 32)
         self.assertEqual(daily.nba_actual(box, dict(t, pid=77)), 32)               # id type does not matter
         self.assertIsNone(daily.nba_actual(box, dict(t, pid="78.0")))              # no minutes: no result, the ticket voids
+
+    def test_lineup_reader(self):
+        # v3.54: the nba.com file lists five starters with a position, then the whole dressed roster again with the
+        # position blank, then the inactives. Only the rows with a position are starters.
+        import tempfile
+        d = tempfile.mkdtemp() + "/"
+        five = [("A One", "PG"), ("B Two", "SG"), ("C Three", "SF"), ("D Four", "PF"), ("E Five", "C")]
+        rows = ["Source: nba.com daily lineups", "| team | player | pos | lineup | roster |", "|---|---|---|---|---|"]
+        for team, st in (("PHI", "Expected"), ("BOS", "Confirmed")):
+            rows += [f"| {team} | {n} | {p} | {st} | Active |" for n, p in five]
+            rows += [f"| {team} | {n} |  | Confirmed | Active |" for n, _ in five]
+            rows += [f"| {team} | Bench {i} |  | Confirmed | Active |" for i in range(8)]
+            rows += [f"| {team} | Hurt Guy |  | Confirmed | Inactive |"]
+        open(d + "NBA_2026-11-25.txt", "w").write("\n".join(rows))
+        lu = common.load_lineups("NBA", "2026-11-25", d)
+        self.assertEqual(set(lu), {"PHI", "BOS"})
+        self.assertEqual(lu["PHI"]["start"], {common.norm(n) for n, _ in five})
+        self.assertEqual(lu["PHI"]["inactive"], {"hurt guy"})
+        self.assertFalse(lu["PHI"]["confirmed"])      # starters still "Expected"
+        self.assertTrue(lu["BOS"]["confirmed"])
+        self.assertEqual(common.load_lineups("NBA", "2026-11-26", d), {})      # no file for the day: nothing is set
+
+    def test_nfl_model_paused(self):
+        # v3.54: the desk prices the NFL off the other books alone; the fitted weight is still learned and filed
+        import json, tempfile
+        d = tempfile.mkdtemp() + "/"
+        A = {}
+        for i in range(60):
+            for lg, mkt in (("NFL", "rec_yds"), ("NBA", "ast")):
+                for side in ("Over", "Under"):
+                    A[f"2026-11-2{i % 3}|{lg}|p{i}|{mkt}|{side}"] = dict(side=side, lg=lg, mkt=mkt, date=f"2026-11-2{i % 3}", mu=30.0 + i % 7, mm=28.0 + i % 5,
+                                                                    line=27.5, odds=-110, win=i % 2, result=20 + (i * 7) % 25, ver="1.7", nb=3)
+        json.dump(A, open(d + "audit.json", "w"))
+        old = daily.O; daily.O = d; daily._CAL.clear()
+        try:
+            cal = dict(daily.calib({"NFL": {"model": {"disp": {"rec_yds": [-4.2, 1.2]}}}, "NBA": {"model": {"disp": {"ast": [1.5, 0.9]}}}}))
+        finally:
+            daily.O = old; daily._CAL.clear()
+        self.assertEqual(cal["NFL|rec_yds"]["w"], 0.0)
+        self.assertTrue(cal["NFL|rec_yds"]["paused"])
+        self.assertIn("w_fit", cal["NFL|rec_yds"])
+        self.assertNotIn("paused", cal["NBA|ast"])
+        self.assertTrue(all(v["w"] == 0.0 for k, v in cal.items() if k.startswith("NFL")))
+        ok = dict(lg="NFL", mkt="rec_yds", odds=-110, n=20, mn=None, flags=[], nb=3, edge=0.05, edgec=0.05, adj=0.04)
+        self.assertFalse(daily.eligible(ok))                         # a paused league is never bet
+        self.assertEqual(daily.pass_reason(ok)[0], "PAUSED")
 
 
 if __name__ == "__main__":

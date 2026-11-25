@@ -2111,7 +2111,7 @@ const getLine = key => { const u = S.store.lines[key]; let f = S.feed[key]; cons
   // A book that does not quote the prop shows no line for it.
   if (f && bk && bk !== 'best') { const z = bookQuote(key, bk); f = z ? Object.assign({}, f, { line: z[1] != null ? z[1] : f.line, o: z[2], u: z[3], book: bk }) : null; }
   if (!u) return f || null; if (!f || f.m == null) return u;
-  return Object.assign({}, f, u, { m: f.m, mm: f.mm, nb: f.nb, hold: f.hold, mine: true }); };
+  return Object.assign({}, f, u, { m: f.m, mm: f.mm, nb: f.nb, hold: f.hold, paused: f.paused, mine: true }); };
 function logVals(pr) {
   const l = pr.e.p.logs;
   if (pr.lg === 'NBA') return l.pts.map((_, i) => (E.NBA_COMBO[pr.mkt] || [pr.mkt]).reduce((s, k) => s + l[k][i], 0));
@@ -2166,10 +2166,12 @@ function assess(pr) {
   const far = anch && ln.hold === best.side;      // desk feed: the model on its own is more than MAX_EDGE from the market
   if (far) cf.flags.push('The model on its own is too far from the market to trust. That is usually news or a role change the model has not seen. On hold until you check.');
   const qh = !!(pr.e && pr.e.p && pr.e.p.q);      // v3.16.2: questionable today. The desk will not bet him, so the memo does not approve him either
-  const hold = best.edge > MAX_EDGE || far || qh; if (hold) t = [adj, 'HOLD', 'w', 'Hold'];
+  const paused = !!ln.paused;      // v3.54 desk feed: this league is paused. The desk prices it off the other books and does not bet it
+  if (paused) cf.flags.push('The desk is not betting this league while its model is rechecked. The number here is the other books\' view, not a pick.');
+  const hold = best.edge > MAX_EDGE || far || qh || paused; if (hold) t = [adj, 'HOLD', 'w', 'Hold'];
   const st = S.store.settings;
   const stake = t[3] === 'Approve' ? Math.min(st.bank * .02, st.bank * st.kf * E.kelly(best.pw, best.pl, best.odds) * cf.c) : 0;
-  return { ln, sp, sides, best, adj, conf: cf, rating: t[1], cls: t[2], decision: t[3], stake, hold };
+  return { ln, sp, sides, best, adj, conf: cf, rating: t[1], cls: t[2], decision: t[3], stake, hold, paused };
 }
 
 /* ---------- persistence: private cloud doc when available, this browser otherwise ---------- */
@@ -2502,6 +2504,7 @@ function rowHtml(pr, i) {
   const meter = !a ? '' : (() => { const pc = Math.max(0, Math.min(1, b.pn)), be = Math.max(0, Math.min(1, b.be)), gl = Math.min(pc, be), gw = Math.abs(pc - be);
     return `<span class="brc-m" role="img" aria-label="Desk chance ${pct(b.pn)}, break even ${pct(b.be)}"><span class="brc-mt"><i class="f${b.edge >= 0 ? '' : ' neg'}" style="width:${(pc * 100).toFixed(1)}%"></i><i class="g${b.edge >= 0 ? '' : ' neg'}" style="left:${(gl * 100).toFixed(1)}%;width:${(gw * 100).toFixed(1)}%"></i><i class="be" style="left:${(be * 100).toFixed(1)}%"><em>needs ${pct(b.be)}</em></i></span></span>`; })();
   const head = !a ? `<span class="brc-hl"><span>${dk ? 'Desk' : 'Model'} projection <b class="num">${pr.binary ? pct(d[1]) : f1(proj)}</b> · enter your book's line to grade it</span></span>`
+    : a.paused ? `<span class="brc-hl hold"><span>Paused. The desk is not betting this league while its model is rechecked. Priced off the other books.</span></span>`
     : a.hold ? `<span class="brc-hl hold"><span>The model is far from the books here, which usually means news it has not seen. Check before betting.</span></span>`
     : `<span class="brc-hl${b.edge >= 0 ? ' pos' : ' neg'}"><b class="num">${pct(b.pn)}</b><span>desk's chance it ${pr.binary ? (b.side === 'Yes' ? 'happens' : 'does not happen') : 'goes ' + b.side.toLowerCase()}</span></span>`;
   const facts = `<span class="hrc-f brc-f"><span><small>${dk ? 'Desk proj.' : 'Model proj.'}</small><b>${pr.binary ? pct(d[1]) : f1(proj)}</b></span><span><small>${pr.binary ? 'Fair price' : 'Fair line'}</small><b>${fair}</b></span>`

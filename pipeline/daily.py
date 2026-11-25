@@ -62,13 +62,19 @@ CFG = dict(bankroll=500.0, unit=25.0,    # v3.7: $500 a lane (edge plays and con
            # v3.52: cal_w_max 0.70 -> 0.45 (asked for by Armanddo). The most the desk may ever lean on the model in any market.
            # On Nov 19 the assists weight had run up to 0.67 on four days of graded lines and every cleared side was an assist.
            # No weight is above the new cap today (assists 0.34), so this is a guard rail, not a change to today's prices.
+           # v3.54: leagues where the desk prices off the other books alone (weight on the model held at 0). The NFL is
+           # paused (asked for by Armanddo, Nov 25): over Nov 17 to 24 the NFL blend was worse than the books at every weight
+           # tried, and the weight it carried was not earned (see CHANGELOG v3.54). The model still projects, the page still
+           # shows it, and every side is still audited, so the fitted weight keeps being learned and is filed as w_fit.
+           # To lift the pause: remove "NFL" here.
+           model_pause=("NFL",),
            cal_c_n0=5, cal_w_max=0.45,       # cal_c_n0: lines of "no lean" prior in the per-slate centring
            # confident-plays lane (v3.6): likely outcomes at any price, as long as Hard Rock's price is no worse than fair.
            # "Likely" is the other books' consensus, not the model: graded history showed the model alone overconfident.
            conf_fair=0.72, conf_model=0.68, conf_edge=0.01, conf_min_odds=-500, conf_max_odds=-140, conf_books=3,
            conf_max=3, conf_nba_min=24.0,
            conf_exit=0.02, conf_cap=0.93)    # conf_cap: the curve is checked against history up to about 90%; past 93% it is not trusted                   # an over can die to an early exit the box-score curve does not see: take 2 points off its chance
-VER = "1.6"
+VER = "1.7"
 BOOKN = {"hardrockbet": "Hard Rock", "draftkings": "DraftKings", "fanduel": "FanDuel", "betmgm": "BetMGM", "williamhill_us": "Caesars",
          "espnbet": "ESPN Bet", "pinnacle": "Pinnacle", "betrivers": "BetRivers", "fanatics": "Fanatics", "bovada": "Bovada",
          "polymarket": "Polymarket", "novig": "Novig", "kalshi": "Kalshi", "polymarket_us": "Polymarket US"}
@@ -226,7 +232,7 @@ def calib(D):
             d, e, n = np.array(d), np.array(e), len(d)
             wh = float((d * e).sum() / (d * d).sum()) if n >= 5 and (d * d).sum() > 0 else CFG["cal_w0"]
             w = float(np.clip((n * wh + CFG["cal_w_n0"] * CFG["cal_w0"]) / (n + CFG["cal_w_n0"]), 0, CFG["cal_w_max"]))
-            _CAL[lg + "|" + mkt] = dict(w=round(w, 4), n=n)
+            _CAL[lg + "|" + mkt] = dict(w=0.0, n=n, w_fit=round(w, 4), paused=True) if lg in CFG.get("model_pause", ()) else dict(w=round(w, 4), n=n)
     json.dump(_CAL, open(O + "calib.json", "w"))
     return _CAL
 
@@ -460,7 +466,7 @@ def price_all(date, lg, files):
         cen[mkt] = centre([(x["mu"], x["mm"]) for x in (good or z)])
     for x in rows:
         mkt, p, s, g, m, mu, mm, nb = (x[k] for k in ("mkt", "p", "s", "g", "m", "mu", "mm", "nb"))
-        w = CAL.get(lg + "|" + mkt, {}).get("w", CFG["cal_w0"]); c0 = cen[mkt]
+        w = 0.0 if lg in CFG.get("model_pause", ()) else CAL.get(lg + "|" + mkt, {}).get("w", CFG["cal_w0"]); c0 = cen[mkt]      # v3.54: a paused league prices off the books alone
         muf = mu if mm is None else mm + w * (c0 * mu - mm)
         hold_at = CFG["hold_edge"].get(lg, CFG["max_edge"])
         best, hr_rec = {}, {}      # side -> the book where the desk's value is highest, with everything priced at that book's own line and price
@@ -507,7 +513,8 @@ def price_all(date, lg, files):
         hold = next((sd for sd, v in best.items() if v[1]["edgec"] > hold_at), None)
         feed[f'{lg}|{s["game"]}|{p["id"]}|{mkt}'] = {"line": top["line"], "o": int(tb["o"]) if tb["o"] is not None else None,
                                                     "u": int(tb["u"]) if (tb["u"] is not None and mkt != "any_td") else None, "book": top["book"], "nb": nb,
-                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)}), **({"hold": hold} if hold else {})}
+                                                    **({} if mm is None else {"m": round(muf, 3), "mm": round(mm, 3)}), **({"hold": hold} if hold else {}),
+                                                    **({"paused": 1} if lg in CFG.get("model_pause", ()) else {})}      # v3.54: the page marks the card "paused"
     _CEN[lg] = cen
     return out, feed, miss
 
@@ -620,6 +627,7 @@ def cmd_lines(date, lg, files):
 
 
 def eligible(b):
+    if b["lg"] in CFG.get("model_pause", ()): return False      # v3.54: a paused league is priced and audited, not bet
     if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []): return False     # market on trial
     if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]): return False
     if b["n"] < CFG["min_games"]: return False
@@ -964,6 +972,8 @@ def explain(b, D, quotes, news, mn=None):
 
 def pass_reason(b):
     """Why a side that looked interesting was not bet. Same tests as eligible(), in the order a person would ask them."""
+    if b["lg"] in CFG.get("model_pause", ()):
+        return "PAUSED", f"The desk is not betting the {b['lg']} while its model is rechecked. Priced off the other books and graded in the audit, not picked."
     if b["mkt"] not in CFG["pick_markets"].get(b["lg"], []):
         return "ON TRIAL", "A market on trial: priced and graded in the audit, not picked until it has 200 graded sides and the weekly review adds it."
     if b.get("nb", 0) < CFG["min_books"]:
@@ -1544,6 +1554,8 @@ def cmd_confident(date, lg, files):
     h = history()
     if any(b["date"] == date and b["lg"] == lg and b.get("lane") == "confident" for b in h["bets"]):
         print("confident lane already ran for", lg, date); return
+    if lg in CFG.get("model_pause", ()):      # v3.54: this lane leans on the model and on the curve too; a paused league is not bet
+        print(f"confident: the {lg} is paused (CFG model_pause), no tickets"); return
     fp = O + f"priced/{lg}_{date}.json"
     if not os.path.exists(fp):
         print("confident: no priced file for", lg, date); return

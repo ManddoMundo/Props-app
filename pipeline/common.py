@@ -52,9 +52,13 @@ def load_lineups(lg, day, d="/home/claude/props/out/lineups/"):
         if len(c) < 5 or c[0].lower() in ("team", "") or set(c[0]) <= set("-: "):
             continue
         t = out.setdefault(c[0], {"start": set(), "inactive": set(), "conf": []})
+        # v3.54: nba.com lists each team's five starters first, each with a position, then the whole dressed roster again
+        # with the position blank, then the inactives. Before v3.54 every active row was counted as a starter, so a team
+        # came out with about thirteen "starters", failed the five-starter test below and was dropped: no lineup was ever
+        # read. A starter is a row that carries a position. His own "lineup" cell says Expected until the team confirms.
         if c[4].lower() == "inactive":
             t["inactive"].add(norm(c[1]))
-        else:
+        elif c[2]:
             t["start"].add(norm(c[1])); t["conf"].append(c[3].lower() == "confirmed")
     return {k: dict(start=v["start"], inactive=v["inactive"], confirmed=bool(v["conf"]) and all(v["conf"])) for k, v in out.items() if len(v["start"]) == 5}
 
