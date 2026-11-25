@@ -1,81 +1,6 @@
 {
  "files": [
   {
-   "path": "data/news/NFL_2026-11-17.txt.enc",
-   "what": "news",
-   "lg": "NFL",
-   "date": "2026-11-17",
-   "kind": "midday",
-   "et": "2026-11-17 15:24",
-   "rows": 800
-  },
-  {
-   "path": "data/lines/NBA_2026-11-18.txt.enc",
-   "what": "lines",
-   "lg": "NBA",
-   "date": "2026-11-18",
-   "kind": "midday",
-   "et": "2026-11-18 13:04",
-   "rows": 45498,
-   "games": 12,
-   "books": {
-    "fanduel": 7230,
-    "polymarket": 375,
-    "novig": 961,
-    "kalshi": 2081,
-    "betmgm": 2925,
-    "williamhill_us": 9523,
-    "betrivers": 4710,
-    "draftkings": 5943,
-    "hardrockbet": 5933,
-    "fanatics": 5817
-   },
-   "markets": 13
-  },
-  {
-   "path": "data/games/NBA_2026-11-18.txt.enc",
-   "what": "games",
-   "lg": "NBA",
-   "date": "2026-11-18",
-   "kind": "midday",
-   "et": "2026-11-18 13:04",
-   "rows": 744,
-   "games": 12
-  },
-  {
-   "path": "data/lines/NFL_2026-11-18.txt.enc",
-   "what": "lines",
-   "lg": "NFL",
-   "date": "2026-11-18",
-   "kind": "midday",
-   "et": "2026-11-18 13:04",
-   "rows": 20311,
-   "games": 13,
-   "books": {
-    "draftkings": 4149,
-    "williamhill_us": 2611,
-    "kalshi": 1672,
-    "fanduel": 2925,
-    "betrivers": 1847,
-    "novig": 717,
-    "polymarket": 553,
-    "fanatics": 2606,
-    "betmgm": 975,
-    "hardrockbet": 2256
-   },
-   "markets": 13
-  },
-  {
-   "path": "data/games/NFL_2026-11-18.txt.enc",
-   "what": "games",
-   "lg": "NFL",
-   "date": "2026-11-18",
-   "kind": "midday",
-   "et": "2026-11-18 13:04",
-   "rows": 868,
-   "games": 15
-  },
-  {
    "path": "data/lines/NBA_2026-11-18_pm.txt.enc",
    "what": "lines",
    "lg": "NBA",
@@ -1287,41 +1212,115 @@
    "games": 16
   },
   {
+   "path": "data/lines/NBA_2026-11-25_pm.txt.enc",
+   "what": "lines",
+   "lg": "NBA",
+   "date": "2026-11-25",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 4838,
+   "games": 8,
+   "books": {
+    "draftkings": 701,
+    "novig": 727,
+    "pinnacle": 295,
+    "betmgm": 622,
+    "williamhill_us": 394,
+    "fanatics": 35,
+    "fanduel": 657,
+    "betrivers": 685,
+    "hardrockbet": 722
+   },
+   "markets": 8
+  },
+  {
+   "path": "data/games/NBA_2026-11-25_pm.txt.enc",
+   "what": "games",
+   "lg": "NBA",
+   "date": "2026-11-25",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 448,
+   "games": 8
+  },
+  {
+   "path": "data/lines/NFL_2026-11-25_pm.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-25",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 6431,
+   "games": 16,
+   "books": {
+    "draftkings": 970,
+    "williamhill_us": 368,
+    "fanduel": 885,
+    "betmgm": 702,
+    "betrivers": 760,
+    "novig": 950,
+    "hardrockbet": 944,
+    "fanatics": 511,
+    "pinnacle": 341
+   },
+   "markets": 9
+  },
+  {
+   "path": "data/games/NFL_2026-11-25_pm.txt.enc",
+   "what": "games",
+   "lg": "NFL",
+   "date": "2026-11-25",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 890,
+   "games": 16
+  },
+  {
    "path": "data/news/NBA_2026-11-25.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-25",
-   "kind": "midday",
-   "et": "2026-11-25 12:09",
-   "rows": 94
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 91
   },
   {
    "path": "data/news/NFL_2026-11-25.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-25",
-   "kind": "midday",
-   "et": "2026-11-25 12:09",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
    "rows": 800
+  },
+  {
+   "path": "data/lineups/NBA_2026-11-25.txt.enc",
+   "what": "lineups",
+   "lg": "NBA",
+   "date": "2026-11-25",
+   "kind": "evening",
+   "et": "2026-11-25 18:18",
+   "rows": 149,
+   "confirmed": 69
   }
  ],
  "done": {
   "midday": "2026-11-25",
-  "evening": "2026-11-24",
+  "evening": "2026-11-25",
   "lineups_a": "2026-11-24",
   "lineups_b": "2026-11-24",
   "early": "2026-11-25",
   "close_early": "2026-11-22"
  },
  "quota": {
-  "remaining": 3129,
-  "used": 16871
+  "remaining": 2931,
+  "used": 17069
  },
- "updated_utc": "2026-11-25 17:09",
- "et": "2026-11-25 12:09",
- "kind": "midday",
+ "updated_utc": "2026-11-25 23:18",
+ "et": "2026-11-25 18:18",
+ "kind": "evening",
  "tier": "full",
- "spent": 289,
+ "spent": 198,
  "errors": [],
  "notes": []
 }

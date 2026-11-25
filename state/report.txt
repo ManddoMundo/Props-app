@@ -1,4 +1,4 @@
-bets 53, open 2
+bets 55, open 4
   all            22-21  hit 51.2%  units +1.93  dollars +45.29  avg model prob 57.8%
   best bets      8-8  hit 50.0%  units +1.18  dollars +39.01  avg model prob 57.3%
   edge lane      21-21  hit 50.0%  units +1.40  dollars +31.96  avg model prob 57.2%
@@ -14,7 +14,7 @@ bets 53, open 2
   AAA            19-17  hit 52.8%  units +4.11  dollars +90.61  avg model prob 57.4%
   AA             0-3  hit 0.0%  units -2.25  dollars -31.75  avg model prob 50.9%
   A              2-1  hit 66.7%  units -0.46  dollars -26.91  avg model prob 61.5%
-  closing line value: 18 bets tracked, average -1.9%, beat the close on 8
+  closing line value: 20 bets tracked, average -1.5%, beat the close on 10
   retest, no longer cleared  1-0  units +1.82  later line +11.6% on 1
 calibration (every graded side; said -> happened):
   all days: 12204 sides, Brier 0.2492 (desk 0.2497 against the books' 0.2479 on the 8956 with both prices), average gap 1.7 points
