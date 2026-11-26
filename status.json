@@ -1,38 +1,6 @@
 {
  "files": [
   {
-   "path": "data/lines/NBA_2026-11-18_pm.txt.enc",
-   "what": "lines",
-   "lg": "NBA",
-   "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
-   "rows": 7153,
-   "games": 12,
-   "books": {
-    "fanduel": 966,
-    "polymarket": 454,
-    "novig": 1067,
-    "betmgm": 813,
-    "williamhill_us": 574,
-    "betrivers": 1012,
-    "draftkings": 1116,
-    "hardrockbet": 1091,
-    "fanatics": 60
-   },
-   "markets": 8
-  },
-  {
-   "path": "data/games/NBA_2026-11-18_pm.txt.enc",
-   "what": "games",
-   "lg": "NBA",
-   "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
-   "rows": 744,
-   "games": 12
-  },
-  {
    "path": "data/lines/NFL_2026-11-18_pm.txt.enc",
    "what": "lines",
    "lg": "NFL",
@@ -1302,6 +1270,24 @@
    "et": "2026-11-25 22:49",
    "rows": 314,
    "confirmed": 314
+  },
+  {
+   "path": "data/news/NBA_2026-11-26.txt.enc",
+   "what": "news",
+   "lg": "NBA",
+   "date": "2026-11-26",
+   "kind": "early",
+   "et": "2026-11-26 09:26",
+   "rows": 93
+  },
+  {
+   "path": "data/news/NFL_2026-11-26.txt.enc",
+   "what": "news",
+   "lg": "NFL",
+   "date": "2026-11-26",
+   "kind": "early",
+   "et": "2026-11-26 09:26",
+   "rows": 800
   }
  ],
  "done": {
@@ -1309,20 +1295,20 @@
   "evening": "2026-11-25",
   "lineups_a": "2026-11-25",
   "lineups_b": "2026-11-25",
-  "early": "2026-11-25",
+  "early": "2026-11-26",
   "close_early": "2026-11-22"
  },
  "quota": {
   "remaining": 2931,
   "used": 17069
  },
- "updated_utc": "2026-11-26 03:49",
- "et": "2026-11-25 22:49",
- "kind": "lineups",
+ "updated_utc": "2026-11-26 14:26",
+ "et": "2026-11-26 09:26",
+ "kind": "early",
  "tier": "lite",
  "spent": 0,
  "errors": [],
  "notes": [
-  "Lineups run: no late prices on a small plan, so scratched tickets are not replaced"
+  "Morning refresh: no lines pulled, they post later in the morning"
  ]
 }
