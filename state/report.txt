@@ -1,4 +1,4 @@
-bets 55, open 0
+bets 57, open 2
   all            24-23  hit 51.1%  units +3.24  dollars +78.04  avg model prob 57.6%
   best bets      9-8  hit 52.9%  units +2.68  dollars +76.51  avg model prob 57.1%
   edge lane      23-23  hit 50.0%  units +2.71  dollars +64.71  avg model prob 57.1%

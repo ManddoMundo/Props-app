@@ -1,28 +1,6 @@
 {
  "files": [
   {
-   "path": "data/lines/NFL_2026-11-18_pm.txt.enc",
-   "what": "lines",
-   "lg": "NFL",
-   "date": "2026-11-18",
-   "kind": "evening",
-   "et": "2026-11-18 18:15",
-   "rows": 5085,
-   "games": 13,
-   "books": {
-    "draftkings": 767,
-    "williamhill_us": 352,
-    "fanduel": 673,
-    "betrivers": 640,
-    "novig": 754,
-    "polymarket": 127,
-    "fanatics": 482,
-    "betmgm": 558,
-    "hardrockbet": 732
-   },
-   "markets": 9
-  },
-  {
    "path": "data/games/NFL_2026-11-18_pm.txt.enc",
    "what": "games",
    "lg": "NFL",
@@ -1272,26 +1250,47 @@
    "confirmed": 314
   },
   {
+   "path": "data/lines/NFL_2026-11-26.txt.enc",
+   "what": "lines",
+   "lg": "NFL",
+   "date": "2026-11-26",
+   "kind": "midday",
+   "et": "2026-11-26 11:53",
+   "rows": 464,
+   "games": 3,
+   "books": {
+    "draftkings": 68,
+    "fanduel": 70,
+    "betmgm": 62,
+    "betrivers": 55,
+    "novig": 70,
+    "hardrockbet": 69,
+    "fanatics": 9,
+    "pinnacle": 61
+   },
+   "markets": 3
+  },
+  {
    "path": "data/news/NBA_2026-11-26.txt.enc",
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-26",
-   "kind": "early",
-   "et": "2026-11-26 09:26",
-   "rows": 93
+   "kind": "midday",
+   "et": "2026-11-26 11:53",
+   "rows": 94
   },
   {
    "path": "data/news/NFL_2026-11-26.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-26",
-   "kind": "early",
-   "et": "2026-11-26 09:26",
+   "kind": "midday",
+   "et": "2026-11-26 11:53",
    "rows": 800
   }
  ],
  "done": {
-  "midday": "2026-11-25",
+  "midday": "2026-11-26",
   "evening": "2026-11-25",
   "lineups_a": "2026-11-25",
   "lineups_b": "2026-11-25",
@@ -1299,16 +1298,16 @@
   "close_early": "2026-11-22"
  },
  "quota": {
-  "remaining": 2931,
-  "used": 17069
+  "remaining": 2922,
+  "used": 17078
  },
- "updated_utc": "2026-11-26 14:26",
- "et": "2026-11-26 09:26",
- "kind": "early",
+ "updated_utc": "2026-11-26 16:53",
+ "et": "2026-11-26 11:53",
+ "kind": "midday",
  "tier": "lite",
- "spent": 0,
+ "spent": 9,
  "errors": [],
  "notes": [
-  "Morning refresh: no lines pulled, they post later in the morning"
+  "NBA: no lines to save (0 games in the window)"
  ]
 }
