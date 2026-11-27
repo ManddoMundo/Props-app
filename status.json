@@ -1286,24 +1286,24 @@
    "what": "news",
    "lg": "NBA",
    "date": "2026-11-26",
-   "kind": "evening",
-   "et": "2026-11-26 18:57",
-   "rows": 98
+   "kind": "lineups",
+   "et": "2026-11-26 19:49",
+   "rows": 97
   },
   {
    "path": "data/news/NFL_2026-11-26.txt.enc",
    "what": "news",
    "lg": "NFL",
    "date": "2026-11-26",
-   "kind": "evening",
-   "et": "2026-11-26 18:57",
+   "kind": "lineups",
+   "et": "2026-11-26 19:49",
    "rows": 800
   }
  ],
  "done": {
   "midday": "2026-11-26",
   "evening": "2026-11-26",
-  "lineups_a": "2026-11-25",
+  "lineups_a": "2026-11-26",
   "lineups_b": "2026-11-25",
   "early": "2026-11-26",
   "close_early": "2026-11-22"
@@ -1312,14 +1312,14 @@
   "remaining": 2919,
   "used": 17081
  },
- "updated_utc": "2026-11-26 23:57",
- "et": "2026-11-26 18:57",
- "kind": "evening",
+ "updated_utc": "2026-11-27 00:49",
+ "et": "2026-11-26 19:49",
+ "kind": "lineups",
  "tier": "lite",
- "spent": 3,
+ "spent": 0,
  "errors": [],
  "notes": [
-  "NBA: no lines to save (0 games in the window)",
+  "Lineups run: no late prices on a small plan, so scratched tickets are not replaced",
   "NBA lineups: nba.com has no lineups posted for today yet"
  ]
 }
