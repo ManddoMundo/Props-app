@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-27 v4.2.4 side rail on the iPhone Duo after iOS 27.2.1 (reported by Armanddo with a screen recording; DISPLAY only)
+- What he showed: the saved home screen app leaves the Duo's side strip blank, while the same page opened as the artifact inside the Claude app draws the wood rail and the ball in that strip. So the phone still gives web pages the strip; it is the saved app that is fenced out of it since the update.
+- Changed (site.py): the saved app's status area setting is now "black-translucent" instead of "default". Under "default" the phone keeps its status areas for itself, and since iOS 27.2.1 that seems to include the Duo's side strip. With the new setting the page runs under the status areas and keeps clear of them with the insets it already uses (the top padding, the 16 pixel gap from the rail, the rail's own width).
+- What changes on other iPhones: in the saved app the page's own background now shows behind the clock and battery at the top instead of a plain bar, and those icons are white. Nothing changes in Safari or in the artifact.
+- To get it: after the next build, remove the home screen icon and add it again from Safari. The phone reads this setting when the icon is added.
+- Not tested on a phone: this workspace has no iPhone. The reasoning is from the recording and from how the setting is documented to behave. If the strip is still blank after re-adding, send the Model tab's Screen check.
+- Tested: site.py compiles and writes the page head with the new setting; the built page is unchanged.
+
 ## 2026-11-27 v4.2.3 Polymarket's games list (fix after the first live run; TRACKING ONLY, no rule change)
 - What happened: on the first live run (Nov 27, 1:10 PM) Polymarket's sports list and leaderboard answered, but the request for each league's games was refused with HTTP 406 for both NBA and NFL. So Polymarket added no prices and no wallet data. The step failed quietly and the rest of the day ran.
 - What the live service showed when read from here: the same request works from a browser-like client. One page of 100 games is about 4 MB, because every game carries 30 or more markets, and the list starts with games from weeks ago. The likely cause of the refusal is that our request did not accept a compressed answer. That is a reasoned guess: this workspace cannot call Polymarket with the job's exact request.

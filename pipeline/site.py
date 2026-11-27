@@ -5,7 +5,10 @@ Hosted from the repo's /docs folder by GitHub Pages (https://manddomundo.github.
 v3.36: the title, font links and other head tags the built page opens with are moved into the real <head> (they sat in
 <body>, so link previews found no title); a description, Open Graph and Twitter card tags and a 1200x630 share card (og.png)
 are added; and a service worker keeps the app usable offline: network first, the saved copy only when the network fails,
-so it never shows yesterday's lines while today's can be fetched."""
+so it never shows yesterday's lines while today's can be fetched.
+v4.2.4: the saved app's status area is "black-translucent" (it was "default"). After iOS 27.2.1 the iPhone Duo kept its side
+strip for itself under "default", so the side rail had nowhere to draw; the same page inside another app still got the strip.
+With this setting the page runs under the status areas and keeps clear of them with the safe-area insets it already uses."""
 import json, os, re, shutil
 O="/home/claude/props/out/"; S="/home/claude/props/src/"; D="/home/claude/props/site/docs/"
 URL="https://manddomundo.github.io/Props-app/"
@@ -27,7 +30,7 @@ head=f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="
 <meta property="og:image:alt" content="Fair Line: NBA and NFL player props, with a tote board showing a fair line, the desk's chance and the edge">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Fair Line"><meta name="twitter:description" content="{DESC}"><meta name="twitter:image" content="{URL}og.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fair Line">
-<meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#f5f7ea" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#22302a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#f5f7ea" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#22302a" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png">
 <style>:root{{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}body{{margin:0;font:14px system-ui,sans-serif}}img{{max-width:100%}}[hidden]{{display:none!important}}</style>
 <script>if('serviceWorker' in navigator&&location.protocol==='https:'&&/github\\.io$/.test(location.hostname))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{{}}));</script>
