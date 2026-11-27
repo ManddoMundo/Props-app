@@ -19,14 +19,21 @@ TIER_ON = {"NFL": True, "NBA": False}       # NBA ratings went 47.8% against Dra
 PTS = {"NFL": dict(k=0.03, rev=0.4, hfa=1.6, mu=22.0, mr=0.004), "NBA": dict(k=0.05, rev=0.5, hfa=2.5, mu=113.0, mr=0.01)}   # fitted on 2010-18 (NFL), 2025 (NBA)
 
 
+SKIP_BOOKS = ("pinnacle",)     # v4.0: the relay's game pull now carries Pinnacle for gline.py; the game picks' own consensus stays as it was
+
+
 def dec(a):
+    if not isinstance(a, (int, float)) or isinstance(a, bool) or not math.isfinite(a) or abs(a) < 100:
+        raise ValueError(f"invalid American odds: {a!r}")
     return 1 + a / 100 if a > 0 else 1 + 100 / -a
 
 
 def novig(a, b):
-    if a is None or b is None or (isinstance(a, float) and math.isnan(a)) or (isinstance(b, float) and math.isnan(b)):
+    try:
+        da, db = dec(a), dec(b)
+    except ValueError:
         return None
-    pa, pb = 1 / dec(a), 1 / dec(b)
+    pa, pb = 1 / da, 1 / db
     return pa / (pa + pb)
 
 
@@ -79,22 +86,44 @@ class Pts:
 
 
 def market_files(lg):
-    """Hard Rock and consensus game lines from the relay pull, newest file per league, keyed by 'AWAY@HOME'."""
+    """Hard Rock and consensus game lines from the relay pull, newest file per league, keyed by 'AWAY@HOME|YYYY-MM-DD' and 'AWAY@HOME'."""
     fs = sorted(glob.glob(O + f"games/{lg}_*.txt"), key=os.path.getmtime)
     out = {}
     for f in fs[-2:]:
-        game = None
-        for ln in open(f):
+        game = None; tipday = None; buf = []
+        def flush():
+            if not game or not buf:
+                return
+            keys = [f"{game}|{tipday}", game] if tipday else [game]
+            for k in keys:
+                # For plain matchup key, keep the earliest upcoming day (prevents tomorrow's B2B overwriting today's game)
+                if k == game and k in out and tipday and out[k].get("_tipday") and tipday > out[k]["_tipday"]:
+                    continue
+                slot = out.setdefault(k, {"_tipday": tipday})
+                if tipday and (not slot.get("_tipday") or tipday < slot["_tipday"]):
+                    slot["_tipday"] = tipday
+                for bk, mk, team, pt, px in buf:
+                    slot.setdefault(bk, {}).setdefault(mk, {})[team] = (pt, px)
+        for ln in open(f, encoding="utf-8", errors="replace"):
             if ln.startswith("# game:"):
-                game = ln.split(":", 1)[1].strip().replace(" ", ""); continue
-            if ln.startswith("#") or "|" not in ln or ln.startswith("bookmaker_key"):
+                flush(); game = ln.split(":", 1)[1].strip().replace(" ", ""); tipday = None; buf = []; continue
+            if ln.startswith("# tip:") and game:
+                tipday = ln.split(":", 1)[1].strip()[:10]; continue
+            if ln.startswith("#") or "|" not in ln or ln.startswith("bookmaker_key") or game is None:
                 continue
             bk, mk, team, pt, px = (ln.strip().split("|") + [""] * 5)[:5]
+            if bk in SKIP_BOOKS:
+                continue
             try:
                 px = float(px); pt = float(pt) if pt else None
             except ValueError:
                 continue
-            out.setdefault(game, {}).setdefault(bk, {}).setdefault(mk, {})[team] = (pt, px)
+            if not (math.isfinite(px) and abs(px) >= 100) or (pt is not None and not math.isfinite(pt)):
+                continue
+            buf.append((bk, mk, team, pt, px))
+        flush()
+    for v in out.values():
+        v.pop("_tipday", None)
     return out
 
 
@@ -117,27 +146,40 @@ def nfelo_file():
 
 
 def history(lg):
-    """Every relay pull of game lines on file, oldest first: {'AWAY@HOME': [[date, consensus home-by spread, consensus total], ...]}."""
+    """Every relay pull of game lines on file, oldest first, keyed by 'AWAY@HOME|tipday' (and 'AWAY@HOME' fallback)."""
     out = {}
     fs = sorted(f for f in glob.glob(O + f"games/{lg}_*.txt") if "test" not in os.path.basename(f))
     for f in fs:
-        day = os.path.basename(f)[len(lg) + 1:-4]; cur = {}; game = None
-        for ln in open(f):
+        day = os.path.basename(f)[len(lg) + 1:-4]; cur = {}; game = None; tipday = None
+        for ln in open(f, encoding="utf-8", errors="replace"):
             if ln.startswith("# game:"):
-                game = ln.split(":", 1)[1].strip().replace(" ", ""); continue
+                game = ln.split(":", 1)[1].strip().replace(" ", ""); tipday = None; continue
+            if ln.startswith("# tip:") and game:
+                tipday = ln.split(":", 1)[1].strip()[:10]; continue
             if ln.startswith("#") or "|" not in ln or ln.startswith("bookmaker_key") or game is None:
                 continue
             bk, mk, team, pt, px = (ln.strip().split("|") + [""] * 5)[:5]
+            if bk in SKIP_BOOKS:
+                continue
             try:
                 pt = float(pt) if pt else None
             except ValueError:
                 continue
-            cur.setdefault(game, {}).setdefault(mk, {}).setdefault(team, []).append(pt)
-        for g, m in cur.items():
-            home = g.split("@")[1]
+            if pt is not None and not math.isfinite(pt):
+                continue
+            gkey = f"{game}|{tipday}" if tipday else game
+            cur.setdefault(gkey, {}).setdefault(mk, {}).setdefault(team, []).append(pt)
+        for gkey, m in cur.items():
+            base = gkey.split("|", 1)[0]
+            if "@" not in base:
+                continue
+            home = base.split("@")[1]
             sp = [-v for v in m.get("spreads", {}).get(home, []) if v is not None]; tl = [v for v in m.get("totals", {}).get("Over", []) if v is not None]
             if sp or tl:
-                out.setdefault(g, []).append([day, float(np.median(sp)) if sp else None, float(np.median(tl)) if tl else None])
+                rec = [day, float(np.median(sp)) if sp else None, float(np.median(tl)) if tl else None]
+                out.setdefault(gkey, []).append(rec)
+                if "|" not in gkey:
+                    out.setdefault(base, []).append(rec)
     return out
 
 
@@ -383,7 +425,7 @@ def nfl():
         el.pre(r.home_team, r.season); el.pre(r.away_team, r.season); pp.pre(r.home_team, r.season); pp.pre(r.away_team, r.season)
         neu = r.location == "Neutral"; d = el.diff(r.home_team, r.away_team, neu); ph, pa = pp.proj(r.home_team, r.away_team, neu)
         res = None if pd.isna(r.result) else float(r.result)
-        rows.append(dict(season=int(r.season), week=int(r.week), gid=r.game_id, gt=r.game_type, day=str(r.gameday), time=str(r.gametime), away=r.away_team, home=r.home_team,
+        rows.append(dict(season=int(r.season), week=int(r.week), gid=r.game_id, gt=r.game_type, day=str(r.gameday), time=None if pd.isna(r.gametime) else str(r.gametime), away=r.away_team, home=r.home_team,
                          pm=d / c["PPE"], pt=ph + pa, res=res, spr=None if pd.isna(r.spread_line) else float(r.spread_line),
                          tl=None if pd.isna(r.total_line) else float(r.total_line), tot=None if res is None else float(r.home_score + r.away_score),
                          sh=None if res is None else int(r.home_score), sa=None if res is None else int(r.away_score),
@@ -405,11 +447,11 @@ def nfl():
     IJ = injuries("NFL"); games = []
     for r in [r for r in up if r["week"] == wk]:
         r["rk"] = [rk.get(r["away"]), rk.get(r["home"])]
-        rq = mk.get(f'{r["away"]}@{r["home"]}') if mk else None
+        rq = (mk.get(f'{r["away"]}@{r["home"]}|{r["day"]}') or mk.get(f'{r["away"]}@{r["home"]}')) if mk else None
         m = consensus(rq if rq else book_q(src[r["gid"]]), r["away"], r["home"])
         g = pick("NFL", r, m, bt)
         n = NF.get((r["season"], r["week"], NFN.get(r["away"], r["away"]), NFN.get(r["home"], r["home"])))
-        path = HS.get(f'{r["away"]}@{r["home"]}', [])
+        path = HS.get(f'{r["away"]}@{r["home"]}|{r["day"]}') or HS.get(f'{r["away"]}@{r["home"]}', [])
         op = top = None; osrc = None
         if n is not None and not pd.isna(n.home_line_open):
             op = -float(n.home_line_open); top = None if pd.isna(n.total_line_open) else float(n.total_line_open); osrc = "nfelo"
@@ -510,13 +552,16 @@ def nba():
         day = pd.Timestamp(r.gd)
         adj = c["b2b"] * ((rest(a, day) == 0) - (rest(hm, day) == 0))
         dd = el.diff(hm, a, adj=adj); ph, pa = pp.proj(hm, a)
-        rq = mk.get(f"{a}@{hm}") if mk else None
-        row = dict(gid=str(r.game_id), day=r.gd, time=pd.Timestamp(r.game_date_time).strftime("%H:%M"), away=a, home=hm, pm=dd / c["PPE"], pt=ph + pa,
+        rq = (mk.get(f"{a}@{hm}|{r.gd}") or mk.get(f"{a}@{hm}")) if mk else None
+        ts_et = pd.Timestamp(r.game_date_time)
+        if ts_et.tzinfo is not None:
+            ts_et = ts_et.tz_convert("America/New_York")
+        row = dict(gid=str(r.game_id), day=r.gd, time=ts_et.strftime("%H:%M"), away=a, home=hm, pm=dd / c["PPE"], pt=ph + pa,
                    elo=(round(el.E[hm]), round(el.E[a])), rk=[rk.get(a), rk.get(hm)], rest=[min(rest(a, day), 3), min(rest(hm, day), 3)])
         g = pick("NBA", row, consensus(rq, a, hm) if rq else None, bt)
         g["b2b"] = [int(rest(a, day) == 0), int(rest(hm, day) == 0)]
         g["inj"] = inj_card(IJ, a, hm, "NBA")
-        path = HS.get(f"{a}@{hm}", [])
+        path = HS.get(f"{a}@{hm}|{r.gd}") or HS.get(f"{a}@{hm}", [])
         if path:
             g["mv"] = move(row["pm"], g.get("spread"), g.get("total"), path[0][1], path[0][2], path, "first pull " + path[0][0][5:])
         games.append(g)

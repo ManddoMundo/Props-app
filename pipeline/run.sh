@@ -1,7 +1,7 @@
 #!/bin/bash
 # Refresh all data, refit both models, rebuild the data blob, grade open desk bets.
 # Layout is fixed: /home/claude/props/{src,data,out}. Run from anywhere: bash /home/claude/props/src/run.sh
-set -e
+set -eo pipefail
 mkdir -p /home/claude/props/data /home/claude/props/out/priced /home/claude/props/out/lines
 cd /home/claude/props/data
 if [ -z "$SKIP_DL" ]; then      # SKIP_DL=1 bash run.sh reruns the models on the files already here (used after lineup news lands)
@@ -30,10 +30,10 @@ get nba_sched_2027.parquet $S/espn_nba_schedules/nba_schedule_2027.parquet
 fi
 python3 -c "import pyarrow" 2>/dev/null || pip install --break-system-packages -q pyarrow
 cd /home/claude/props/src
-echo "== NFL =="; python3 nfl.py | tail -n 14
-echo "== NBA =="; python3 nba.py | tail -n 22
+echo "== NFL =="; python3 nfl.py > /tmp/nfl.log && tail -n 14 /tmp/nfl.log
+echo "== NBA =="; python3 nba.py > /tmp/nba.log && tail -n 22 /tmp/nba.log
 python3 build_data.py
-node check.js | head -2      # JS engine must match Python: worst rel diff should be under 1e-2
+node check.js > /tmp/check.log && head -2 /tmp/check.log      # JS engine must match Python: worst rel diff should be under 1e-2
 python3 daily.py grade
 # research room sheets. Not fatal: if this fails the page keeps the last research/nfl.json.
 { [ -f research_nfl.py ] && python3 research_nfl.py; } || echo "RESEARCH STEP FAILED: the Research tab keeps its last file"
@@ -49,10 +49,13 @@ python3 weather.py || echo "WEATHER STEP FAILED: no wind notes on the Games tab"
 python3 injuries.py || echo "INJURY STEP FAILED: no injury notes on the Games tab"
 python3 games.py || echo "GAME MODEL STEP FAILED: the Games tab keeps its last file"
 python3 daily.py gpicks "$(TZ=America/New_York date +%F)" grade || true
+# v4.2 the game price lane: bounded grading + Polymarket wallet scoring. Never fatal.
+timeout 60 python3 gline.py grade || echo "GAME PRICE LANE GRADE FAILED"
+timeout 60 python3 sharps.py score || echo "POLYMARKET SCORE FAILED"
 # v3.20 the game simulator: grade yesterday's logged props, then play every game on the slate 10,000 times. Not fatal: the Sim tab keeps its last file.
 python3 sim.py grade || echo "SIM GRADE STEP FAILED"
 python3 sim.py || echo "SIM STEP FAILED: the Sim tab keeps its last file"
-python3 daily.py audit > /home/claude/props/out/audit.txt; head -14 /home/claude/props/out/audit.txt
+python3 daily.py audit > /home/claude/props/out/audit.txt && head -14 /home/claude/props/out/audit.txt
 # v3.44 the shadow book: grade every side that cleared the test, picked or not. Tracking only, never fatal.
 python3 daily.py shadow || echo "SHADOW STEP FAILED: the shadow book keeps its last file"
 python3 - <<'PY'

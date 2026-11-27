@@ -1447,6 +1447,41 @@ body.memo-open .verdict .seal.shine::after{animation:shine .9s cubic-bezier(.23,
 .gp-slate small{font:700 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)} .gp-slate b{font:700 16px var(--cond)}
 .gp-slate b.g{color:var(--good)} .gp-slate b.h{color:var(--hazard)}
 .gp-note{margin:0;padding:0 14px 10px;font:11.5px var(--mono);color:var(--mute)}
+/* v4.2 the game price lane (shadow): Hard Rock's game prices against the sharp-weighted market */
+.gl{margin-top:14px}
+.gl .gl-intro{max-width:66ch;margin:0 0 8px}
+.gl .gl-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0 0 6px}
+.gl .gl-tag{font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--mute);white-space:nowrap}
+.gl .gl-k{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 4px}
+.gl .gl-k div{border:1px solid var(--rule);border-radius:8px;padding:8px 10px;min-width:0}
+.gl .gl-k small{display:block;font:10.5px var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.gl .gl-k b{display:block;font:600 17px var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.gl .gl-k em{display:block;font:11px var(--mono);color:var(--mute);font-style:normal}
+.gl .gl-s{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:12px 0 0}
+.gl .gl-l{list-style:none;margin:6px 0 2px;padding:0}
+.gl .gl-l li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin:0;padding:7px 0;border-top:1px solid var(--rule);font:12px var(--mono);font-variant-numeric:tabular-nums}
+.gl .gl-l li b{flex:1 1 150px;min-width:0;font-weight:600;overflow-wrap:anywhere}
+.gl .gl-l li span{color:var(--mute)}
+.gl .gl-l li em{margin-left:auto;font-style:normal;font-weight:600;color:var(--good)}
+.gl .gl-l li.lost em,.gl .gl-l li em.neg{color:var(--bad)}
+.gl .gl-l li.push em,.gl .gl-l li em.neu{color:var(--mute)}
+.gl .gl-l li b span{font-weight:400}
+.gl .gl-l li b u{text-decoration:none;font:600 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--good-soft);color:var(--good);white-space:nowrap}
+.gl .gl-l li b u.held{background:transparent;border:1px solid var(--rule);color:var(--mute)}
+.gl .gl-b{counter-reset:none}
+.gl .gl-b li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:8px;row-gap:2px;align-items:baseline}
+.gl .gl-b li i{grid-column:1;grid-row:1;font-style:normal;color:var(--mute)}
+.gl .gl-b li b{grid-column:2;grid-row:1;flex:none;min-width:0}
+.gl .gl-b li em{grid-column:3;grid-row:1;margin-left:0;text-align:right;white-space:nowrap}
+.gl .gl-b li .gl-sub{grid-column:2/4;grid-row:2;display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11.5px;color:var(--mute)}
+.gl .gl-n{font:11.5px var(--mono);color:var(--mute);margin:4px 0 0}
+.gl .gl-d{margin:2px 0 0;border-top:1px solid var(--rule)}
+.gl .gl-d summary{display:flex;align-items:center;min-height:44px;cursor:pointer;font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--accent);list-style:none;-webkit-tap-highlight-color:transparent}
+.gl .gl-d summary::-webkit-details-marker{display:none}
+.gl .gl-d summary::after{content:'+';margin-left:auto;font-size:15px}
+.gl .gl-d[open] summary::after{content:'\2212'}
+.gl .gl-d summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gl .gl-d .gl-l{margin-top:0}
 .gp-honest{margin-top:14px}
 .gp-nl{font:500 12.5px var(--mono);color:var(--mute)}
 .gpw .wr-t em{white-space:normal;overflow:visible;text-overflow:clip}
@@ -3296,9 +3331,73 @@ function gamesHtml() {
       <div class="gp-slate"><span><small>Games</small><b>${all.length}</b></span><span><small>Edges</small><b class="g">${nEdge}</b></span><span><small>Leans</small><b class="h">${nLean}</b></span>${big ? `<span><small>Biggest gap</small><b>${esc(big.ats)} ${Math.abs(big.gap).toFixed(1)}</b></span>` : ''}${fsum}</div>
     </section>
     <div class="gpl">${games.map(fin ? fcard : card).join('') || '<p class="prose">No games match.</p>'}</div>
+    ${priceLaneHtml(lg)}
     ${trackHtml(lg, G)}
     ${movesHtml(lg, G)}
     <div class="card prose gp-honest"><b>How much to trust it.</b> ${lg === 'NFL' ? `Every game from 2015 on was priced using only what was known before it, then checked against the closing line. Winners: the line's favourite won ${pct(bt.su_mkt || 0)}, our ratings ${pct(bt.su || 0)}, and mixing our ratings into the line made it worse at every weight, so the projected score and the winner now follow the line. Spread: our ratings went ${rec(ats.All)} (${pc(ats.All)}), a coin flip; adding rest, division games, home underdogs, quarterback changes and recent form did not change that. Only the Edge spots, 4.5+ points off the line, have cleared 52.4%: ${rec(ats.Strong)} (${pc(ats.Strong)}), on a sample small enough to be luck. Totals: ${rec((bt.ou || {}).All)}, weather included. Moneylines: backing every price our ratings liked lost ${bt.ml_value ? Math.abs(bt.ml_value[1] * 100).toFixed(1) : '5.6'}% a bet. These are tracked, not staked.` : `Last season and this one were priced game by game and checked against DraftKings' closing numbers (${bt.n_mkt || 0} games with a line). Winners: the line's favourite won ${pct(bt.su_mkt || 0)}, our ratings ${pct(bt.su || 0)}. Spread: our ratings went ${rec(ats.All)} (${pc(ats.All)}), below a coin flip, so NBA spreads carry no Edge or Lean tag. Totals ${rec((bt.ou || {}).All)}. Moneylines: backing every price our ratings liked lost ${bt.ml_value ? Math.abs(bt.ml_value[1] * 100).toFixed(1) : '15'}% a bet. The books know who is injured or resting; our ratings do not. Projections follow the line when there is one.`}</div>`;
+}
+
+/* ---------- v4.2: the game price lane (shadow, not staked). Display only: every number comes from out/gline.json ---------- */
+function priceLaneHtml(lg) {
+  const GL = DATA.gline || {};
+  if (!GL.rec) return '';
+  const L = (GL.lg || {})[lg] || {}, r = GL.rec[lg] || {}, C = GL.cfg || {}, need = (C.promote || {}).n || 200, LK = GL.likely || {}, lr = (LK.rec || {})[lg] || {};
+  const minEv = C.min_ev != null ? C.min_ev : 0.02, maxEv = C.max_ev != null ? C.max_ev : 0.08, minBk = C.min_books || 4;
+  const am = v => (v > 0 ? '+' : '') + Math.round(v), p1 = v => (v * 100).toFixed(1) + '%';
+  const sg = v => { const z = Math.abs(v) < 0.0005 ? 0 : v; return (z >= 0 ? '+' : '') + (z * 100).toFixed(1) + '%'; };
+  const lbl = s => s.mkt === 'h2h' ? `${esc(s.side)} to win` : s.mkt === 'spreads' ? `${esc(s.side)} ${s.line > 0 ? '+' : ''}${s.line}` : `${esc(s.side)} ${s.line}`;
+  const games = L.games || [], sides = games.flatMap(g => (g.sides || []).map(s => ({ g, s }))).sort((x, y) => y.s.ev - x.s.ev);
+  const need1 = s => s.be != null ? s.be : (s.px > 0 ? 100 / (s.px + 100) : -s.px / (-s.px + 100));
+  const isLogged = s => s.logged != null ? !!s.logged : !!s.ok;
+  // v4.2 ranked board: exact gshadow.json membership for Logged badge; held (>8% / sharp disagree) tagged neutral instead of green
+  const brow = (x, i) => {
+    const lgd = isLogged(x.s), held = !lgd && !x.s.ok && x.s.ev >= minEv;
+    const tag = lgd ? '<u>Logged</u>' : held ? `<u class="held">Held</u>` : '';
+    const evCls = x.s.ev <= -0.0005 ? 'neg' : (lgd || x.s.ok) ? '' : 'neu';
+    const why = held && x.s.why ? `<span>${esc(x.s.why)}</span>` : '';
+    return `<li><i>${i + 1}</i><b>${lbl(x.s)} <span>(${am(x.s.px)})</span>${tag}</b><em class="${evCls}">${sg(x.s.ev)}</em><div class="gl-sub"><span>${esc(x.g.away)} at ${esc(x.g.home)}</span><span>fair ${p1(x.s.p)} / needs ${p1(need1(x.s))}</span>${why}</div></li>`;
+  };
+  const TOP = 6, top = sides.slice(0, TOP), rest = sides.slice(TOP), nLog = sides.filter(x => isLogged(x.s)).length;
+  // v4.2 Most likely: max 1 side per game (highest EV), matching glikely.json
+  const lkByGame = new Map();
+  for (const x of sides) {
+    if (!x.s.lk) continue;
+    const cur = lkByGame.get(x.g.id);
+    if (!cur || x.s.ev > cur.s.ev || (x.s.ev === cur.s.ev && (x.s.p_win || x.s.p) > (cur.s.p_win || cur.s.p))) lkByGame.set(x.g.id, x);
+  }
+  const likely = Array.from(lkByGame.values()).sort((x, y) => y.s.ev - x.s.ev);
+  const lrow = x => `<li><b>${lbl(x.s)} <span>(${am(x.s.px)})</span>${x.s.lk_logged ? '<u>Logged</u>' : ''}</b><span>${esc(x.g.away)} at ${esc(x.g.home)}</span><span>value ${sg(x.s.ev)}</span><em>${p1(x.s.p_win != null ? x.s.p_win : x.s.p)}</em></li>`;
+  const done = (GL.book || []).filter(x => x.lg === lg && x.status !== 'open' && x.status !== 'void').slice(0, 5);
+  const res = x => `<li class="${esc(x.status)}"><b>${lbl(x)} <span>(${am(x.px)})</span></b><span>${esc(x.away)} at ${esc(x.home)}</span><span>${x.close ? 'close ' + sg(x.close.clv) : 'no close'}</span><em>${esc(x.status)}</em></li>`;
+  const k = (a, b, c) => `<div><small>${a}</small><b>${b}</b><em>${c}</em></div>`;
+  const all = GL.rec.all || {}, srcN = games.length ? Math.max(...games.map(g => Math.max(g.fair.n.h2h || 0, g.fair.n.spreads || 0, g.fair.n.totals || 0))) : 0;
+  const cal = (GL.calib || []).filter(c => c.n), calN = cal.reduce((a, c) => a + c.n, 0);
+  const lkP = Math.round(((C.likely || {}).p || 0.6) * 100), lkEv = (((C.likely || {}).ev != null ? C.likely.ev : 0.015) * 100).toFixed(1);
+  return `<section class="card gl" aria-label="Hard Rock price check">
+    <div class="gl-h"><b>Hard Rock price check.</b><span class="gl-tag">Shadow, not staked</span></div>
+    <p class="gl-intro">Every Hard Rock moneyline, spread and total, ranked by estimated return against the fair price the rest of the market implies${srcN ? ` (up to ${srcN} other sources on this pull)` : ''}. A side is logged at ${(minEv * 100).toFixed(0)}% to ${(maxEv * 100).toFixed(0)}% when ${minBk} or more other sources price it and Pinnacle does not disagree. A wider gap is held: it is usually news or a stale number. Nothing here is bet until ${need} graded sides have beaten the closing line by more than luck would.</p>
+    <div class="gl-k">
+      ${k('Record', `${r.w || 0}-${r.l || 0}${r.push ? '-' + r.push : ''}`, `${(r.units || 0) >= 0 ? '+' : ''}${(r.units || 0).toFixed(2)} units flat`)}
+      ${k('Closing line', r.clv == null ? 'New' : sg(r.clv), r.clv == null ? 'starts with the evening pull' : `beat the close ${Math.round((r.beat || 0) * 100)}% of ${r.clv_n}`)}
+      ${k('Open', String(r.open || 0), `${r.n || 0} logged in the ${esc(lg)}`)}
+      ${k('The test', `${all.graded || 0} of ${need}`, GL.promote && GL.promote.met ? 'met, staking is your call' : `graded sides, ${all.clv_n || 0} with a closing number`)}
+    </div>
+    <div class="gl-s">Ranked board${L.asof ? ' · ' + esc(L.asof) : ''}${sides.length ? ` · ${nLog} logged of ${sides.length}` : ''}</div>
+    <ol class="gl-l gl-b">${top.map(brow).join('') || '<li><i></i><b>No Hard Rock game prices on file for this league yet.</b><em></em></li>'}</ol>
+    ${rest.length ? `<details class="gl-d"><summary>All ${sides.length} sides</summary><ol class="gl-l gl-b" start="${TOP + 1}">${rest.map((x, i) => brow(x, i + TOP)).join('')}</ol></details>` : ''}
+    <div class="gl-s">Most likely · ${lkP}% or better to win, value ${lkEv}% or more</div>
+    <ul class="gl-l">${likely.map(lrow).join('') || `<li><span>${sides.length ? `No side on this pull is ${lkP}% or better to win with ${lkEv}% of value.` : 'Nothing to check yet.'}</span></li>`}</ul>
+    <p class="gl-n">Built to hit more often, not to pay more. One side a game at most, kept apart from the ${need}-side test. Record ${lr.w || 0}-${lr.l || 0}${lr.push ? '-' + lr.push : ''}, ${(lr.units || 0) >= 0 ? '+' : ''}${(lr.units || 0).toFixed(2)} units flat, ${lr.open || 0} open. One loss at a heavy price takes back several wins.</p>
+    ${done.length ? `<div class="gl-s">Latest graded</div><ul class="gl-l">${done.map(res).join('')}</ul>` : ''}
+    <details class="gl-d"><summary>Does the fair chance come true?</summary>
+      ${cal.length ? `<ul class="gl-l">${cal.map(c => {
+        const ci = (c.ci_lo != null && c.ci_hi != null) ? `, likely range ${Math.round(c.ci_lo * 100)} to ${Math.round(c.ci_hi * 100)}%` : '';
+        const cls = c.n < 50 ? 'neu' : (Math.abs(c.hit - c.said) > 0.05 ? 'neg' : '');
+        return `<li><b>Said ${p1(c.said)}</b><span>${c.n} markets${ci}</span><em class="${cls}">hit ${p1(c.hit)}</em></li>`;
+      }).join('')}</ul><p class="gl-n">${calN} graded Hard Rock markets, both leagues, the favoured side of each counted once. Small counts swing a lot: read a band once it has 100 or more.</p>`
+        : '<p class="gl-n">Every Hard Rock market is graded once, on its favoured side, against the fair chance it was given. This fills in as games finish.</p>'}
+    </details>
+  </section>`;
 }
 
 /* ---------- build 3: NBA matchup sheets ---------- */

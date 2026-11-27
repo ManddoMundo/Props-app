@@ -15,6 +15,10 @@ except Exception as e:
 # game picks: the slate, the backtest and the record so far (display only). Not fatal.
 D["games"]=json.load(open(O+"games.json")) if os.path.exists(O+"games.json") else {}
 D["gpicks"]=json.load(open(O+"gpicks.json")) if os.path.exists(O+"gpicks.json") else []
+try:
+    D["gline"]=json.load(open(O+"gline.json")) if os.path.exists(O+"gline.json") else {}      # v4.2 game price lane (shadow)
+except Exception as e:
+    print("game price lane skipped:",e); D["gline"]={}
 D["audit_n"]=len(json.load(open(O+"audit.json"))) if os.path.exists(O+"audit.json") else 0
 # jersey numbers for the page (display only). Not fatal: a player with no number shows his position instead.
 try:
