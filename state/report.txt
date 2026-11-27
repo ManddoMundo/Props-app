@@ -120,7 +120,7 @@ market lane (books only, no model; 182 sides priced the v3.45 way, 31 rebuilt fr
     NFL rush_yds (older, rebuilt) 1-0  hit 100.0%  books said 55.0%  break-even 53.5%  flat units +0.87  per bet +87.0%
 GAME PRICE LANE (v4.2 shadow, not staked). Hard Rock's price against the sharp-weighted market.
   no sides logged yet
-  FL EXCHANGES (shadow): novig 0-0 (+0.00u, 5 open); kalshi 0-0 (+0.00u, 2 open)
+  FL EXCHANGES (shadow): novig 0-0 (+0.00u, 8 open, CLV +1.2%/5); kalshi 0-0 (+0.00u, 5 open, CLV +2.4%/2)
   PROMOTION TEST: not met
     -- graded sides: 0 (needs >= 200)
     -- closed sides: 0 (needs >= 200)
@@ -129,5 +129,5 @@ GAME PRICE LANE (v4.2 shadow, not staked). Hard Rock's price against the sharp-w
     -- share that beat the close: None (needs >= 0.5)
     -- ROI z-score guard: None (needs >= -2.0)
 POLYMARKET WALLET BOARD (v4.2 tracking only). 0 wallets seen, 0 with 60+ directional NFL/NBA games.
-  last pull: 2026-11-27 13:10 ET, tracked list: 150 wallets from Polymarket sports leaderboard; errors: ['NBA events: HTTP 406', 'NFL events: HTTP 406']
+  last pull: 2026-11-27 13:35 ET, tracked list: 150 wallets from Polymarket sports leaderboard; errors: none
   no wallet has enough directional scored games yet. The board fills as games are played.

@@ -1221,21 +1221,22 @@
    "lg": "NBA",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
-   "rows": 1072,
-   "games": 4,
+   "et": "2026-11-27 13:32",
+   "rows": 44885,
+   "games": 11,
    "books": {
-    "draftkings": 138,
-    "novig": 151,
-    "fanduel": 120,
-    "williamhill_us": 148,
-    "betrivers": 142,
-    "fanatics": 12,
-    "hardrockbet": 144,
-    "betmgm": 113,
-    "pinnacle": 104
+    "draftkings": 5922,
+    "kalshi": 2204,
+    "novig": 977,
+    "fanduel": 6582,
+    "williamhill_us": 9711,
+    "betrivers": 4594,
+    "fanatics": 5581,
+    "hardrockbet": 6029,
+    "betmgm": 2863,
+    "pinnacle": 422
    },
-   "markets": 3
+   "markets": 13
   },
   {
    "path": "data/games/NBA_2026-11-27.txt.enc",
@@ -1243,7 +1244,7 @@
    "lg": "NBA",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
+   "et": "2026-11-27 13:32",
    "rows": 682,
    "games": 11
   },
@@ -1253,20 +1254,22 @@
    "lg": "NFL",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
-   "rows": 175,
+   "et": "2026-11-27 13:32",
+   "rows": 2544,
    "games": 1,
    "books": {
-    "draftkings": 26,
-    "fanduel": 26,
-    "betmgm": 23,
-    "betrivers": 22,
-    "novig": 26,
-    "hardrockbet": 25,
-    "fanatics": 3,
-    "pinnacle": 24
+    "draftkings": 482,
+    "fanduel": 389,
+    "betmgm": 187,
+    "williamhill_us": 268,
+    "kalshi": 306,
+    "betrivers": 245,
+    "novig": 85,
+    "hardrockbet": 285,
+    "fanatics": 233,
+    "pinnacle": 64
    },
-   "markets": 3
+   "markets": 13
   },
   {
    "path": "data/games/NFL_2026-11-27.txt.enc",
@@ -1274,7 +1277,7 @@
    "lg": "NFL",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
+   "et": "2026-11-27 13:32",
    "rows": 776,
    "games": 13
   },
@@ -1284,7 +1287,7 @@
    "lg": "NBA",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
+   "et": "2026-11-27 13:32",
    "rows": 100
   },
   {
@@ -1293,7 +1296,7 @@
    "lg": "NFL",
    "date": "2026-11-27",
    "kind": "midday",
-   "et": "2026-11-27 13:05",
+   "et": "2026-11-27 13:32",
    "rows": 800
   }
  ],
@@ -1306,14 +1309,14 @@
   "close_early": "2026-11-22"
  },
  "quota": {
-  "remaining": 2898,
-  "used": 17102
+  "remaining": 2736,
+  "used": 17264
  },
- "updated_utc": "2026-11-27 18:05",
- "et": "2026-11-27 13:05",
+ "updated_utc": "2026-11-27 18:32",
+ "et": "2026-11-27 13:32",
  "kind": "midday",
- "tier": "lite",
- "spent": 21,
+ "tier": "full",
+ "spent": 162,
  "errors": [],
  "notes": []
 }
