@@ -1,4 +1,4 @@
-bets 57, open 0
+bets 59, open 2
   all            25-24  hit 51.0%  units +3.17  dollars +76.32  avg model prob 58.0%
   best bets      9-8  hit 52.9%  units +2.68  dollars +76.51  avg model prob 57.1%
   edge lane      24-24  hit 50.0%  units +2.64  dollars +62.99  avg model prob 57.4%
@@ -118,3 +118,16 @@ market lane (books only, no model; 182 sides priced the v3.45 way, 31 rebuilt fr
     NBA reb (older, rebuilt) 2-1  hit 66.7%  books said 55.1%  break-even 53.4%  flat units +0.62  per bet +20.7%
     NFL pass_yds (older, rebuilt) 0-1  hit 0.0%  books said 54.1%  break-even 53.1%  flat units -1.00  per bet -100.0%
     NFL rush_yds (older, rebuilt) 1-0  hit 100.0%  books said 55.0%  break-even 53.5%  flat units +0.87  per bet +87.0%
+GAME PRICE LANE (v4.2 shadow, not staked). Hard Rock's price against the sharp-weighted market.
+  no sides logged yet
+  FL EXCHANGES (shadow): novig 0-0 (+0.00u, 5 open); kalshi 0-0 (+0.00u, 2 open)
+  PROMOTION TEST: not met
+    -- graded sides: 0 (needs >= 200)
+    -- closed sides: 0 (needs >= 200)
+    -- average closing line value: None (needs >= 0.005)
+    -- clustered CLV t-stat: None (needs >= 2.0)
+    -- share that beat the close: None (needs >= 0.5)
+    -- ROI z-score guard: None (needs >= -2.0)
+POLYMARKET WALLET BOARD (v4.2 tracking only). 0 wallets seen, 0 with 60+ directional NFL/NBA games.
+  last pull: 2026-11-27 13:10 ET, tracked list: 150 wallets from Polymarket sports leaderboard; errors: ['NBA events: HTTP 406', 'NFL events: HTTP 406']
+  no wallet has enough directional scored games yet. The board fills as games are played.
