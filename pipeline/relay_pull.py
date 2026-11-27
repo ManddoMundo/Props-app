@@ -58,6 +58,7 @@ CODE = {
 
 ST = {}
 KIND, TIER, CAP = None, "unknown", 0
+FULL_MIN = 500      # credits left at or above which the relay pulls everything
 errors, notes, spent = [], [], 0
 
 
@@ -406,7 +407,9 @@ def main():
         errors.append(f"The Odds API did not accept the request: {x}")
         finish(1)
     rem = ST.get("quota", {}).get("remaining")
-    TIER = "full" if rem is not None and rem >= 3000 else "lite" if rem is not None and rem >= 150 else "none"
+    # v4.2.2 (Armanddo, Nov 27: "I want everything and I'll add more credits soon"): full pulls continue down to FULL_MIN credits
+    # (it was 3000). 500 leaves room for one whole run at the 450 cap. Under that: three markets, four games. Under 150: nothing.
+    TIER = "full" if rem is not None and rem >= FULL_MIN else "lite" if rem is not None and rem >= 150 else "none"
     CAP = {"full": 450, "lite": 24, "none": 0}[TIER]
     if KIND == "test":
         CAP = min(CAP, 20)

@@ -86,16 +86,49 @@ def _check_budget():
         raise RuntimeError("wall-clock deadline reached")
 
 
+HEADERS = (
+    {"User-Agent": "fair-line-research", "Accept": "application/json, text/plain, */*", "Accept-Encoding": "gzip"},
+    {"User-Agent": "Mozilla/5.0 (compatible; fair-line-research)", "Accept": "*/*", "Accept-Encoding": "gzip, deflate"},
+    {"User-Agent": "Mozilla/5.0 (compatible; fair-line-research)"},
+)
+
+
+def _read(r):
+    """The body as JSON, unpacking gzip or deflate when the server used it."""
+    raw = r.read()
+    enc = str(r.headers.get("Content-Encoding") or "").lower()
+    if "gzip" in enc or raw[:2] == b"\x1f\x8b":
+        import gzip
+        raw = gzip.decompress(raw)
+    elif "deflate" in enc:
+        import zlib
+        try:
+            raw = zlib.decompress(raw)
+        except zlib.error:
+            raw = zlib.decompress(raw, -zlib.MAX_WBITS)
+    return json.loads(raw.decode("utf-8", "replace"))
+
+
 def get(url, params=None):
+    """JSON from a public Polymarket endpoint, inside the call budget and the wall-clock deadline.
+    v4.2.3: the first live run got HTTP 406 on the games list (a 4 MB answer) while the small lists worked. The request
+    now accepts gzip, and a 406 is retried with two plainer sets of headers; the set that worked is noted in status."""
     _check_budget()
     ST["calls"] += 1
     q = url + ("?" + urllib.parse.urlencode(params, doseq=True) if params else "")
-    for attempt in (0, 1):
+    hi = 0
+    for attempt in range(len(HEADERS) + 1):
         rem = 20.0 if DEADLINE is None else max(2.0, min(20.0, DEADLINE - time.monotonic()))
         try:
-            with urllib.request.urlopen(urllib.request.Request(q, headers={"User-Agent": "fair-line-research", "Accept": "application/json"}), timeout=rem) as r:
-                return json.load(r)
+            with urllib.request.urlopen(urllib.request.Request(q, headers=HEADERS[hi]), timeout=rem) as r:
+                j = _read(r)
+            if hi:
+                ST["shapes"]["headers"] = hi
+            return j
         except urllib.error.HTTPError as e:
+            if e.code == 406 and hi + 1 < len(HEADERS):
+                hi += 1
+                continue
             if e.code in (429, 503) and attempt == 0:
                 wait = min(float(e.headers.get("Retry-After") or 3), 8.0)
                 if DEADLINE is not None and time.monotonic() + wait >= DEADLINE:
@@ -105,6 +138,7 @@ def get(url, params=None):
             raise RuntimeError(f"HTTP {e.code}") from None
         except Exception as e:
             raise RuntimeError(type(e).__name__) from None
+    raise RuntimeError("HTTP 406")
 
 
 def rows(j):
@@ -222,20 +256,32 @@ def tip(g, ev=None, ml=None):
     return None
 
 
-def events(lg):
+def events(lg, date=None):
+    """Polymarket's open events for one league. v4.2.3: asks only for games ending inside our window (today, or the NFL
+    week), 20 a page: the unfiltered list starts with weeks-old games and each event carries 30 or more markets, so a
+    page of 100 was about 4 MB. If the dated request returns nothing, the plain request is tried once."""
     sp = next((s for s in rows(get(GAMMA + "/sports"))[0] if str(s.get("sport", "")).lower() == SPORT[lg]), None)
     if not sp:
         raise RuntimeError("league not in /sports")
     shape("sport", sp)
     sid = str(sp.get("series") or "").split(",")[0].strip()
-    out, cur = [], None
-    for _ in range(6):
-        p = {"series_id": sid, "closed": "false", "active": "true", "limit": 100}
-        if cur:
-            p["after_cursor"] = cur
-        r, cur = rows(get(GAMMA + "/events/keyset", p))
-        out += r
-        if not cur or not r:
+    win = {}
+    if date:
+        d0 = datetime.date.fromisoformat(date)
+        d1 = d0 + datetime.timedelta(days=2 if lg == "NBA" else CFG["nfl_days"] + 2)
+        win = {"end_date_min": f"{d0.isoformat()}T00:00:00Z", "end_date_max": f"{d1.isoformat()}T12:00:00Z"}
+    out = []
+    for extra in ((win, {}) if win else ({},)):
+        out, cur = [], None
+        for _ in range(8):
+            p = dict({"series_id": sid, "closed": "false", "limit": 20}, **extra)
+            if cur:
+                p["after_cursor"] = cur
+            r, cur = rows(get(GAMMA + "/events/keyset", p))
+            out += r
+            if not cur or not r:
+                break
+        if out:
             break
     if out:
         shape("event", out[0])
@@ -340,7 +386,7 @@ def arr_first(t, home_first, hi=None, tokens=None):
                 return idx == hi
         except (TypeError, ValueError):
             pass
-    tok = t.get("asset") or t.get("token_id") or t.get("tokenId")
+    tok = t.get("asset") or t.get("token_id") or t.get("tokenId") or t.get("asset_id") or t.get("assetId")
     if tok and tokens and len(tokens) == 2 and hi is not None:
         tok_s = str(tok)
         if tok_s == str(tokens[hi]):
@@ -386,7 +432,7 @@ def pull_trades(key, cond, home_first, t_tip, hi=None, tokens=None):
         for t in r:
             if not isinstance(t, dict):
                 continue
-            raw_w = t.get("proxy_wallet") or t.get("proxyWallet")
+            raw_w = t.get("proxy_wallet") or t.get("proxyWallet") or t.get("wallet")
             if not isinstance(raw_w, str) or not raw_w.strip():
                 continue
             w = raw_w.strip().lower()
@@ -538,7 +584,7 @@ def cmd_pull(date):
         if not ours.get(lg):
             continue
         try:
-            evs = events(lg)
+            evs = events(lg, date)
         except Exception as e:
             ST["errors"].append(f"{lg} events: {e}")
             continue

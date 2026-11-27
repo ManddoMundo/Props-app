@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-11-27 v4.2.3 Polymarket's games list (fix after the first live run; TRACKING ONLY, no rule change)
+- What happened: on the first live run (Nov 27, 1:10 PM) Polymarket's sports list and leaderboard answered, but the request for each league's games was refused with HTTP 406 for both NBA and NFL. So Polymarket added no prices and no wallet data. The step failed quietly and the rest of the day ran.
+- What the live service showed when read from here: the same request works from a browser-like client. One page of 100 games is about 4 MB, because every game carries 30 or more markets, and the list starts with games from weeks ago. The likely cause of the refusal is that our request did not accept a compressed answer. That is a reasoned guess: this workspace cannot call Polymarket with the job's exact request.
+- Changed (sharps.py): requests now accept gzip and unpack it. A 406 is retried with two plainer sets of headers, and the status file notes which one worked (`poly.shapes.headers`). The games request now asks only for games ending inside our window (today for the NBA, the coming week for the NFL), 20 a page; if that returns nothing, the plain request is tried once.
+- Confirmed against the live answer, no change needed: sportsMarketType is moneyline, spreads or totals; outcomes, bestBid, bestAsk, line, conditionId, clobTokenIds and gameStartTime ("2026-11-28 00:00:00+00") are read correctly; team names map (Heat, Knicks, Trail Blazers, 76ers).
+- Trade rows: also reads `wallet`, `asset_id` and `assetId`, names Polymarket's v2 pages show beside `proxy_wallet` and `token_id`.
+- Seen, not acted on: a spread market reads "Spread: Hornets (-2.5)" with outcomes Hornets then Bulls and line -2.5, so the line looks like it belongs to the first team listed. One example is not enough; spreads stay out.
+- Tested: test_gline.py 17 of 17. sharps.py run end to end against a local stand-in that refuses the games list unless the request accepts gzip, and again unless it looks like a browser: both priced the game (moneyline and the one main total), filed the wallet trade and reported no errors. Not tested: the real service from GitHub. Read `poly.errors` after the next run.
+- Includes v4.2.2 (full pulls down to 500 credits) and v4.2.1 (screen check).
+
+## 2026-11-27 v4.2.2 full pulls continue on low credits (asked for by Armanddo: "I want everything and I'll add more credits soon"; DATA COLLECTION setting, no model or policy change)
+- What was happening: with fewer than 3,000 Odds API credits left the relay drops to a small pull to stretch the month. It crossed that line on Nov 26 (2,898 left at midday Nov 27), so props came from 3 markets and at most 4 games a league: on Nov 27, 4 of 11 NBA games. Game lines were still pulled in full.
+- Changed (relay_pull.py): the line is now 500 credits (FULL_MIN). Above it, every market and every game as before, capped at 450 a run. Under 500 the small pull; under 150 nothing.
+- What to expect: full days spend a few hundred credits, so about 2,900 lasts roughly a week. When it falls under 500 the pulls shrink again, and under 150 they stop until credits are added or the plan resets.
+- Not changed: which props are bet, the pick rules, the game price lane's rules. More sides get priced, so more can clear.
+- Tested: the relay replayed against canned API answers at 2,898 credits left (full), 400 (small) and 100 (nothing) for midday, evening, lineups and close. Includes v4.2.1's screen check.
+
+## 2026-11-27 v4.2.1 screen check on the Model tab (DISPLAY only; asked for after the side rail went missing on the iPhone Duo)
+- What happened: after iOS 27.2.1 went on the Duo (installed Nov 27), the side rail stopped showing in the saved app. The top band and the line under the tabs stop at the edge of the phone's side strip, so the phone is no longer letting the page draw there. Removing the icon and adding it again did not help.
+- Ruled out on our side: the rail code has not changed since v2.3.1 (Nov 17); site.py's viewport and status settings have not changed since the rail was added; the 7:50 AM build (v3.55) and the 1:10 PM build (v4.2) draw the same rail when given a 78 pixel side strip at 449 wide.
+- New: a "Screen check" fold at the bottom of the Model tab. It lists what the phone reports: screen and page size, the space it reserves on each side, the rail's width, whether the app was opened from the home screen, and the phone's software version. One screenshot of it says whether the rail can be brought back with a setting or whether the phone has taken the strip away.
+- Nothing else changed: no model, policy, lane rule or data change.
+- Tested: the Model tab at 360, 392, 449 with a simulated strip, and 1148, light and dark, both leagues; no page errors, nothing wider than the screen.
+
 ## 2026-11-27 v4.2 hardened game price lane: sharp-weighted power/additive pricing, close capture, FL exchange shadow tracking, Polymarket & UI fixes (Option B full upgrade built on v3.55 after 10-agent red-team audit; built by Gemini, reviewed and corrected here; POLICY CHANGE to the shadow lane's rules, approved by Armanddo on review ("I think it works and we'll keep an eye on it"), plus DISPLAY; prop model and prop pick policy unchanged)
 - Math & Pricing (gline.py VER 1.2, gline_fit.py, gline_dist.json):
   - Power de-vig for sportsbook markets (eliminates +4% to +8% phantom underdog EV/CLV on heavy moneylines) and exact additive midpoint de-vig for binary exchanges (Polymarket, Kalshi, Novig; eliminates up to -297 bps wide-book bias).

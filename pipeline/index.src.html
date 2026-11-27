@@ -1475,6 +1475,9 @@ body.memo-open .verdict .seal.shine::after{animation:shine .9s cubic-bezier(.23,
 .gl .gl-b li em{grid-column:3;grid-row:1;margin-left:0;text-align:right;white-space:nowrap}
 .gl .gl-b li .gl-sub{grid-column:2/4;grid-row:2;display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11.5px;color:var(--mute)}
 .gl .gl-n{font:11.5px var(--mono);color:var(--mute);margin:4px 0 0}
+/* v4.2.1 screen check on the Model tab */
+.scr{margin-top:14px}.scr summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.scr-t{width:100%;border-collapse:collapse;font:12px var(--mono);font-variant-numeric:tabular-nums}.scr-t td{padding:6px 0;border-top:1px solid var(--rule)}.scr-t td:last-child{text-align:right}
 .gl .gl-d{margin:2px 0 0;border-top:1px solid var(--rule)}
 .gl .gl-d summary{display:flex;align-items:center;min-height:44px;cursor:pointer;font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--accent);list-style:none;-webkit-tap-highlight-color:transparent}
 .gl .gl-d summary::-webkit-details-marker{display:none}
@@ -2991,7 +2994,30 @@ function modelHtml() {
     ${lg === 'NBA' ? `<li><b>Why centring is needed:</b> players the books quote have played about 8 percent more minutes than the model projects. A quote is itself news: the book expects a full night.</li>
     <li><b>Tested and left out:</b> back to back rest and home or away. Neither lowered the miss on games the model had not seen.</li>` : `<li><b>Why centring is needed:</b> players the books quote have a bigger role than the model's recent-game average projects. A quote is itself news: the book expects a full workload.</li>`}
     <li><b>Blind spots:</b> coaching changes, weather, snap share, anything after the daily pull.</li>
-    <li><b>Method:</b> ${lg === 'NBA' ? 'minutes times per minute rate (points and threes built from shots taken and a steadied shooting percentage since v3.50), with team minutes forced to 240 and each stat pulled toward what this team and opponent allow.' : 'team pass attempts and carries from the spread and total, split by each player’s share, times his efficiency, adjusted for the defense.'} A negative binomial curve around each projection prices any line.</li></ul></div>`;
+    <li><b>Method:</b> ${lg === 'NBA' ? 'minutes times per minute rate (points and threes built from shots taken and a steadied shooting percentage since v3.50), with team minutes forced to 240 and each stat pulled toward what this team and opponent allow.' : 'team pass attempts and carries from the spread and total, split by each player’s share, times his efficiency, adjusted for the defense.'} A negative binomial curve around each projection prices any line.</li></ul></div>${screenCheckHtml()}`;
+}
+
+/* v4.2.1 screen check (display only): what this phone reports about its screen, to trace the missing side rail after iOS 27.2.1 */
+function screenCheckHtml() {
+  let ins = ['?', '?', '?', '?'];
+  try {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+    document.body.appendChild(d); const c = getComputedStyle(d);
+    ins = [c.paddingTop, c.paddingRight, c.paddingBottom, c.paddingLeft].map(v => Math.round(parseFloat(v) || 0)); d.remove();
+  } catch (e) {}
+  const mm = q => { try { return matchMedia(q).matches; } catch (e) { return false; } };
+  const vv = window.visualViewport, rail = document.getElementById('siderail'), rw = rail ? Math.round(rail.getBoundingClientRect().width) : -1;
+  const os = (navigator.userAgent.match(/OS (\d+[_\d]*) like Mac/) || [])[1];
+  const rows = [
+    ['Screen', `${screen.width} x ${screen.height}`], ['Page', `${innerWidth} x ${innerHeight}`],
+    ['Layout width', String(document.documentElement.clientWidth)], ['Visible area', vv ? `${Math.round(vv.width)} x ${Math.round(vv.height)}` : 'not reported'],
+    ['Side space, right', `${ins[1]} px`], ['Side space, left', `${ins[3]} px`], ['Top / bottom space', `${ins[0]} / ${ins[2]} px`],
+    ['Rail width', rw < 0 ? 'no rail on the page' : `${rw} px`],
+    ['Opened as', mm('(display-mode: standalone)') || navigator.standalone ? 'saved app' : 'browser tab'],
+    ['Phone software', os ? os.replace(/_/g, '.') : 'not reported'], ['Pixel ratio', String(window.devicePixelRatio || 1)]];
+  return `<details class="prose scr"><summary>Screen check</summary><p class="mut">What this phone tells the page about its screen. Send a screenshot of this if the side rail is missing.</p>
+    <table class="scr-t">${rows.map(r => `<tr><td>${r[0]}</td><td>${esc(r[1])}</td></tr>`).join('')}</table></details>`;
 }
 
 /* ---------- research room ---------- */
