@@ -107,6 +107,27 @@ class Desk(unittest.TestCase):
         self.assertFalse(daily.eligible(ok))                         # a paused league is never bet
         self.assertEqual(daily.pass_reason(ok)[0], "PAUSED")
 
+    def test_paused_league_gets_no_leans(self):
+        # v3.55: v3.54 paused the NFL in the pick guard but the lean filler has its own guard and still logged NFL leans.
+        # The same priced side must be logged when the league is live (so this test cannot pass by accident) and not when paused.
+        import io, json, tempfile, contextlib
+        from unittest import mock
+        side = dict(id="2026-11-26|NFL|00-1|rec_yds", pid="00-1", game="g1", lg="NFL", date="2026-11-26", tag="11-26", name="Test Player", team="AAA", opp="BBB",
+                    mkt="rec_yds", side="Under", line=9.5, odds=-110, book="hardrockbet", p=0.545, edge=0.021, ev=0.04, adj=0.03, edgec=0.03, nb=3, n=20, mn=None,
+                    flags=[], mu=8.0, be=0.524, conf=0.8, units=0.25, usd=6.25)
+        def fill(paused):
+            d = tempfile.mkdtemp() + "/"; os.makedirs(d + "priced"); json.dump([side], open(d + "priced/NFL_2026-11-26.json", "w"))
+            old = daily.O; daily.O = d
+            try:
+                with mock.patch.dict(daily.CFG, {"model_pause": ("NFL",) if paused else ()}), mock.patch.object(daily, "cmd_explain", lambda *a: None), \
+                     mock.patch.object(daily, "put_stake", lambda h, b: True), contextlib.redirect_stdout(io.StringIO()):
+                    daily.cmd_fill("2026-11-26")
+                return json.load(open(d + "history.json"))["bets"] if os.path.exists(d + "history.json") else []
+            finally:
+                daily.O = old
+        self.assertEqual(len(fill(paused=False)), 1)
+        self.assertEqual(fill(paused=True), [])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

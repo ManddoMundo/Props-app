@@ -14,7 +14,7 @@ ok = {k: r for k, r in A.items() if r["side"] == "Over" and r.get("ver") and r.g
 days = sorted({r["date"] for r in ok.values()}); tmp = tempfile.mkdtemp() + "/"
 def weights(upto):
     json.dump({k: r for k, r in A.items() if r["date"] < upto}, open(tmp + "audit.json", "w")); LIVE.O = tmp; LIVE._CAL.clear()
-    w = {k: v["w"] for k, v in LIVE.calib(DATA).items()}; LIVE.O = OUT; LIVE._CAL.clear(); return w
+    w = {k: v.get("w_fit", v["w"]) for k, v in LIVE.calib(DATA).items()}      # w_fit: the weight a paused league would carry; LIVE.O = OUT; LIVE._CAL.clear(); return w
 FIX = (0.05, 0.10, 0.15, 0.25, 0.35); M = [f"w{int(x * 100):02d}" for x in FIX] + ["live"]; rows = []
 for d in days[1:]:
     W = weights(d); today = [(k, r) for k, r in ok.items() if r["date"] == d]

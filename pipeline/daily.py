@@ -1659,10 +1659,12 @@ def cmd_fill(date):
         print(f"fill: {len(today)} bets already on {date}"); return
     pool = []
     for lg in ("NBA", "NFL"):
+        if lg in CFG.get("model_pause", ()): continue      # v3.55: a paused league gets no leans either (v3.54 missed this lane)
         fp = O + f"priced/{lg}_{date}.json"
         if os.path.exists(fp):
             pool += json.load(open(fp))
     def ok(b):
+        if b["lg"] in CFG.get("model_pause", ()): return False      # v3.55, belt and braces with the loop above
         if not (CFG["min_odds"] <= b["odds"] <= CFG["max_odds"]) or b["n"] < CFG["min_games"]: return False
         if b["lg"] == "NBA" and (b["mn"] or 0) < CFG["nba_min_minutes"]: return False
         if any(f in b["flags"] for f in ("missed last game", "questionable")): return False
