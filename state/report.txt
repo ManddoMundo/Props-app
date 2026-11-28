@@ -132,5 +132,5 @@ GAME PRICE LANE (v4.2 shadow, not staked). Hard Rock's price against the sharp-w
     -- share that beat the close: None (needs >= 0.5)
     -- ROI z-score guard: None (needs >= -2.0)
 POLYMARKET WALLET BOARD (v4.2 tracking only). 49 wallets seen, 0 with 60+ directional NFL/NBA games.
-  last pull: 2026-11-27 19:52 ET, tracked list: 150 wallets from Polymarket sports leaderboard; errors: none
+  last pull: 2026-11-27 22:40 ET, tracked list: 150 wallets from Polymarket sports leaderboard; errors: none
   no wallet has enough directional scored games yet. The board fills as games are played.
